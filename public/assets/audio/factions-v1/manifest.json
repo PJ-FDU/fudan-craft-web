@@ -1,0 +1,985 @@
+{
+  "sampleRate": 44100,
+  "effects": [
+    "faction-industrial-chirp",
+    "faction-industrial-call",
+    "faction-industrial-order",
+    "faction-industrial-heal",
+    "faction-industrial-loss",
+    "faction-industrial-research",
+    "faction-industrial-alarm",
+    "faction-industrial-victory",
+    "faction-industrial-defeat",
+    "faction-industrial-base-select",
+    "faction-industrial-base-place",
+    "faction-industrial-base-finish",
+    "faction-industrial-base-collapse",
+    "faction-industrial-refinery-select",
+    "faction-industrial-refinery-place",
+    "faction-industrial-refinery-finish",
+    "faction-industrial-refinery-collapse",
+    "faction-industrial-lumbermill-select",
+    "faction-industrial-lumbermill-place",
+    "faction-industrial-lumbermill-finish",
+    "faction-industrial-lumbermill-collapse",
+    "faction-industrial-tower-select",
+    "faction-industrial-tower-place",
+    "faction-industrial-tower-finish",
+    "faction-industrial-tower-collapse",
+    "faction-industrial-oilwell-select",
+    "faction-industrial-oilwell-place",
+    "faction-industrial-oilwell-finish",
+    "faction-industrial-oilwell-collapse",
+    "faction-industrial-powerplant-select",
+    "faction-industrial-powerplant-place",
+    "faction-industrial-powerplant-finish",
+    "faction-industrial-powerplant-collapse",
+    "faction-industrial-barracks-select",
+    "faction-industrial-barracks-place",
+    "faction-industrial-barracks-finish",
+    "faction-industrial-barracks-collapse",
+    "faction-industrial-factory-select",
+    "faction-industrial-factory-place",
+    "faction-industrial-factory-finish",
+    "faction-industrial-factory-collapse",
+    "faction-industrial-airfield-select",
+    "faction-industrial-airfield-place",
+    "faction-industrial-airfield-finish",
+    "faction-industrial-airfield-collapse",
+    "faction-industrial-research-select",
+    "faction-industrial-research-place",
+    "faction-industrial-research-finish",
+    "faction-industrial-research-collapse",
+    "faction-industrial-supplyDepot-select",
+    "faction-industrial-supplyDepot-place",
+    "faction-industrial-supplyDepot-finish",
+    "faction-industrial-supplyDepot-collapse",
+    "faction-industrial-infirmary-select",
+    "faction-industrial-infirmary-place",
+    "faction-industrial-infirmary-finish",
+    "faction-industrial-infirmary-collapse",
+    "faction-industrial-commandPost-select",
+    "faction-industrial-commandPost-place",
+    "faction-industrial-commandPost-finish",
+    "faction-industrial-commandPost-collapse",
+    "faction-industrial-soldier-fire",
+    "faction-industrial-soldier-impact",
+    "faction-industrial-scout-fire",
+    "faction-industrial-scout-impact",
+    "faction-industrial-sniper-fire",
+    "faction-industrial-sniper-impact",
+    "faction-industrial-tank-fire",
+    "faction-industrial-tank-impact",
+    "faction-industrial-artillery-fire",
+    "faction-industrial-artillery-impact",
+    "faction-industrial-fighter-fire",
+    "faction-industrial-fighter-impact",
+    "faction-industrial-mech-fire",
+    "faction-industrial-mech-impact",
+    "faction-industrial-tower-fire",
+    "faction-industrial-tower-impact",
+    "faction-brood-chirp",
+    "faction-brood-call",
+    "faction-brood-order",
+    "faction-brood-heal",
+    "faction-brood-loss",
+    "faction-brood-research",
+    "faction-brood-alarm",
+    "faction-brood-victory",
+    "faction-brood-defeat",
+    "faction-brood-base-select",
+    "faction-brood-base-place",
+    "faction-brood-base-finish",
+    "faction-brood-base-collapse",
+    "faction-brood-refinery-select",
+    "faction-brood-refinery-place",
+    "faction-brood-refinery-finish",
+    "faction-brood-refinery-collapse",
+    "faction-brood-lumbermill-select",
+    "faction-brood-lumbermill-place",
+    "faction-brood-lumbermill-finish",
+    "faction-brood-lumbermill-collapse",
+    "faction-brood-tower-select",
+    "faction-brood-tower-place",
+    "faction-brood-tower-finish",
+    "faction-brood-tower-collapse",
+    "faction-brood-oilwell-select",
+    "faction-brood-oilwell-place",
+    "faction-brood-oilwell-finish",
+    "faction-brood-oilwell-collapse",
+    "faction-brood-hatchery-select",
+    "faction-brood-hatchery-place",
+    "faction-brood-hatchery-finish",
+    "faction-brood-hatchery-collapse",
+    "faction-brood-nursery-select",
+    "faction-brood-nursery-place",
+    "faction-brood-nursery-finish",
+    "faction-brood-nursery-collapse",
+    "faction-brood-gland-select",
+    "faction-brood-gland-place",
+    "faction-brood-gland-finish",
+    "faction-brood-gland-collapse",
+    "faction-brood-burrow-select",
+    "faction-brood-burrow-place",
+    "faction-brood-burrow-finish",
+    "faction-brood-burrow-collapse",
+    "faction-brood-broodling-fire",
+    "faction-brood-broodling-impact",
+    "faction-brood-spitter-fire",
+    "faction-brood-spitter-impact",
+    "faction-brood-behemoth-fire",
+    "faction-brood-behemoth-impact",
+    "faction-brood-bioWing-fire",
+    "faction-brood-bioWing-impact",
+    "faction-brood-tower-fire",
+    "faction-brood-tower-impact",
+    "faction-stellar-chirp",
+    "faction-stellar-call",
+    "faction-stellar-order",
+    "faction-stellar-heal",
+    "faction-stellar-loss",
+    "faction-stellar-research",
+    "faction-stellar-alarm",
+    "faction-stellar-victory",
+    "faction-stellar-defeat",
+    "faction-stellar-base-select",
+    "faction-stellar-base-place",
+    "faction-stellar-base-finish",
+    "faction-stellar-base-collapse",
+    "faction-stellar-refinery-select",
+    "faction-stellar-refinery-place",
+    "faction-stellar-refinery-finish",
+    "faction-stellar-refinery-collapse",
+    "faction-stellar-lumbermill-select",
+    "faction-stellar-lumbermill-place",
+    "faction-stellar-lumbermill-finish",
+    "faction-stellar-lumbermill-collapse",
+    "faction-stellar-tower-select",
+    "faction-stellar-tower-place",
+    "faction-stellar-tower-finish",
+    "faction-stellar-tower-collapse",
+    "faction-stellar-oilwell-select",
+    "faction-stellar-oilwell-place",
+    "faction-stellar-oilwell-finish",
+    "faction-stellar-oilwell-collapse",
+    "faction-stellar-node-select",
+    "faction-stellar-node-place",
+    "faction-stellar-node-finish",
+    "faction-stellar-node-collapse",
+    "faction-stellar-resonator-select",
+    "faction-stellar-resonator-place",
+    "faction-stellar-resonator-finish",
+    "faction-stellar-resonator-collapse",
+    "faction-stellar-warpHub-select",
+    "faction-stellar-warpHub-place",
+    "faction-stellar-warpHub-finish",
+    "faction-stellar-warpHub-collapse",
+    "faction-stellar-phaseSanctum-select",
+    "faction-stellar-phaseSanctum-place",
+    "faction-stellar-phaseSanctum-finish",
+    "faction-stellar-phaseSanctum-collapse",
+    "faction-stellar-lancer-fire",
+    "faction-stellar-lancer-impact",
+    "faction-stellar-prism-fire",
+    "faction-stellar-prism-impact",
+    "faction-stellar-colossus-fire",
+    "faction-stellar-colossus-impact",
+    "faction-stellar-starWing-fire",
+    "faction-stellar-starWing-impact",
+    "faction-stellar-tower-fire",
+    "faction-stellar-tower-impact",
+    "faction-relay-chirp",
+    "faction-relay-call",
+    "faction-relay-order",
+    "faction-relay-heal",
+    "faction-relay-loss",
+    "faction-relay-research",
+    "faction-relay-alarm",
+    "faction-relay-victory",
+    "faction-relay-defeat",
+    "faction-relay-base-select",
+    "faction-relay-base-place",
+    "faction-relay-base-finish",
+    "faction-relay-base-collapse",
+    "faction-relay-refinery-select",
+    "faction-relay-refinery-place",
+    "faction-relay-refinery-finish",
+    "faction-relay-refinery-collapse",
+    "faction-relay-lumbermill-select",
+    "faction-relay-lumbermill-place",
+    "faction-relay-lumbermill-finish",
+    "faction-relay-lumbermill-collapse",
+    "faction-relay-tower-select",
+    "faction-relay-tower-place",
+    "faction-relay-tower-finish",
+    "faction-relay-tower-collapse",
+    "faction-relay-oilwell-select",
+    "faction-relay-oilwell-place",
+    "faction-relay-oilwell-finish",
+    "faction-relay-oilwell-collapse",
+    "faction-relay-assembly-select",
+    "faction-relay-assembly-place",
+    "faction-relay-assembly-finish",
+    "faction-relay-assembly-collapse",
+    "faction-relay-relayTower-select",
+    "faction-relay-relayTower-place",
+    "faction-relay-relayTower-finish",
+    "faction-relay-relayTower-collapse",
+    "faction-relay-routePost-select",
+    "faction-relay-routePost-place",
+    "faction-relay-routePost-finish",
+    "faction-relay-routePost-collapse",
+    "faction-relay-observatory-select",
+    "faction-relay-observatory-place",
+    "faction-relay-observatory-finish",
+    "faction-relay-observatory-collapse",
+    "faction-relay-escortDepot-select",
+    "faction-relay-escortDepot-place",
+    "faction-relay-escortDepot-finish",
+    "faction-relay-escortDepot-collapse",
+    "faction-relay-ranger-fire",
+    "faction-relay-ranger-impact",
+    "faction-relay-runner-fire",
+    "faction-relay-runner-impact",
+    "faction-relay-flak-fire",
+    "faction-relay-flak-impact",
+    "faction-relay-relayWing-fire",
+    "faction-relay-relayWing-impact",
+    "faction-relay-tower-fire",
+    "faction-relay-tower-impact",
+    "faction-industrial-skill-IND-02",
+    "faction-industrial-skill-IND-03",
+    "faction-industrial-skill-IND-04",
+    "faction-industrial-skill-IND-05",
+    "faction-industrial-skill-IND-06",
+    "faction-brood-skill-BIO-01",
+    "faction-brood-skill-BIO-02",
+    "faction-brood-skill-BIO-03",
+    "faction-brood-skill-BIO-04",
+    "faction-brood-skill-BIO-05",
+    "faction-brood-skill-BIO-06",
+    "faction-stellar-skill-ENE-01",
+    "faction-stellar-skill-ENE-02",
+    "faction-stellar-skill-ENE-03",
+    "faction-stellar-skill-ENE-04",
+    "faction-stellar-skill-ENE-05",
+    "faction-stellar-skill-ENE-06",
+    "faction-relay-skill-RLY-01",
+    "faction-relay-skill-RLY-02",
+    "faction-relay-skill-RLY-03",
+    "faction-relay-skill-RLY-04",
+    "faction-relay-skill-RLY-05",
+    "faction-relay-skill-RLY-06"
+  ],
+  "loops": [
+    "faction-industrial-field",
+    "faction-industrial-construction",
+    "faction-industrial-base-idle",
+    "faction-industrial-base-work",
+    "faction-industrial-refinery-idle",
+    "faction-industrial-refinery-work",
+    "faction-industrial-lumbermill-idle",
+    "faction-industrial-lumbermill-work",
+    "faction-industrial-tower-idle",
+    "faction-industrial-tower-work",
+    "faction-industrial-oilwell-idle",
+    "faction-industrial-oilwell-work",
+    "faction-industrial-powerplant-idle",
+    "faction-industrial-powerplant-work",
+    "faction-industrial-barracks-idle",
+    "faction-industrial-barracks-work",
+    "faction-industrial-factory-idle",
+    "faction-industrial-factory-work",
+    "faction-industrial-airfield-idle",
+    "faction-industrial-airfield-work",
+    "faction-industrial-research-idle",
+    "faction-industrial-research-work",
+    "faction-industrial-supplyDepot-idle",
+    "faction-industrial-supplyDepot-work",
+    "faction-industrial-infirmary-idle",
+    "faction-industrial-infirmary-work",
+    "faction-industrial-commandPost-idle",
+    "faction-industrial-commandPost-work",
+    "faction-brood-field",
+    "faction-brood-construction",
+    "faction-brood-base-idle",
+    "faction-brood-base-work",
+    "faction-brood-refinery-idle",
+    "faction-brood-refinery-work",
+    "faction-brood-lumbermill-idle",
+    "faction-brood-lumbermill-work",
+    "faction-brood-tower-idle",
+    "faction-brood-tower-work",
+    "faction-brood-oilwell-idle",
+    "faction-brood-oilwell-work",
+    "faction-brood-hatchery-idle",
+    "faction-brood-hatchery-work",
+    "faction-brood-nursery-idle",
+    "faction-brood-nursery-work",
+    "faction-brood-gland-idle",
+    "faction-brood-gland-work",
+    "faction-brood-burrow-idle",
+    "faction-brood-burrow-work",
+    "faction-stellar-field",
+    "faction-stellar-construction",
+    "faction-stellar-base-idle",
+    "faction-stellar-base-work",
+    "faction-stellar-refinery-idle",
+    "faction-stellar-refinery-work",
+    "faction-stellar-lumbermill-idle",
+    "faction-stellar-lumbermill-work",
+    "faction-stellar-tower-idle",
+    "faction-stellar-tower-work",
+    "faction-stellar-oilwell-idle",
+    "faction-stellar-oilwell-work",
+    "faction-stellar-node-idle",
+    "faction-stellar-node-work",
+    "faction-stellar-resonator-idle",
+    "faction-stellar-resonator-work",
+    "faction-stellar-warpHub-idle",
+    "faction-stellar-warpHub-work",
+    "faction-stellar-phaseSanctum-idle",
+    "faction-stellar-phaseSanctum-work",
+    "faction-relay-field",
+    "faction-relay-construction",
+    "faction-relay-base-idle",
+    "faction-relay-base-work",
+    "faction-relay-refinery-idle",
+    "faction-relay-refinery-work",
+    "faction-relay-lumbermill-idle",
+    "faction-relay-lumbermill-work",
+    "faction-relay-tower-idle",
+    "faction-relay-tower-work",
+    "faction-relay-oilwell-idle",
+    "faction-relay-oilwell-work",
+    "faction-relay-assembly-idle",
+    "faction-relay-assembly-work",
+    "faction-relay-relayTower-idle",
+    "faction-relay-relayTower-work",
+    "faction-relay-routePost-idle",
+    "faction-relay-routePost-work",
+    "faction-relay-observatory-idle",
+    "faction-relay-observatory-work",
+    "faction-relay-escortDepot-idle",
+    "faction-relay-escortDepot-work",
+    "faction-relay-assembly-transit"
+  ],
+  "voices": {
+    "faction-industrial-unit-worker-select": [
+      "工程车，液压正常。",
+      "Engineering here. Hydraulics good."
+    ],
+    "faction-industrial-unit-worker-move": [
+      "好，车过去了。",
+      "Okay, rolling over."
+    ],
+    "faction-industrial-unit-worker-gather": [
+      "夹具张开，开始装料。",
+      "Opening the claws. Loading up."
+    ],
+    "faction-industrial-unit-worker-repair": [
+      "我带工具过去。",
+      "I’ll bring the tools over."
+    ],
+    "faction-industrial-unit-worker-build": [
+      "地基交给我。",
+      "I’ll lay the foundation."
+    ],
+    "faction-industrial-unit-soldier-select": [
+      "联邦突击组，待命。",
+      "Federation assault squad, standing by."
+    ],
+    "faction-industrial-unit-soldier-move": [
+      "压低身子，跟上。",
+      "Stay low and follow me."
+    ],
+    "faction-industrial-unit-soldier-attack": [
+      "突击组，火力压制！",
+      "Assault squad, suppressing fire!"
+    ],
+    "faction-industrial-unit-scout-select": [
+      "侦察车上线，前路还空着。",
+      "Scout online. Road ahead looks open."
+    ],
+    "faction-industrial-unit-scout-move": [
+      "我抄近路。",
+      "I know a shortcut."
+    ],
+    "faction-industrial-unit-scout-attack": [
+      "轻炮锁住了。",
+      "Light gun locked on."
+    ],
+    "faction-industrial-unit-medic-select": [
+      "战地医疗，听得见。",
+      "Field medic, reading you."
+    ],
+    "faction-industrial-unit-medic-move": [
+      "让出一条救护线。",
+      "Make a lane for medical."
+    ],
+    "faction-industrial-unit-medic-cast": [
+      "伤员交给我。",
+      "I’ve got the wounded."
+    ],
+    "faction-industrial-unit-sniper-select": [
+      "幽影报告，保持安静。",
+      "Ghost checking in. Keep it quiet."
+    ],
+    "faction-industrial-unit-sniper-move": [
+      "换个射界。",
+      "Changing my sightline."
+    ],
+    "faction-industrial-unit-sniper-attack": [
+      "准星稳了。",
+      "Sight picture steady."
+    ],
+    "faction-industrial-unit-tank-select": [
+      "攻城车组，炮闩锁定。",
+      "Siege crew. Breech locked."
+    ],
+    "faction-industrial-unit-tank-move": [
+      "低挡，稳住炮塔。",
+      "Low gear. Hold the turret steady."
+    ],
+    "faction-industrial-unit-tank-attack": [
+      "重炮准备，发射！",
+      "Main gun ready. Fire!"
+    ],
+    "faction-industrial-unit-artillery-select": [
+      "炮组，请报方位。",
+      "Gun crew. Give us a bearing."
+    ],
+    "faction-industrial-unit-artillery-move": [
+      "收起支架，换阵地。",
+      "Raise the braces. New position."
+    ],
+    "faction-industrial-unit-artillery-attack": [
+      "标尺就位，齐射！",
+      "Elevation set. Volley out!"
+    ],
+    "faction-industrial-unit-fighter-select": [
+      "猎隼报到，推力稳定。",
+      "Falcon reporting. Thrust is stable."
+    ],
+    "faction-industrial-unit-fighter-move": [
+      "转向指定空域。",
+      "Turning into the assigned sector."
+    ],
+    "faction-industrial-unit-fighter-attack": [
+      "猎隼进入攻击航线。",
+      "Falcon on the attack run."
+    ],
+    "faction-industrial-unit-mech-select": [
+      "泰坦驾驶舱，系统全绿。",
+      "Titan cockpit. All systems green."
+    ],
+    "faction-industrial-unit-mech-move": [
+      "稳定器解锁，迈步。",
+      "Stabilizers off. Stepping out."
+    ],
+    "faction-industrial-unit-mech-attack": [
+      "给重型火炮让条路。",
+      "Clear a lane for the heavy gun."
+    ],
+    "faction-industrial-unit-commander-select": [
+      "联邦指挥官，接入战术网。",
+      "Federation command on the tactical net."
+    ],
+    "faction-industrial-unit-commander-move": [
+      "指挥组，随我转移。",
+      "Command element, move with me."
+    ],
+    "faction-industrial-unit-commander-cast": [
+      "战术指令，全组执行。",
+      "All elements, execute the directive."
+    ],
+    "faction-industrial-unit-disruptor-select": [
+      "频谱组，阵列可用。",
+      "Spectrum crew. Array is ready."
+    ],
+    "faction-industrial-unit-disruptor-move": [
+      "阵列收拢，换个位置。",
+      "Fold the array. We’re moving."
+    ],
+    "faction-industrial-unit-disruptor-cast": [
+      "切入目标频道。",
+      "Cutting into their channel."
+    ],
+    "faction-industrial-command-start": [
+      "联邦指挥链路在线。",
+      "Federation command link online."
+    ],
+    "faction-industrial-command-ready": [
+      "新单位已编入作战序列。",
+      "New unit assigned to the roster."
+    ],
+    "faction-industrial-command-complete": [
+      "设施验收通过。",
+      "Facility cleared for service."
+    ],
+    "faction-industrial-command-research": [
+      "联邦工程升级完成。",
+      "Federation upgrade complete."
+    ],
+    "faction-industrial-command-baseAttack": [
+      "指挥中心遇袭，立即应对！",
+      "Command center under attack. Respond now!"
+    ],
+    "faction-industrial-command-lowPower": [
+      "母线超载，电力不足。",
+      "Grid overloaded. Power is low."
+    ],
+    "faction-industrial-command-unitLost": [
+      "一个呼号离线。",
+      "We’ve lost a call sign."
+    ],
+    "faction-industrial-command-victory": [
+      "区域已控制，联邦任务完成。",
+      "Sector secured. Federation mission complete."
+    ],
+    "faction-industrial-command-defeat": [
+      "指挥链路中断，剩余单位撤离。",
+      "Command link severed. Remaining units, withdraw."
+    ],
+    "faction-brood-unit-worker-select": [
+      "工巢听见了。",
+      "The worker nest hears."
+    ],
+    "faction-brood-unit-worker-move": [
+      "沿着气味爬行。",
+      "Follow the scent."
+    ],
+    "faction-brood-unit-worker-gather": [
+      "将养分带回巢穴。",
+      "Carry the nutrients home."
+    ],
+    "faction-brood-unit-worker-repair": [
+      "让裂口重新长合。",
+      "Let the breach grow shut."
+    ],
+    "faction-brood-unit-worker-build": [
+      "从这里扎下根须。",
+      "Put down roots here."
+    ],
+    "faction-brood-unit-broodling-select": [
+      "迅爪在等。",
+      "Rushclaw waits."
+    ],
+    "faction-brood-unit-broodling-move": [
+      "贴着地面过去。",
+      "Low to the ground."
+    ],
+    "faction-brood-unit-broodling-attack": [
+      "利爪撕开它。",
+      "Claws tear it open."
+    ],
+    "faction-brood-unit-spitter-select": [
+      "酸囊已经鼓起。",
+      "The acid sac is full."
+    ],
+    "faction-brood-unit-spitter-move": [
+      "拖着酸迹前进。",
+      "Moving on the acid trail."
+    ],
+    "faction-brood-unit-spitter-attack": [
+      "溶掉外壳。",
+      "Dissolve the shell."
+    ],
+    "faction-brood-unit-behemoth-select": [
+      "巨壳已经醒来。",
+      "The great shell awakens."
+    ],
+    "faction-brood-unit-behemoth-move": [
+      "地面会让开。",
+      "The ground will yield."
+    ],
+    "faction-brood-unit-behemoth-attack": [
+      "用整个身躯撞碎它。",
+      "Break it with our weight."
+    ],
+    "faction-brood-unit-bioWing-select": [
+      "翅膜迎风。",
+      "Wings in the wind."
+    ],
+    "faction-brood-unit-bioWing-move": [
+      "沿上升气流滑行。",
+      "Glide on the rising air."
+    ],
+    "faction-brood-unit-bioWing-attack": [
+      "俯冲，掠过它的背。",
+      "Dive across its back."
+    ],
+    "faction-brood-unit-sac-select": [
+      "囊体饱满，巢脉通畅。",
+      "Sacs full. The hive feeds."
+    ],
+    "faction-brood-unit-sac-move": [
+      "护着囊体前行。",
+      "Moving with the sacs protected."
+    ],
+    "faction-brood-unit-nurturer-select": [
+      "育生者，温养巢脉。",
+      "The nurturer tends the brood."
+    ],
+    "faction-brood-unit-nurturer-move": [
+      "循伤口的气味过去。",
+      "Drawn to the scent of wounds."
+    ],
+    "faction-brood-unit-nurturer-cast": [
+      "将养分送入伤口。",
+      "Feed the wound. Knit it closed."
+    ],
+    "faction-brood-unit-infector-select": [
+      "孢囊已成熟。",
+      "The spores are ripe."
+    ],
+    "faction-brood-unit-infector-move": [
+      "让风把我们带近。",
+      "Let the wind bring us near."
+    ],
+    "faction-brood-unit-infector-cast": [
+      "孢子，找它的裂缝。",
+      "Spores, seek its cracks."
+    ],
+    "faction-brood-unit-binder-select": [
+      "缚索在骨刺下生长。",
+      "Tethers grow beneath the spines."
+    ],
+    "faction-brood-unit-binder-move": [
+      "根须拔起，往前。",
+      "Uproot. Forward."
+    ],
+    "faction-brood-unit-binder-cast": [
+      "把它锁在地面。",
+      "Bind it to the ground."
+    ],
+    "faction-brood-command-start": [
+      "巢心苏醒，群体听令。",
+      "The hive wakes. The brood listens."
+    ],
+    "faction-brood-command-ready": [
+      "又一道心跳加入巢群。",
+      "Another heartbeat joins the brood."
+    ],
+    "faction-brood-command-complete": [
+      "新的巢器已经长成。",
+      "A new hive organ has matured."
+    ],
+    "faction-brood-command-research": [
+      "新的性状已传入巢脉。",
+      "A new trait flows through the hive."
+    ],
+    "faction-brood-command-baseAttack": [
+      "有东西在撕扯巢心！",
+      "Something is tearing at the hive heart!"
+    ],
+    "faction-brood-command-lowPower": [
+      "巢脉缺少滋养。",
+      "The hive is starved of nourishment."
+    ],
+    "faction-brood-command-unitLost": [
+      "一道巢脉静了。",
+      "A voice in the hive falls silent."
+    ],
+    "faction-brood-command-victory": [
+      "巢群吞没了这片领地。",
+      "The brood has consumed this ground."
+    ],
+    "faction-brood-command-defeat": [
+      "巢心沉寂，群体散去。",
+      "The hive falls silent. The brood scatters."
+    ],
+    "faction-stellar-unit-worker-select": [
+      "构装采集端已同步。",
+      "Construct harvester synchronized."
+    ],
+    "faction-stellar-unit-worker-move": [
+      "重算牵引路径。",
+      "Recalculating the traction path."
+    ],
+    "faction-stellar-unit-worker-gather": [
+      "将矿料纳入晶格。",
+      "Feeding ore into the lattice."
+    ],
+    "faction-stellar-unit-worker-repair": [
+      "重新校准结构。",
+      "Realigning the structure."
+    ],
+    "faction-stellar-unit-worker-build": [
+      "蓝图已写入光场。",
+      "Blueprint written into the light field."
+    ],
+    "faction-stellar-unit-lancer-select": [
+      "晶锋谐振稳定。",
+      "Crystal lances in resonance."
+    ],
+    "faction-stellar-unit-lancer-move": [
+      "向坐标列阵。",
+      "Forming at the coordinates."
+    ],
+    "faction-stellar-unit-lancer-attack": [
+      "双锋同相。",
+      "Lances, in phase."
+    ],
+    "faction-stellar-unit-prism-select": [
+      "棱镜聚焦组件在线。",
+      "Prism focus assembly online."
+    ],
+    "faction-stellar-unit-prism-move": [
+      "转移光路。",
+      "Redirecting the beam path."
+    ],
+    "faction-stellar-unit-prism-attack": [
+      "折射收束，释放。",
+      "Refraction aligned. Release."
+    ],
+    "faction-stellar-unit-colossus-select": [
+      "巨构各节点已对齐。",
+      "Colossus nodes aligned."
+    ],
+    "faction-stellar-unit-colossus-move": [
+      "重建行走相位。",
+      "Rebuilding the walking phase."
+    ],
+    "faction-stellar-unit-colossus-attack": [
+      "相位脉冲，最大振幅。",
+      "Phase pulse. Full amplitude."
+    ],
+    "faction-stellar-unit-starWing-select": [
+      "辉梭光帆展开。",
+      "Light shuttle. Sails deployed."
+    ],
+    "faction-stellar-unit-starWing-move": [
+      "沿星轨切入。",
+      "Intercepting along the star track."
+    ],
+    "faction-stellar-unit-starWing-attack": [
+      "辉束指向目标。",
+      "Directing the light burst."
+    ],
+    "faction-stellar-unit-weaver-select": [
+      "织者已接入护盾网。",
+      "Weaver linked to the shield mesh."
+    ],
+    "faction-stellar-unit-weaver-move": [
+      "沿最弱的节点移动。",
+      "Moving to the weakest node."
+    ],
+    "faction-stellar-unit-weaver-cast": [
+      "重织这层护盾。",
+      "Reweaving the shield layer."
+    ],
+    "faction-stellar-unit-guide-select": [
+      "引导信标已校准。",
+      "Guide beacon calibrated."
+    ],
+    "faction-stellar-unit-guide-move": [
+      "测量新的折跃矢量。",
+      "Measuring the new warp vector."
+    ],
+    "faction-stellar-unit-guide-cast": [
+      "目标相位，已捕获。",
+      "Target phase acquired."
+    ],
+    "faction-stellar-unit-arbiter-select": [
+      "仲裁节点在线。",
+      "Arbiter node online."
+    ],
+    "faction-stellar-unit-arbiter-move": [
+      "迁移仲裁坐标。",
+      "Relocating the judgment node."
+    ],
+    "faction-stellar-unit-arbiter-cast": [
+      "重置局部相位。",
+      "Resetting the local phase."
+    ],
+    "faction-stellar-command-start": [
+      "星能议会，同步完成。",
+      "Stellar council. Synchronization complete."
+    ],
+    "faction-stellar-command-ready": [
+      "新构装已接入共振网络。",
+      "New construct linked to the resonance network."
+    ],
+    "faction-stellar-command-complete": [
+      "设施晶核已稳定。",
+      "Facility core stabilized."
+    ],
+    "faction-stellar-command-research": [
+      "共鸣参数已更新。",
+      "Resonance parameters updated."
+    ],
+    "faction-stellar-command-baseAttack": [
+      "主晶核受击，立即稳住！",
+      "Primary core taking fire. Stabilize it now!"
+    ],
+    "faction-stellar-command-lowPower": [
+      "能量网络正在失谐。",
+      "The power network is losing coherence."
+    ],
+    "faction-stellar-command-unitLost": [
+      "一个相位信号消失。",
+      "A phase signal has vanished."
+    ],
+    "faction-stellar-command-victory": [
+      "共鸣覆盖成立，议会已控制区域。",
+      "Resonance established. The council holds this sector."
+    ],
+    "faction-stellar-command-defeat": [
+      "主晶核失谐，链接断开。",
+      "Primary core out of phase. Link lost."
+    ],
+    "faction-relay-unit-worker-select": [
+      "工程车在，扳手都齐了。",
+      "Work truck here. Tools are aboard."
+    ],
+    "faction-relay-unit-worker-move": [
+      "挑条平整路过去。",
+      "I’ll find a smooth way over."
+    ],
+    "faction-relay-unit-worker-gather": [
+      "先把货装稳。",
+      "Let’s get that load strapped down."
+    ],
+    "faction-relay-unit-worker-repair": [
+      "把车停稳，我来修。",
+      "Hold it steady. I’ll fix it."
+    ],
+    "faction-relay-unit-worker-build": [
+      "我去打桩架支腿。",
+      "I’ll stake it out and set the legs."
+    ],
+    "faction-relay-unit-ranger-select": [
+      "远行者线列队，听着呢。",
+      "Line rangers. We hear you."
+    ],
+    "faction-relay-unit-ranger-move": [
+      "跟我走外侧。",
+      "Take the outside with me."
+    ],
+    "faction-relay-unit-ranger-attack": [
+      "线列队，瞄准前面。",
+      "Rangers, sights forward."
+    ],
+    "faction-relay-unit-runner-select": [
+      "侧翼车，轮胎刚换过。",
+      "Flank runner. Fresh tires fitted."
+    ],
+    "faction-relay-unit-runner-move": [
+      "我走外圈，绕过去。",
+      "I’ll swing around the outside."
+    ],
+    "faction-relay-unit-runner-attack": [
+      "边走边压住他们。",
+      "Keep them down as we roll."
+    ],
+    "faction-relay-unit-flak-select": [
+      "护空车，炮架已松开。",
+      "Flak carrier. Mounts unlocked."
+    ],
+    "faction-relay-unit-flak-move": [
+      "换个开阔位置。",
+      "Taking a clearer position."
+    ],
+    "faction-relay-unit-flak-attack": [
+      "双联炮，短点射。",
+      "Twin mounts. Short bursts."
+    ],
+    "faction-relay-unit-relayWing-select": [
+      "巡航翼，风向合适。",
+      "Roaming wing. Wind is with us."
+    ],
+    "faction-relay-unit-relayWing-move": [
+      "贴着地形飞过去。",
+      "Following the terrain in."
+    ],
+    "faction-relay-unit-relayWing-attack": [
+      "对准了，掠过去。",
+      "Lined up. Making a pass."
+    ],
+    "faction-relay-unit-pathfinder-select": [
+      "路线工兵，地钉备齐。",
+      "Pathfinder. Route stakes ready."
+    ],
+    "faction-relay-unit-pathfinder-move": [
+      "我先探一下能不能过。",
+      "I’ll check if we can get through."
+    ],
+    "faction-relay-unit-pathfinder-cast": [
+      "把这条路标出来。",
+      "Mark this route out."
+    ],
+    "faction-relay-unit-observer-select": [
+      "前沿观测，通讯清楚。",
+      "Forward observer. Signal is clear."
+    ],
+    "faction-relay-unit-observer-move": [
+      "我去找个视野好的点。",
+      "I’ll find a better vantage point."
+    ],
+    "faction-relay-unit-observer-cast": [
+      "传回新的方位。",
+      "Relaying the new bearing."
+    ],
+    "faction-relay-unit-escort-select": [
+      "护航车，车队频道正常。",
+      "Escort. Convoy channel is clear."
+    ],
+    "faction-relay-unit-escort-move": [
+      "车队跟上，别拉开。",
+      "Convoy, close up and follow."
+    ],
+    "faction-relay-unit-escort-cast": [
+      "把车队护起来。",
+      "Put a screen around the convoy."
+    ],
+    "faction-relay-unit-assembly-select": [
+      "装配车已经收拢。",
+      "Assembly rig folded for transit."
+    ],
+    "faction-relay-unit-assembly-move": [
+      "支腿锁好，上路。",
+      "Legs latched. Moving the rig."
+    ],
+    "faction-relay-unit-assembly-build": [
+      "找平，马上展开。",
+      "Leveling up for deployment."
+    ],
+    "faction-relay-command-start": [
+      "各车报到，远行队已连通。",
+      "All vehicles check in. The convoy is linked."
+    ],
+    "faction-relay-command-ready": [
+      "新的呼号加入车队。",
+      "A new call sign joins the convoy."
+    ],
+    "faction-relay-command-complete": [
+      "支点搭好了，可以用了。",
+      "The outpost is up and ready."
+    ],
+    "faction-relay-command-research": [
+      "新设备方案传到各车。",
+      "New kit plans are on the convoy net."
+    ],
+    "faction-relay-command-baseAttack": [
+      "营地遇袭，能回来的都回来！",
+      "Camp under attack. All available units, turn back!"
+    ],
+    "faction-relay-command-lowPower": [
+      "营地的供能撑不住了。",
+      "Camp power is running low."
+    ],
+    "faction-relay-command-unitLost": [
+      "有同伴掉队了。",
+      "We’ve lost someone from the convoy."
+    ],
+    "faction-relay-command-victory": [
+      "路打通了，远行队继续走。",
+      "The route is open. The convoy moves on."
+    ],
+    "faction-relay-command-defeat": [
+      "营地失守，车队分头撤离。",
+      "Camp is lost. Convoy, break off and withdraw."
+    ]
+  }
+}

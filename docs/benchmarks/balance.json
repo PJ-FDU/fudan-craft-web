@@ -1,0 +1,3213 @@
+{
+  "version": 1,
+  "step": 0.05,
+  "difficulty": "normal",
+  "limit": 1200,
+  "stats": {
+    "worker": {
+      "name": "工程采集车",
+      "en": "HARVESTER",
+      "cell": 0,
+      "description": "采集金矿、木材与原油并运回基地，也能建造和维修建筑。",
+      "hp": 120,
+      "damage": 0,
+      "range": 120,
+      "speed": 112,
+      "cooldown": 1,
+      "vision": 8,
+      "cost": 110,
+      "wood": 0,
+      "oil": 0,
+      "build": 6,
+      "radius": 14,
+      "size": 63,
+      "power": 0,
+      "atlas": "units",
+      "producer": "base"
+    },
+    "soldier": {
+      "name": "突击步兵",
+      "en": "RIFLEMAN",
+      "cell": 1,
+      "description": "可靠的基础火力，低成本部署，适合保护采集线。",
+      "hp": 105,
+      "damage": 10,
+      "range": 150,
+      "speed": 100,
+      "cooldown": 0.7,
+      "vision": 8,
+      "cost": 160,
+      "wood": 30,
+      "oil": 0,
+      "build": 7,
+      "radius": 14,
+      "size": 53,
+      "power": 0,
+      "atlas": "units",
+      "producer": "barracks"
+    },
+    "scout": {
+      "name": "侦察战车",
+      "en": "SCOUT BUGGY",
+      "cell": 2,
+      "description": "高机动、广视野，适合探索和切断补给。",
+      "hp": 160,
+      "damage": 10,
+      "range": 165,
+      "speed": 170,
+      "cooldown": 0.75,
+      "vision": 13,
+      "cost": 240,
+      "wood": 60,
+      "oil": 20,
+      "build": 8,
+      "radius": 14,
+      "size": 72,
+      "power": 0,
+      "atlas": "units",
+      "producer": "factory"
+    },
+    "medic": {
+      "name": "战地医疗兵",
+      "en": "FIELD MEDIC",
+      "cell": 3,
+      "description": "每次治疗 10 生命，支援受伤的友方地面作战单位，无法攻击。",
+      "hp": 85,
+      "damage": 0,
+      "range": 170,
+      "speed": 100,
+      "cooldown": 1,
+      "vision": 8,
+      "cost": 200,
+      "wood": 70,
+      "oil": 20,
+      "build": 9,
+      "radius": 14,
+      "size": 53,
+      "power": 0,
+      "atlas": "units",
+      "producer": "barracks",
+      "requires": "research"
+    },
+    "sniper": {
+      "name": "幽影狙击手",
+      "en": "GHOST SNIPER",
+      "cell": 4,
+      "description": "远距离精确射击，对步兵额外伤害。",
+      "hp": 80,
+      "damage": 38,
+      "range": 310,
+      "speed": 88,
+      "cooldown": 2.1,
+      "vision": 8,
+      "cost": 280,
+      "wood": 80,
+      "oil": 20,
+      "build": 10,
+      "radius": 14,
+      "size": 57,
+      "power": 0,
+      "atlas": "units",
+      "producer": "barracks",
+      "tech": "weapons"
+    },
+    "tank": {
+      "name": "攻城坦克",
+      "en": "SIEGE TANK",
+      "cell": 5,
+      "description": "重装甲与范围火力，适合正面推进。",
+      "hp": 420,
+      "damage": 38,
+      "range": 220,
+      "speed": 76,
+      "cooldown": 1.6,
+      "vision": 8,
+      "cost": 600,
+      "wood": 180,
+      "oil": 100,
+      "build": 13,
+      "radius": 14,
+      "size": 86,
+      "power": 0,
+      "atlas": "units",
+      "producer": "factory",
+      "splash": 58
+    },
+    "artillery": {
+      "name": "远程火炮",
+      "en": "HOWITZER",
+      "cell": 6,
+      "description": "超远射程与范围轰击，爆炸边缘伤害递减，无法攻击空中目标。",
+      "hp": 190,
+      "damage": 58,
+      "range": 440,
+      "speed": 56,
+      "cooldown": 3.4,
+      "vision": 8,
+      "cost": 750,
+      "wood": 240,
+      "oil": 150,
+      "build": 17,
+      "radius": 14,
+      "size": 90,
+      "power": 0,
+      "atlas": "units",
+      "producer": "factory",
+      "tech": "advanced",
+      "splash": 88
+    },
+    "fighter": {
+      "name": "猎隼战机",
+      "en": "FALCON VTOL",
+      "cell": 7,
+      "description": "无视地形的空中单位，高机动持续打击。",
+      "hp": 210,
+      "damage": 18,
+      "range": 225,
+      "speed": 190,
+      "cooldown": 0.95,
+      "vision": 12,
+      "cost": 750,
+      "wood": 200,
+      "oil": 200,
+      "build": 16,
+      "radius": 14,
+      "size": 88,
+      "power": 0,
+      "atlas": "units",
+      "producer": "airfield",
+      "tech": "aviation",
+      "air": true
+    },
+    "mech": {
+      "name": "泰坦机甲",
+      "en": "TITAN WALKER",
+      "cell": 8,
+      "description": "高生命值的重型突击单位，解锁于先进工程。",
+      "hp": 650,
+      "damage": 40,
+      "range": 240,
+      "speed": 68,
+      "cooldown": 1.4,
+      "vision": 8,
+      "cost": 1050,
+      "wood": 320,
+      "oil": 240,
+      "build": 22,
+      "radius": 14,
+      "size": 94,
+      "power": 0,
+      "atlas": "units",
+      "producer": "factory",
+      "tech": "advanced"
+    },
+    "base": {
+      "name": "指挥中心",
+      "en": "COMMAND CENTER",
+      "cell": 0,
+      "description": "训练采集车，接收全部资源。被摧毁即出局。",
+      "hp": 2000,
+      "damage": 0,
+      "range": 0,
+      "speed": 0,
+      "cooldown": 1,
+      "vision": 15,
+      "cost": 2000,
+      "wood": 1000,
+      "oil": 400,
+      "build": 14,
+      "radius": 54,
+      "size": 182,
+      "power": -20,
+      "atlas": "buildings"
+    },
+    "barracks": {
+      "name": "步兵营",
+      "en": "BARRACKS",
+      "cell": 1,
+      "description": "生产突击步兵，搭配研究中心解锁医疗兵与狙击手。",
+      "hp": 900,
+      "damage": 0,
+      "range": 0,
+      "speed": 0,
+      "cooldown": 1,
+      "vision": 10,
+      "cost": 500,
+      "wood": 240,
+      "oil": 0,
+      "build": 14,
+      "radius": 38,
+      "size": 144,
+      "power": 10,
+      "atlas": "buildings",
+      "requires": "powerplant"
+    },
+    "factory": {
+      "name": "战车工厂",
+      "en": "VEHICLE WORKS",
+      "cell": 2,
+      "description": "生产侦察车、坦克、火炮与重型机甲。",
+      "hp": 1100,
+      "damage": 0,
+      "range": 0,
+      "speed": 0,
+      "cooldown": 1,
+      "vision": 10,
+      "cost": 800,
+      "wood": 360,
+      "oil": 80,
+      "build": 24,
+      "radius": 38,
+      "size": 158,
+      "power": 20,
+      "atlas": "buildings",
+      "requires": "barracks"
+    },
+    "airfield": {
+      "name": "航空机库",
+      "en": "AIRFIELD",
+      "cell": 3,
+      "description": "研究航空技术后生产猎隼战机。",
+      "hp": 1000,
+      "damage": 0,
+      "range": 0,
+      "speed": 0,
+      "cooldown": 1,
+      "vision": 10,
+      "cost": 1000,
+      "wood": 450,
+      "oil": 150,
+      "build": 26,
+      "radius": 46,
+      "size": 174,
+      "power": 25,
+      "atlas": "buildings",
+      "requires": "factory"
+    },
+    "refinery": {
+      "name": "石油精炼厂",
+      "en": "REFINERY",
+      "cell": 4,
+      "description": "解锁原油开采，兼作采集车交付资源的补给点。",
+      "hp": 850,
+      "damage": 0,
+      "range": 0,
+      "speed": 0,
+      "cooldown": 1,
+      "vision": 10,
+      "cost": 550,
+      "wood": 280,
+      "oil": 0,
+      "build": 18,
+      "radius": 38,
+      "size": 144,
+      "power": 15,
+      "atlas": "buildings",
+      "requires": "barracks"
+    },
+    "research": {
+      "name": "科技研究中心",
+      "en": "RESEARCH LAB",
+      "cell": 5,
+      "description": "研发火力、装甲、物流、先进工程与航空技术。",
+      "hp": 800,
+      "damage": 0,
+      "range": 0,
+      "speed": 0,
+      "cooldown": 1,
+      "vision": 10,
+      "cost": 700,
+      "wood": 340,
+      "oil": 50,
+      "build": 24,
+      "radius": 38,
+      "size": 146,
+      "power": 15,
+      "atlas": "buildings",
+      "requires": "barracks"
+    },
+    "lumbermill": {
+      "name": "木材加工厂",
+      "en": "LUMBER MILL",
+      "cell": 6,
+      "description": "提高伐木效率 50%，同时作为前线资源交付点。",
+      "hp": 750,
+      "damage": 0,
+      "range": 0,
+      "speed": 0,
+      "cooldown": 1,
+      "vision": 10,
+      "cost": 350,
+      "wood": 180,
+      "oil": 0,
+      "build": 14,
+      "radius": 38,
+      "size": 138,
+      "power": 5,
+      "atlas": "buildings",
+      "requires": "base"
+    },
+    "powerplant": {
+      "name": "聚能电站",
+      "en": "POWER PLANT",
+      "cell": 7,
+      "description": "提供 60 电力，低电力时军事生产与研究暂停。",
+      "hp": 800,
+      "damage": 0,
+      "range": 0,
+      "speed": 0,
+      "cooldown": 1,
+      "vision": 10,
+      "cost": 300,
+      "wood": 150,
+      "oil": 0,
+      "build": 14,
+      "radius": 38,
+      "size": 127,
+      "power": -60,
+      "atlas": "buildings",
+      "requires": "base"
+    },
+    "tower": {
+      "name": "哨戒炮塔",
+      "en": "SENTINEL",
+      "cell": 8,
+      "description": "自动攻击范围内的地面与空中敌人，需要部队配合防守。",
+      "hp": 650,
+      "damage": 18,
+      "range": 285,
+      "speed": 0,
+      "cooldown": 1,
+      "vision": 10,
+      "cost": 400,
+      "wood": 200,
+      "oil": 40,
+      "build": 18,
+      "radius": 25,
+      "size": 94,
+      "power": 10,
+      "atlas": "buildings",
+      "requires": "barracks"
+    }
+  },
+  "results": [
+    {
+      "label": "rush vs balanced · 原出生边",
+      "mode": "economy",
+      "mapId": "twin-lakes",
+      "mapRevision": 3,
+      "time": 426.25000000006264,
+      "winner": 2,
+      "combatWinner": null,
+      "players": [
+        {
+          "side": 1,
+          "team": 1,
+          "style": "rush",
+          "kills": 32,
+          "lost": 80,
+          "stats": {
+            "since": 0,
+            "income": {
+              "gold": 19880.5,
+              "wood": 8301.5,
+              "oil": 5451.5
+            },
+            "spent": {
+              "gold": 22679.847999999973,
+              "wood": 7539.350400000256,
+              "oil": 1820
+            },
+            "refunded": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "killedValue": {
+              "gold": 6770,
+              "wood": 1790,
+              "oil": 240
+            },
+            "lostValue": {
+              "gold": 22460,
+              "wood": 7010,
+              "oil": 1820
+            },
+            "damage": 7903.0006835219765,
+            "healing": 350,
+            "workerIdleSeconds": 30.400000000000286,
+            "bounty": 1354,
+            "trained": {
+              "worker": 9,
+              "soldier": 34,
+              "tank": 9,
+              "medic": 3,
+              "sniper": 8
+            },
+            "series": [
+              {
+                "time": 0.05,
+                "gold": 1500,
+                "wood": 600,
+                "oil": 0,
+                "army": 3,
+                "workers": 3
+              },
+              {
+                "time": 30.050000000000292,
+                "gold": 179,
+                "wood": 650,
+                "oil": 0,
+                "army": 6,
+                "workers": 7
+              },
+              {
+                "time": 60.049999999998725,
+                "gold": 1287,
+                "wood": 1641.5,
+                "oil": 0,
+                "army": 6,
+                "workers": 10
+              },
+              {
+                "time": 90.04999999999703,
+                "gold": 1647,
+                "wood": 2461.5,
+                "oil": 420,
+                "army": 9,
+                "workers": 10
+              },
+              {
+                "time": 120.04999999999532,
+                "gold": 39,
+                "wood": 2411.5,
+                "oil": 670,
+                "army": 12,
+                "workers": 10
+              },
+              {
+                "time": 150.04999999999987,
+                "gold": 296,
+                "wood": 2451.5,
+                "oil": 1090,
+                "army": 15,
+                "workers": 10
+              },
+              {
+                "time": 180.0500000000067,
+                "gold": 134,
+                "wood": 2211.5,
+                "oil": 1560,
+                "army": 16,
+                "workers": 10
+              },
+              {
+                "time": 210.0500000000135,
+                "gold": 264,
+                "wood": 2481.5,
+                "oil": 1760,
+                "army": 11,
+                "workers": 10
+              },
+              {
+                "time": 240.05000000002033,
+                "gold": 166,
+                "wood": 2281.5,
+                "oil": 2270,
+                "army": 9,
+                "workers": 10
+              },
+              {
+                "time": 270.0500000000271,
+                "gold": 156.20000000000402,
+                "wood": 2336.460000000003,
+                "oil": 2880,
+                "army": 10,
+                "workers": 10
+              },
+              {
+                "time": 300.05000000003395,
+                "gold": 231.2000000000039,
+                "wood": 1636.4600000000032,
+                "oil": 3040,
+                "army": 12,
+                "workers": 10
+              },
+              {
+                "time": 330.05000000004077,
+                "gold": 339.3520000000043,
+                "wood": 1355.1096000000027,
+                "oil": 3320,
+                "army": 10,
+                "workers": 10
+              },
+              {
+                "time": 360.0500000000476,
+                "gold": 45.07200000000424,
+                "wood": 1247.7656000000025,
+                "oil": 3631.5,
+                "army": 3,
+                "workers": 8
+              },
+              {
+                "time": 390.0500000000544,
+                "gold": 108.6520000000042,
+                "wood": 1362.1496000000022,
+                "oil": 3631.5,
+                "army": 0,
+                "workers": 1
+              },
+              {
+                "time": 420.05000000006123,
+                "gold": 54.65200000000419,
+                "wood": 1362.1496000000022,
+                "oil": 3631.5,
+                "army": 0,
+                "workers": 0
+              }
+            ]
+          },
+          "surviving": {
+            "powerplant": 2,
+            "barracks": 1,
+            "factory": 1,
+            "lumbermill": 1
+          }
+        },
+        {
+          "side": 2,
+          "team": 2,
+          "style": "balanced",
+          "kills": 80,
+          "lost": 32,
+          "stats": {
+            "since": 0,
+            "income": {
+              "gold": 24100,
+              "wood": 14017,
+              "oil": 6950
+            },
+            "spent": {
+              "gold": 29232.588235294275,
+              "wood": 9547.317647058835,
+              "oil": 2980
+            },
+            "refunded": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "killedValue": {
+              "gold": 22460,
+              "wood": 7010,
+              "oil": 1820
+            },
+            "lostValue": {
+              "gold": 6770,
+              "wood": 1790,
+              "oil": 240
+            },
+            "damage": 22903.482896551588,
+            "healing": 819.445948330497,
+            "workerIdleSeconds": 46.299999999999805,
+            "bounty": 4492,
+            "trained": {
+              "worker": 9,
+              "soldier": 45,
+              "medic": 4,
+              "tank": 10,
+              "sniper": 4,
+              "mech": 2,
+              "fighter": 2
+            },
+            "series": [
+              {
+                "time": 0.05,
+                "gold": 1500,
+                "wood": 600,
+                "oil": 0,
+                "army": 3,
+                "workers": 3
+              },
+              {
+                "time": 30.050000000000292,
+                "gold": 270,
+                "wood": 350,
+                "oil": 0,
+                "army": 6,
+                "workers": 7
+              },
+              {
+                "time": 60.049999999998725,
+                "gold": 198,
+                "wood": 1490,
+                "oil": 111,
+                "army": 5,
+                "workers": 12
+              },
+              {
+                "time": 90.04999999999703,
+                "gold": 38,
+                "wood": 2370,
+                "oil": 1161,
+                "army": 6,
+                "workers": 12
+              },
+              {
+                "time": 120.04999999999532,
+                "gold": 178,
+                "wood": 2747,
+                "oil": 1735,
+                "army": 7,
+                "workers": 12
+              },
+              {
+                "time": 150.04999999999987,
+                "gold": 366,
+                "wood": 3197,
+                "oil": 2196,
+                "army": 9,
+                "workers": 12
+              },
+              {
+                "time": 180.0500000000067,
+                "gold": 409.98117647058825,
+                "wood": 3585.972235294118,
+                "oil": 2280,
+                "army": 10,
+                "workers": 12
+              },
+              {
+                "time": 210.0500000000135,
+                "gold": 523.4117647058861,
+                "wood": 2869.682352941165,
+                "oil": 1980,
+                "army": 11,
+                "workers": 12
+              },
+              {
+                "time": 240.05000000002033,
+                "gold": 33.41176470588607,
+                "wood": 2589.682352941165,
+                "oil": 2680,
+                "army": 14,
+                "workers": 12
+              },
+              {
+                "time": 270.0500000000271,
+                "gold": 523.4117647058861,
+                "wood": 2749.682352941165,
+                "oil": 3120,
+                "army": 15,
+                "workers": 12
+              },
+              {
+                "time": 300.05000000003395,
+                "gold": 425.41176470588607,
+                "wood": 3139.682352941165,
+                "oil": 3182.5,
+                "army": 19,
+                "workers": 12
+              },
+              {
+                "time": 330.05000000004077,
+                "gold": 449.41176470588607,
+                "wood": 3529.682352941165,
+                "oil": 3422.5,
+                "army": 19,
+                "workers": 12
+              },
+              {
+                "time": 360.0500000000476,
+                "gold": 133.41176470588607,
+                "wood": 3469.682352941165,
+                "oil": 3122.5,
+                "army": 26,
+                "workers": 12
+              },
+              {
+                "time": 390.0500000000544,
+                "gold": 85.41176470588607,
+                "wood": 4269.682352941165,
+                "oil": 3490,
+                "army": 34,
+                "workers": 12
+              },
+              {
+                "time": 420.05000000006123,
+                "gold": 79.41176470588607,
+                "wood": 4769.682352941165,
+                "oil": 3820,
+                "army": 41,
+                "workers": 12
+              }
+            ]
+          },
+          "surviving": {
+            "base": 1,
+            "powerplant": 3,
+            "barracks": 2,
+            "tower": 2,
+            "worker": 12,
+            "lumbermill": 3,
+            "refinery": 1,
+            "factory": 1,
+            "research": 1,
+            "medic": 4,
+            "tank": 8,
+            "soldier": 22,
+            "airfield": 1,
+            "sniper": 3,
+            "mech": 2,
+            "fighter": 2
+          }
+        }
+      ]
+    },
+    {
+      "label": "rush vs balanced · 交换出生边",
+      "mode": "economy",
+      "mapId": "twin-lakes",
+      "mapRevision": 3,
+      "time": 351.8500000000457,
+      "winner": 1,
+      "combatWinner": null,
+      "players": [
+        {
+          "side": 1,
+          "team": 1,
+          "style": "balanced",
+          "kills": 66,
+          "lost": 24,
+          "stats": {
+            "since": 0,
+            "income": {
+              "gold": 23050,
+              "wood": 7501.5,
+              "oil": 6650
+            },
+            "spent": {
+              "gold": 23190,
+              "wood": 7840,
+              "oil": 2240
+            },
+            "refunded": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "killedValue": {
+              "gold": 18080,
+              "wood": 5660,
+              "oil": 1420
+            },
+            "lostValue": {
+              "gold": 4190,
+              "wood": 980,
+              "oil": 60
+            },
+            "damage": 17808.540000000008,
+            "healing": 1148.1904399463708,
+            "workerIdleSeconds": 23.200000000000138,
+            "bounty": 3616,
+            "trained": {
+              "worker": 9,
+              "soldier": 32,
+              "tank": 8,
+              "medic": 5,
+              "sniper": 4
+            },
+            "series": [
+              {
+                "time": 0.05,
+                "gold": 1500,
+                "wood": 600,
+                "oil": 0,
+                "army": 3,
+                "workers": 3
+              },
+              {
+                "time": 30.050000000000292,
+                "gold": 179,
+                "wood": 650,
+                "oil": 0,
+                "army": 6,
+                "workers": 7
+              },
+              {
+                "time": 60.049999999998725,
+                "gold": 1067,
+                "wood": 1641.5,
+                "oil": 0,
+                "army": 6,
+                "workers": 12
+              },
+              {
+                "time": 90.04999999999703,
+                "gold": 1627,
+                "wood": 1961.5,
+                "oil": 1220,
+                "army": 9,
+                "workers": 12
+              },
+              {
+                "time": 120.04999999999532,
+                "gold": 627,
+                "wood": 1461.5,
+                "oil": 2270,
+                "army": 15,
+                "workers": 12
+              },
+              {
+                "time": 150.04999999999987,
+                "gold": 399,
+                "wood": 1141.5,
+                "oil": 2570,
+                "army": 20,
+                "workers": 12
+              },
+              {
+                "time": 180.0500000000067,
+                "gold": 14,
+                "wood": 881.5,
+                "oil": 2970,
+                "army": 20,
+                "workers": 12
+              },
+              {
+                "time": 210.0500000000135,
+                "gold": 14,
+                "wood": 731.5,
+                "oil": 3450,
+                "army": 21,
+                "workers": 12
+              },
+              {
+                "time": 240.05000000002033,
+                "gold": 782,
+                "wood": 751.5,
+                "oil": 3265.5,
+                "army": 21,
+                "workers": 12
+              },
+              {
+                "time": 270.0500000000271,
+                "gold": 2156,
+                "wood": 191.5,
+                "oil": 3725.5,
+                "army": 24,
+                "workers": 12
+              },
+              {
+                "time": 300.05000000003395,
+                "gold": 4156,
+                "wood": 11.5,
+                "oil": 4720,
+                "army": 20,
+                "workers": 12
+              },
+              {
+                "time": 330.05000000004077,
+                "gold": 5926,
+                "wood": 631.5,
+                "oil": 4670,
+                "army": 24,
+                "workers": 12
+              }
+            ]
+          },
+          "surviving": {
+            "base": 1,
+            "powerplant": 3,
+            "barracks": 2,
+            "tower": 2,
+            "worker": 12,
+            "soldier": 14,
+            "lumbermill": 3,
+            "refinery": 1,
+            "factory": 1,
+            "tank": 8,
+            "research": 1,
+            "medic": 3,
+            "sniper": 4,
+            "airfield": 1
+          }
+        },
+        {
+          "side": 2,
+          "team": 2,
+          "style": "rush",
+          "kills": 24,
+          "lost": 66,
+          "stats": {
+            "since": 0,
+            "income": {
+              "gold": 16616.5,
+              "wood": 8842,
+              "oil": 3650
+            },
+            "spent": {
+              "gold": 18884.630588235326,
+              "wood": 6397.630117647041,
+              "oil": 1530
+            },
+            "refunded": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "killedValue": {
+              "gold": 4190,
+              "wood": 980,
+              "oil": 60
+            },
+            "lostValue": {
+              "gold": 18080,
+              "wood": 5660,
+              "oil": 1420
+            },
+            "damage": 5442.178102987157,
+            "healing": 330,
+            "workerIdleSeconds": 92.64999999999988,
+            "bounty": 838,
+            "trained": {
+              "worker": 9,
+              "soldier": 28,
+              "medic": 3,
+              "tank": 5,
+              "sniper": 6,
+              "artillery": 1
+            },
+            "series": [
+              {
+                "time": 0.05,
+                "gold": 1500,
+                "wood": 600,
+                "oil": 0,
+                "army": 3,
+                "workers": 3
+              },
+              {
+                "time": 30.050000000000292,
+                "gold": 270,
+                "wood": 350,
+                "oil": 0,
+                "army": 6,
+                "workers": 7
+              },
+              {
+                "time": 60.049999999998725,
+                "gold": 332,
+                "wood": 1460,
+                "oil": 111,
+                "army": 6,
+                "workers": 10
+              },
+              {
+                "time": 90.04999999999703,
+                "gold": 112,
+                "wood": 2310,
+                "oil": 561,
+                "army": 6,
+                "workers": 10
+              },
+              {
+                "time": 120.04999999999532,
+                "gold": 122,
+                "wood": 2770,
+                "oil": 1061,
+                "army": 11,
+                "workers": 10
+              },
+              {
+                "time": 150.04999999999987,
+                "gold": 36,
+                "wood": 2900,
+                "oil": 1501,
+                "army": 9,
+                "workers": 10
+              },
+              {
+                "time": 180.0500000000067,
+                "gold": 302,
+                "wood": 3114,
+                "oil": 2010,
+                "army": 11,
+                "workers": 10
+              },
+              {
+                "time": 210.0500000000135,
+                "gold": 372,
+                "wood": 2634,
+                "oil": 1900,
+                "army": 14,
+                "workers": 10
+              },
+              {
+                "time": 240.05000000002033,
+                "gold": 708,
+                "wood": 3114,
+                "oil": 2060,
+                "army": 11,
+                "workers": 10
+              },
+              {
+                "time": 270.0500000000271,
+                "gold": 49,
+                "wood": 2434,
+                "oil": 1840,
+                "army": 9,
+                "workers": 10
+              },
+              {
+                "time": 300.05000000003395,
+                "gold": 74.5,
+                "wood": 2792,
+                "oil": 1970,
+                "army": 4,
+                "workers": 9
+              },
+              {
+                "time": 330.05000000004077,
+                "gold": 69.86941176470569,
+                "wood": 3044.369882352954,
+                "oil": 2120,
+                "army": 0,
+                "workers": 6
+              }
+            ]
+          },
+          "surviving": {
+            "powerplant": 2,
+            "barracks": 2,
+            "tower": 1,
+            "worker": 1,
+            "airfield": 1
+          }
+        }
+      ]
+    },
+    {
+      "label": "economic vs defensive · 原出生边",
+      "mode": "economy",
+      "mapId": "twin-lakes",
+      "mapRevision": 3,
+      "time": 324.0000000000394,
+      "winner": 1,
+      "combatWinner": null,
+      "players": [
+        {
+          "side": 1,
+          "team": 1,
+          "style": "economic",
+          "kills": 45,
+          "lost": 22,
+          "stats": {
+            "since": 0,
+            "income": {
+              "gold": 24850,
+              "wood": 10101.5,
+              "oil": 7550
+            },
+            "spent": {
+              "gold": 27260,
+              "wood": 8700,
+              "oil": 2980
+            },
+            "refunded": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "killedValue": {
+              "gold": 12300,
+              "wood": 3950,
+              "oil": 970
+            },
+            "lostValue": {
+              "gold": 4040,
+              "wood": 840,
+              "oil": 120
+            },
+            "damage": 14586.4068548195,
+            "healing": 720,
+            "workerIdleSeconds": 17.6000000000001,
+            "bounty": 2460,
+            "trained": {
+              "worker": 13,
+              "soldier": 40,
+              "tank": 7,
+              "medic": 4,
+              "sniper": 2,
+              "artillery": 3
+            },
+            "series": [
+              {
+                "time": 0.05,
+                "gold": 1500,
+                "wood": 600,
+                "oil": 0,
+                "army": 3,
+                "workers": 3
+              },
+              {
+                "time": 30.050000000000292,
+                "gold": 179,
+                "wood": 650,
+                "oil": 0,
+                "army": 6,
+                "workers": 7
+              },
+              {
+                "time": 60.049999999998725,
+                "gold": 957,
+                "wood": 1641.5,
+                "oil": 0,
+                "army": 6,
+                "workers": 12
+              },
+              {
+                "time": 90.04999999999703,
+                "gold": 1287,
+                "wood": 2061.5,
+                "oil": 1220,
+                "army": 9,
+                "workers": 16
+              },
+              {
+                "time": 120.04999999999532,
+                "gold": 147,
+                "wood": 1911.5,
+                "oil": 2170,
+                "army": 14,
+                "workers": 16
+              },
+              {
+                "time": 150.04999999999987,
+                "gold": 177,
+                "wood": 2001.5,
+                "oil": 2690,
+                "army": 21,
+                "workers": 16
+              },
+              {
+                "time": 180.0500000000067,
+                "gold": 390,
+                "wood": 2491.5,
+                "oil": 3590,
+                "army": 20,
+                "workers": 16
+              },
+              {
+                "time": 210.0500000000135,
+                "gold": 3832,
+                "wood": 2661.5,
+                "oil": 4800,
+                "army": 15,
+                "workers": 16
+              },
+              {
+                "time": 240.05000000002033,
+                "gold": 2526,
+                "wood": 2421.5,
+                "oil": 4700,
+                "army": 19,
+                "workers": 16
+              },
+              {
+                "time": 270.0500000000271,
+                "gold": 2334,
+                "wood": 2601.5,
+                "oil": 4850,
+                "army": 25,
+                "workers": 16
+              },
+              {
+                "time": 300.05000000003395,
+                "gold": 792,
+                "wood": 1891.5,
+                "oil": 4670,
+                "army": 34,
+                "workers": 16
+              }
+            ]
+          },
+          "surviving": {
+            "base": 1,
+            "powerplant": 3,
+            "barracks": 2,
+            "tower": 2,
+            "worker": 16,
+            "soldier": 22,
+            "lumbermill": 3,
+            "refinery": 1,
+            "factory": 1,
+            "research": 1,
+            "tank": 6,
+            "medic": 4,
+            "sniper": 2,
+            "airfield": 1,
+            "artillery": 3
+          }
+        },
+        {
+          "side": 2,
+          "team": 2,
+          "style": "defensive",
+          "kills": 22,
+          "lost": 45,
+          "stats": {
+            "since": 0,
+            "income": {
+              "gold": 10000,
+              "wood": 9154,
+              "oil": 4400
+            },
+            "spent": {
+              "gold": 12308.000000000684,
+              "wood": 4296.691688311659,
+              "oil": 984.1127472527553
+            },
+            "refunded": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "killedValue": {
+              "gold": 4040,
+              "wood": 840,
+              "oil": 120
+            },
+            "lostValue": {
+              "gold": 12300,
+              "wood": 3950,
+              "oil": 970
+            },
+            "damage": 5135.910472728678,
+            "healing": 141.2,
+            "workerIdleSeconds": 141.8000000000007,
+            "bounty": 808,
+            "trained": {
+              "worker": 11,
+              "soldier": 16,
+              "medic": 2,
+              "tank": 3,
+              "sniper": 2
+            },
+            "series": [
+              {
+                "time": 0.05,
+                "gold": 1500,
+                "wood": 600,
+                "oil": 0,
+                "army": 3,
+                "workers": 3
+              },
+              {
+                "time": 30.050000000000292,
+                "gold": 270,
+                "wood": 350,
+                "oil": 0,
+                "army": 6,
+                "workers": 7
+              },
+              {
+                "time": 60.049999999998725,
+                "gold": 198,
+                "wood": 1490,
+                "oil": 111,
+                "army": 5,
+                "workers": 12
+              },
+              {
+                "time": 90.04999999999703,
+                "gold": 118,
+                "wood": 2370,
+                "oil": 1161,
+                "army": 5,
+                "workers": 14
+              },
+              {
+                "time": 120.04999999999532,
+                "gold": 28,
+                "wood": 2630,
+                "oil": 2261,
+                "army": 9,
+                "workers": 14
+              },
+              {
+                "time": 150.04999999999987,
+                "gold": 388,
+                "wood": 3060,
+                "oil": 2490,
+                "army": 13,
+                "workers": 14
+              },
+              {
+                "time": 180.0500000000067,
+                "gold": 236,
+                "wood": 3440,
+                "oil": 2770,
+                "army": 17,
+                "workers": 14
+              },
+              {
+                "time": 210.0500000000135,
+                "gold": 78,
+                "wood": 3720,
+                "oil": 2730,
+                "army": 5,
+                "workers": 13
+              },
+              {
+                "time": 240.05000000002033,
+                "gold": 3.505882352941401,
+                "wood": 4467.0211764707,
+                "oil": 3280,
+                "army": 3,
+                "workers": 13
+              },
+              {
+                "time": 270.0500000000271,
+                "gold": 86.40000000000003,
+                "wood": 5398.1454545455845,
+                "oil": 3429.0400000000045,
+                "army": 2,
+                "workers": 12
+              },
+              {
+                "time": 300.05000000003395,
+                "gold": 0,
+                "wood": 5488.945454545515,
+                "oil": 3425.42153846156,
+                "army": 1,
+                "workers": 8
+              }
+            ]
+          },
+          "surviving": {
+            "powerplant": 1,
+            "barracks": 1,
+            "tower": 2,
+            "worker": 2
+          }
+        }
+      ]
+    },
+    {
+      "label": "economic vs defensive · 交换出生边",
+      "mode": "economy",
+      "mapId": "twin-lakes",
+      "mapRevision": 3,
+      "time": 472.6500000000732,
+      "winner": 2,
+      "combatWinner": null,
+      "players": [
+        {
+          "side": 1,
+          "team": 1,
+          "style": "defensive",
+          "kills": 51,
+          "lost": 95,
+          "stats": {
+            "since": 0,
+            "income": {
+              "gold": 22874.5,
+              "wood": 12495.5,
+              "oil": 6650
+            },
+            "spent": {
+              "gold": 26653.860402714883,
+              "wood": 8617.67030471885,
+              "oil": 2349.6533461538615
+            },
+            "refunded": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "killedValue": {
+              "gold": 11560,
+              "wood": 2790,
+              "oil": 760
+            },
+            "lostValue": {
+              "gold": 25740,
+              "wood": 7730,
+              "oil": 2070
+            },
+            "damage": 12962.100083269506,
+            "healing": 814.946438633116,
+            "workerIdleSeconds": 118.49999999999892,
+            "bounty": 2312,
+            "trained": {
+              "worker": 12,
+              "soldier": 44,
+              "tank": 10,
+              "medic": 3,
+              "sniper": 8,
+              "artillery": 1
+            },
+            "series": [
+              {
+                "time": 0.05,
+                "gold": 1500,
+                "wood": 600,
+                "oil": 0,
+                "army": 3,
+                "workers": 3
+              },
+              {
+                "time": 30.050000000000292,
+                "gold": 179,
+                "wood": 650,
+                "oil": 0,
+                "army": 6,
+                "workers": 7
+              },
+              {
+                "time": 60.049999999998725,
+                "gold": 957,
+                "wood": 1641.5,
+                "oil": 0,
+                "army": 6,
+                "workers": 12
+              },
+              {
+                "time": 90.04999999999703,
+                "gold": 1507,
+                "wood": 2061.5,
+                "oil": 1220,
+                "army": 9,
+                "workers": 14
+              },
+              {
+                "time": 120.04999999999532,
+                "gold": 967,
+                "wood": 1791.5,
+                "oil": 2270,
+                "army": 14,
+                "workers": 14
+              },
+              {
+                "time": 150.04999999999987,
+                "gold": 347,
+                "wood": 1531.5,
+                "oil": 2490,
+                "army": 21,
+                "workers": 14
+              },
+              {
+                "time": 180.0500000000067,
+                "gold": 68,
+                "wood": 1771.5,
+                "oil": 2930,
+                "army": 26,
+                "workers": 14
+              },
+              {
+                "time": 210.0500000000135,
+                "gold": 518,
+                "wood": 1611.5,
+                "oil": 3450,
+                "army": 21,
+                "workers": 14
+              },
+              {
+                "time": 240.05000000002033,
+                "gold": 878,
+                "wood": 1793,
+                "oil": 3430,
+                "army": 19,
+                "workers": 14
+              },
+              {
+                "time": 270.0500000000271,
+                "gold": 258,
+                "wood": 1663,
+                "oil": 3440,
+                "army": 22,
+                "workers": 14
+              },
+              {
+                "time": 300.05000000003395,
+                "gold": 396,
+                "wood": 1953,
+                "oil": 3550,
+                "army": 24,
+                "workers": 14
+              },
+              {
+                "time": 330.05000000004077,
+                "gold": 220,
+                "wood": 2263,
+                "oil": 3720,
+                "army": 27,
+                "workers": 14
+              },
+              {
+                "time": 360.0500000000476,
+                "gold": 0,
+                "wood": 2860.685714285718,
+                "oil": 4020,
+                "army": 14,
+                "workers": 12
+              },
+              {
+                "time": 390.0500000000544,
+                "gold": 73.3359999999995,
+                "wood": 3691.258514285744,
+                "oil": 4320,
+                "army": 7,
+                "workers": 13
+              },
+              {
+                "time": 420.05000000006123,
+                "gold": 103.3736470588229,
+                "wood": 4399.05804369752,
+                "oil": 4320,
+                "army": 6,
+                "workers": 8
+              },
+              {
+                "time": 450.05000000006805,
+                "gold": 91.02305882352917,
+                "wood": 4506.197926050405,
+                "oil": 4304.537999999975,
+                "army": 1,
+                "workers": 8
+              }
+            ]
+          },
+          "surviving": {
+            "powerplant": 2,
+            "barracks": 1,
+            "tower": 1,
+            "factory": 1
+          }
+        },
+        {
+          "side": 2,
+          "team": 2,
+          "style": "economic",
+          "kills": 95,
+          "lost": 51,
+          "stats": {
+            "since": 0,
+            "income": {
+              "gold": 29650,
+              "wood": 18800,
+              "oil": 9100
+            },
+            "spent": {
+              "gold": 35387.83999999995,
+              "wood": 10980.032000000063,
+              "oil": 3640
+            },
+            "refunded": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "killedValue": {
+              "gold": 25740,
+              "wood": 7730,
+              "oil": 2070
+            },
+            "lostValue": {
+              "gold": 11560,
+              "wood": 2790,
+              "oil": 760
+            },
+            "damage": 25404.46215291866,
+            "healing": 504,
+            "workerIdleSeconds": 17.850000000000133,
+            "bounty": 5148,
+            "trained": {
+              "worker": 13,
+              "soldier": 52,
+              "medic": 6,
+              "tank": 16,
+              "sniper": 10,
+              "mech": 2,
+              "artillery": 2
+            },
+            "series": [
+              {
+                "time": 0.05,
+                "gold": 1500,
+                "wood": 600,
+                "oil": 0,
+                "army": 3,
+                "workers": 3
+              },
+              {
+                "time": 30.050000000000292,
+                "gold": 270,
+                "wood": 350,
+                "oil": 0,
+                "army": 6,
+                "workers": 7
+              },
+              {
+                "time": 60.049999999998725,
+                "gold": 198,
+                "wood": 1490,
+                "oil": 111,
+                "army": 5,
+                "workers": 12
+              },
+              {
+                "time": 90.04999999999703,
+                "gold": 58,
+                "wood": 2400,
+                "oil": 1161,
+                "army": 5,
+                "workers": 16
+              },
+              {
+                "time": 120.04999999999532,
+                "gold": 418,
+                "wood": 2850,
+                "oil": 2430,
+                "army": 8,
+                "workers": 16
+              },
+              {
+                "time": 150.04999999999987,
+                "gold": 428,
+                "wood": 3330,
+                "oil": 2980,
+                "army": 12,
+                "workers": 16
+              },
+              {
+                "time": 180.0500000000067,
+                "gold": 452,
+                "wood": 3240,
+                "oil": 2990,
+                "army": 18,
+                "workers": 16
+              },
+              {
+                "time": 210.0500000000135,
+                "gold": 1102,
+                "wood": 3790,
+                "oil": 3250,
+                "army": 12,
+                "workers": 16
+              },
+              {
+                "time": 240.05000000002033,
+                "gold": 688,
+                "wood": 3650,
+                "oil": 3920,
+                "army": 17,
+                "workers": 16
+              },
+              {
+                "time": 270.0500000000271,
+                "gold": 480,
+                "wood": 3620,
+                "oil": 3990,
+                "army": 12,
+                "workers": 16
+              },
+              {
+                "time": 300.05000000003395,
+                "gold": 396,
+                "wood": 3910,
+                "oil": 4550,
+                "army": 11,
+                "workers": 16
+              },
+              {
+                "time": 330.05000000004077,
+                "gold": 206.16000000000452,
+                "wood": 4799.967999999937,
+                "oil": 5010,
+                "army": 18,
+                "workers": 16
+              },
+              {
+                "time": 360.0500000000476,
+                "gold": 54.160000000004516,
+                "wood": 5669.967999999937,
+                "oil": 5110,
+                "army": 19,
+                "workers": 16
+              },
+              {
+                "time": 390.0500000000544,
+                "gold": 32.160000000004516,
+                "wood": 6869.967999999937,
+                "oil": 5470,
+                "army": 25,
+                "workers": 16
+              },
+              {
+                "time": 420.05000000006123,
+                "gold": 214.16000000000452,
+                "wood": 7649.967999999937,
+                "oil": 5480,
+                "army": 31,
+                "workers": 16
+              },
+              {
+                "time": 450.05000000006805,
+                "gold": 394.1600000000045,
+                "wood": 8189.967999999937,
+                "oil": 5280,
+                "army": 33,
+                "workers": 16
+              }
+            ]
+          },
+          "surviving": {
+            "base": 1,
+            "powerplant": 3,
+            "barracks": 2,
+            "tower": 2,
+            "worker": 16,
+            "lumbermill": 3,
+            "refinery": 1,
+            "factory": 1,
+            "research": 1,
+            "medic": 4,
+            "tank": 10,
+            "airfield": 1,
+            "mech": 2,
+            "artillery": 2,
+            "sniper": 5,
+            "soldier": 17
+          }
+        }
+      ]
+    },
+    {
+      "label": "兵种 1 · 原阵营",
+      "mode": "combat",
+      "mapId": "lost-temple",
+      "mapRevision": 1,
+      "time": 12.850000000000048,
+      "winner": null,
+      "combatWinner": 2,
+      "players": [
+        {
+          "side": 1,
+          "team": 1,
+          "kills": 1,
+          "lost": 8,
+          "stats": {
+            "since": 0,
+            "income": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "spent": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "refunded": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "killedValue": {
+              "gold": 600,
+              "wood": 180,
+              "oil": 100
+            },
+            "lostValue": {
+              "gold": 1280,
+              "wood": 240,
+              "oil": 0
+            },
+            "damage": 510,
+            "healing": 0,
+            "workerIdleSeconds": 0,
+            "bounty": 120,
+            "trained": {},
+            "series": [
+              {
+                "time": 0.05,
+                "gold": 3600,
+                "wood": 1600,
+                "oil": 400,
+                "army": 8,
+                "workers": 0
+              }
+            ]
+          },
+          "surviving": {
+            "base": 1
+          }
+        },
+        {
+          "side": 2,
+          "team": 2,
+          "kills": 8,
+          "lost": 1,
+          "stats": {
+            "since": 0,
+            "income": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "spent": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "refunded": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "killedValue": {
+              "gold": 1280,
+              "wood": 240,
+              "oil": 0
+            },
+            "lostValue": {
+              "gold": 600,
+              "wood": 180,
+              "oil": 100
+            },
+            "damage": 839.9999999999998,
+            "healing": 0,
+            "workerIdleSeconds": 0,
+            "bounty": 256,
+            "trained": {},
+            "series": [
+              {
+                "time": 0.05,
+                "gold": 3600,
+                "wood": 1600,
+                "oil": 400,
+                "army": 2,
+                "workers": 0
+              }
+            ]
+          },
+          "surviving": {
+            "base": 1,
+            "tank": 1
+          }
+        }
+      ]
+    },
+    {
+      "label": "兵种 1 · 交换阵营",
+      "mode": "combat",
+      "mapId": "lost-temple",
+      "mapRevision": 1,
+      "time": 10.20000000000001,
+      "winner": null,
+      "combatWinner": 1,
+      "players": [
+        {
+          "side": 1,
+          "team": 1,
+          "kills": 8,
+          "lost": 1,
+          "stats": {
+            "since": 0,
+            "income": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "spent": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "refunded": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "killedValue": {
+              "gold": 1280,
+              "wood": 240,
+              "oil": 0
+            },
+            "lostValue": {
+              "gold": 600,
+              "wood": 180,
+              "oil": 100
+            },
+            "damage": 840.0000000000001,
+            "healing": 0,
+            "workerIdleSeconds": 0,
+            "bounty": 256,
+            "trained": {},
+            "series": [
+              {
+                "time": 0.05,
+                "gold": 3600,
+                "wood": 1600,
+                "oil": 400,
+                "army": 2,
+                "workers": 0
+              }
+            ]
+          },
+          "surviving": {
+            "base": 1,
+            "tank": 1
+          }
+        },
+        {
+          "side": 2,
+          "team": 2,
+          "kills": 1,
+          "lost": 8,
+          "stats": {
+            "since": 0,
+            "income": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "spent": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "refunded": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "killedValue": {
+              "gold": 600,
+              "wood": 180,
+              "oil": 100
+            },
+            "lostValue": {
+              "gold": 1280,
+              "wood": 240,
+              "oil": 0
+            },
+            "damage": 420,
+            "healing": 0,
+            "workerIdleSeconds": 0,
+            "bounty": 120,
+            "trained": {},
+            "series": [
+              {
+                "time": 0.05,
+                "gold": 3600,
+                "wood": 1600,
+                "oil": 400,
+                "army": 8,
+                "workers": 0
+              }
+            ]
+          },
+          "surviving": {
+            "base": 1
+          }
+        }
+      ]
+    },
+    {
+      "label": "兵种 2 · 原阵营",
+      "mode": "combat",
+      "mapId": "lost-temple",
+      "mapRevision": 1,
+      "time": 6.699999999999984,
+      "winner": null,
+      "combatWinner": 1,
+      "players": [
+        {
+          "side": 1,
+          "team": 1,
+          "kills": 3,
+          "lost": 2,
+          "stats": {
+            "since": 0,
+            "income": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "spent": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "refunded": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "killedValue": {
+              "gold": 840,
+              "wood": 240,
+              "oil": 60
+            },
+            "lostValue": {
+              "gold": 320,
+              "wood": 60,
+              "oil": 0
+            },
+            "damage": 240,
+            "healing": 0,
+            "workerIdleSeconds": 0,
+            "bounty": 168,
+            "trained": {},
+            "series": [
+              {
+                "time": 0.05,
+                "gold": 3600,
+                "wood": 1600,
+                "oil": 400,
+                "army": 6,
+                "workers": 0
+              }
+            ]
+          },
+          "surviving": {
+            "base": 1,
+            "soldier": 4
+          }
+        },
+        {
+          "side": 2,
+          "team": 2,
+          "kills": 2,
+          "lost": 3,
+          "stats": {
+            "since": 0,
+            "income": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "spent": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "refunded": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "killedValue": {
+              "gold": 320,
+              "wood": 60,
+              "oil": 0
+            },
+            "lostValue": {
+              "gold": 840,
+              "wood": 240,
+              "oil": 60
+            },
+            "damage": 324,
+            "healing": 0,
+            "workerIdleSeconds": 0,
+            "bounty": 64,
+            "trained": {},
+            "series": [
+              {
+                "time": 0.05,
+                "gold": 3600,
+                "wood": 1600,
+                "oil": 400,
+                "army": 3,
+                "workers": 0
+              }
+            ]
+          },
+          "surviving": {
+            "base": 1
+          }
+        }
+      ]
+    },
+    {
+      "label": "兵种 2 · 交换阵营",
+      "mode": "combat",
+      "mapId": "lost-temple",
+      "mapRevision": 1,
+      "time": 4.3499999999999925,
+      "winner": null,
+      "combatWinner": 2,
+      "players": [
+        {
+          "side": 1,
+          "team": 1,
+          "kills": 2,
+          "lost": 3,
+          "stats": {
+            "since": 0,
+            "income": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "spent": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "refunded": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "killedValue": {
+              "gold": 320,
+              "wood": 60,
+              "oil": 0
+            },
+            "lostValue": {
+              "gold": 840,
+              "wood": 240,
+              "oil": 60
+            },
+            "damage": 210,
+            "healing": 0,
+            "workerIdleSeconds": 0,
+            "bounty": 64,
+            "trained": {},
+            "series": [
+              {
+                "time": 0.05,
+                "gold": 3600,
+                "wood": 1600,
+                "oil": 400,
+                "army": 3,
+                "workers": 0
+              }
+            ]
+          },
+          "surviving": {
+            "base": 1
+          }
+        },
+        {
+          "side": 2,
+          "team": 2,
+          "kills": 3,
+          "lost": 2,
+          "stats": {
+            "since": 0,
+            "income": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "spent": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "refunded": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "killedValue": {
+              "gold": 840,
+              "wood": 240,
+              "oil": 60
+            },
+            "lostValue": {
+              "gold": 320,
+              "wood": 60,
+              "oil": 0
+            },
+            "damage": 240,
+            "healing": 0,
+            "workerIdleSeconds": 0,
+            "bounty": 168,
+            "trained": {},
+            "series": [
+              {
+                "time": 0.05,
+                "gold": 3600,
+                "wood": 1600,
+                "oil": 400,
+                "army": 6,
+                "workers": 0
+              }
+            ]
+          },
+          "surviving": {
+            "base": 1,
+            "soldier": 4
+          }
+        }
+      ]
+    },
+    {
+      "label": "兵种 3 · 原阵营",
+      "mode": "combat",
+      "mapId": "lost-temple",
+      "mapRevision": 1,
+      "time": 15.700000000000088,
+      "winner": null,
+      "combatWinner": 1,
+      "players": [
+        {
+          "side": 1,
+          "team": 1,
+          "kills": 5,
+          "lost": 2,
+          "stats": {
+            "since": 0,
+            "income": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "spent": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "refunded": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "killedValue": {
+              "gold": 1680,
+              "wood": 450,
+              "oil": 200
+            },
+            "lostValue": {
+              "gold": 760,
+              "wood": 210,
+              "oil": 100
+            },
+            "damage": 1154.9999999999995,
+            "healing": 150,
+            "workerIdleSeconds": 0,
+            "bounty": 336,
+            "trained": {},
+            "series": [
+              {
+                "time": 0.05,
+                "gold": 3600,
+                "wood": 1600,
+                "oil": 400,
+                "army": 5,
+                "workers": 0
+              }
+            ]
+          },
+          "surviving": {
+            "base": 1,
+            "tank": 1,
+            "soldier": 1,
+            "medic": 1
+          }
+        },
+        {
+          "side": 2,
+          "team": 2,
+          "kills": 2,
+          "lost": 5,
+          "stats": {
+            "since": 0,
+            "income": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "spent": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "refunded": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "killedValue": {
+              "gold": 760,
+              "wood": 210,
+              "oil": 100
+            },
+            "lostValue": {
+              "gold": 1680,
+              "wood": 450,
+              "oil": 200
+            },
+            "damage": 958.145021484696,
+            "healing": 0,
+            "workerIdleSeconds": 0,
+            "bounty": 152,
+            "trained": {},
+            "series": [
+              {
+                "time": 0.05,
+                "gold": 3600,
+                "wood": 1600,
+                "oil": 400,
+                "army": 5,
+                "workers": 0
+              }
+            ]
+          },
+          "surviving": {
+            "base": 1
+          }
+        }
+      ]
+    },
+    {
+      "label": "兵种 3 · 交换阵营",
+      "mode": "combat",
+      "mapId": "lost-temple",
+      "mapRevision": 1,
+      "time": 11.950000000000035,
+      "winner": null,
+      "combatWinner": 1,
+      "players": [
+        {
+          "side": 1,
+          "team": 1,
+          "kills": 5,
+          "lost": 1,
+          "stats": {
+            "since": 0,
+            "income": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "spent": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "refunded": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "killedValue": {
+              "gold": 1720,
+              "wood": 490,
+              "oil": 220
+            },
+            "lostValue": {
+              "gold": 160,
+              "wood": 30,
+              "oil": 0
+            },
+            "damage": 1145,
+            "healing": 0,
+            "workerIdleSeconds": 0,
+            "bounty": 344,
+            "trained": {},
+            "series": [
+              {
+                "time": 0.05,
+                "gold": 3600,
+                "wood": 1600,
+                "oil": 400,
+                "army": 5,
+                "workers": 0
+              }
+            ]
+          },
+          "surviving": {
+            "base": 1,
+            "tank": 2,
+            "soldier": 2
+          }
+        },
+        {
+          "side": 2,
+          "team": 2,
+          "kills": 1,
+          "lost": 5,
+          "stats": {
+            "since": 0,
+            "income": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "spent": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "refunded": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "killedValue": {
+              "gold": 160,
+              "wood": 30,
+              "oil": 0
+            },
+            "lostValue": {
+              "gold": 1720,
+              "wood": 490,
+              "oil": 220
+            },
+            "damage": 744.8103048972152,
+            "healing": 10,
+            "workerIdleSeconds": 0,
+            "bounty": 32,
+            "trained": {},
+            "series": [
+              {
+                "time": 0.05,
+                "gold": 3600,
+                "wood": 1600,
+                "oil": 400,
+                "army": 5,
+                "workers": 0
+              }
+            ]
+          },
+          "surviving": {
+            "base": 1
+          }
+        }
+      ]
+    },
+    {
+      "label": "合作 2 vs 2（AI 代行人类决策）",
+      "mode": "coop",
+      "mapId": "lost-temple",
+      "mapRevision": 2,
+      "time": 432.250000000064,
+      "winner": 1,
+      "combatWinner": null,
+      "players": [
+        {
+          "side": 1,
+          "team": 1,
+          "style": "rush",
+          "kills": 54,
+          "lost": 51,
+          "stats": {
+            "since": 0,
+            "income": {
+              "gold": 17129.5,
+              "wood": 12867,
+              "oil": 2883.5
+            },
+            "spent": {
+              "gold": 20778.915588235377,
+              "wood": 7007.341117647103,
+              "oil": 1381.437499999991
+            },
+            "refunded": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "killedValue": {
+              "gold": 12210,
+              "wood": 2990,
+              "oil": 820
+            },
+            "lostValue": {
+              "gold": 12440,
+              "wood": 3640,
+              "oil": 570
+            },
+            "damage": 11443.788270479397,
+            "healing": 618,
+            "workerIdleSeconds": 42.44999999999982,
+            "bounty": 2442,
+            "trained": {
+              "worker": 9,
+              "soldier": 39,
+              "tank": 5,
+              "medic": 2,
+              "sniper": 4,
+              "artillery": 1
+            },
+            "series": [
+              {
+                "time": 0.05,
+                "gold": 1500,
+                "wood": 600,
+                "oil": 0,
+                "army": 3,
+                "workers": 3
+              },
+              {
+                "time": 30.050000000000292,
+                "gold": 370,
+                "wood": 350,
+                "oil": 0,
+                "army": 6,
+                "workers": 7
+              },
+              {
+                "time": 60.049999999998725,
+                "gold": 278,
+                "wood": 730,
+                "oil": 220,
+                "army": 7,
+                "workers": 10
+              },
+              {
+                "time": 90.04999999999703,
+                "gold": 1102,
+                "wood": 1960,
+                "oil": 820,
+                "army": 8,
+                "workers": 10
+              },
+              {
+                "time": 120.04999999999532,
+                "gold": 40,
+                "wood": 2470,
+                "oil": 1090,
+                "army": 8,
+                "workers": 10
+              },
+              {
+                "time": 150.04999999999987,
+                "gold": 8,
+                "wood": 3150,
+                "oil": 1470,
+                "army": 8,
+                "workers": 10
+              },
+              {
+                "time": 180.0500000000067,
+                "gold": 512,
+                "wood": 3540,
+                "oil": 1617,
+                "army": 6,
+                "workers": 10
+              },
+              {
+                "time": 210.0500000000135,
+                "gold": 348,
+                "wood": 3720,
+                "oil": 1397,
+                "army": 7,
+                "workers": 10
+              },
+              {
+                "time": 240.05000000002033,
+                "gold": 14,
+                "wood": 3857,
+                "oil": 1510,
+                "army": 5,
+                "workers": 10
+              },
+              {
+                "time": 270.0500000000271,
+                "gold": 386,
+                "wood": 3497,
+                "oil": 1500,
+                "army": 1,
+                "workers": 10
+              },
+              {
+                "time": 300.05000000003395,
+                "gold": 402.5844117647075,
+                "wood": 2899.658882352955,
+                "oil": 1552.062500000009,
+                "army": 5,
+                "workers": 10
+              },
+              {
+                "time": 330.05000000004077,
+                "gold": 138.5844117647075,
+                "wood": 3029.658882352955,
+                "oil": 1552.062500000009,
+                "army": 6,
+                "workers": 10
+              },
+              {
+                "time": 360.0500000000476,
+                "gold": 692.5844117647075,
+                "wood": 4319.658882352955,
+                "oil": 1552.062500000009,
+                "army": 6,
+                "workers": 10
+              },
+              {
+                "time": 390.0500000000544,
+                "gold": 50.58441176470751,
+                "wood": 4759.658882352955,
+                "oil": 1502.062500000009,
+                "army": 9,
+                "workers": 10
+              },
+              {
+                "time": 420.05000000006123,
+                "gold": 292.5844117647075,
+                "wood": 5859.658882352955,
+                "oil": 1502.062500000009,
+                "army": 10,
+                "workers": 10
+              }
+            ]
+          },
+          "surviving": {
+            "base": 1,
+            "powerplant": 2,
+            "barracks": 1,
+            "tower": 2,
+            "worker": 10,
+            "lumbermill": 2,
+            "factory": 1,
+            "artillery": 1,
+            "sniper": 1,
+            "tank": 1,
+            "soldier": 7,
+            "refinery": 1,
+            "research": 1
+          }
+        },
+        {
+          "side": 2,
+          "team": 1,
+          "style": "economic",
+          "kills": 99,
+          "lost": 26,
+          "stats": {
+            "since": 0,
+            "income": {
+              "gold": 23495,
+              "wood": 18702.25,
+              "oil": 5736
+            },
+            "spent": {
+              "gold": 30360,
+              "wood": 9570,
+              "oil": 3140
+            },
+            "refunded": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "killedValue": {
+              "gold": 29160,
+              "wood": 9600,
+              "oil": 2400
+            },
+            "lostValue": {
+              "gold": 4310,
+              "wood": 830,
+              "oil": 40
+            },
+            "damage": 29929.114418587702,
+            "healing": 650,
+            "workerIdleSeconds": 38.25000000000027,
+            "bounty": 5832,
+            "trained": {
+              "worker": 14,
+              "soldier": 41,
+              "tank": 12,
+              "medic": 6,
+              "sniper": 8,
+              "mech": 1,
+              "artillery": 2,
+              "fighter": 1
+            },
+            "series": [
+              {
+                "time": 0.05,
+                "gold": 1500,
+                "wood": 600,
+                "oil": 0,
+                "army": 3,
+                "workers": 3
+              },
+              {
+                "time": 30.050000000000292,
+                "gold": 179,
+                "wood": 550,
+                "oil": 0,
+                "army": 6,
+                "workers": 7
+              },
+              {
+                "time": 60.049999999998725,
+                "gold": 679,
+                "wood": 1790,
+                "oil": 200,
+                "army": 7,
+                "workers": 12
+              },
+              {
+                "time": 90.04999999999703,
+                "gold": 869,
+                "wood": 3290,
+                "oil": 1120,
+                "army": 8,
+                "workers": 16
+              },
+              {
+                "time": 120.04999999999532,
+                "gold": 629,
+                "wood": 4050,
+                "oil": 2370,
+                "army": 13,
+                "workers": 16
+              },
+              {
+                "time": 150.04999999999987,
+                "gold": 9,
+                "wood": 4260,
+                "oil": 2830,
+                "army": 16,
+                "workers": 16
+              },
+              {
+                "time": 180.0500000000067,
+                "gold": 591,
+                "wood": 5210,
+                "oil": 3630,
+                "army": 15,
+                "workers": 16
+              },
+              {
+                "time": 210.0500000000135,
+                "gold": 655,
+                "wood": 4392.25,
+                "oil": 3630,
+                "army": 12,
+                "workers": 16
+              },
+              {
+                "time": 240.05000000002033,
+                "gold": 582,
+                "wood": 4362.25,
+                "oil": 3660,
+                "army": 18,
+                "workers": 16
+              },
+              {
+                "time": 270.0500000000271,
+                "gold": 158,
+                "wood": 4542.25,
+                "oil": 3599.5,
+                "army": 22,
+                "workers": 16
+              },
+              {
+                "time": 300.05000000003395,
+                "gold": 192,
+                "wood": 4692.25,
+                "oil": 3546,
+                "army": 24,
+                "workers": 16
+              },
+              {
+                "time": 330.05000000004077,
+                "gold": 180,
+                "wood": 5312.25,
+                "oil": 2976,
+                "army": 29,
+                "workers": 16
+              },
+              {
+                "time": 360.0500000000476,
+                "gold": 270,
+                "wood": 6032.25,
+                "oil": 2836,
+                "army": 38,
+                "workers": 15
+              },
+              {
+                "time": 390.0500000000544,
+                "gold": 145,
+                "wood": 6802.25,
+                "oil": 2616,
+                "army": 44,
+                "workers": 16
+              },
+              {
+                "time": 420.05000000006123,
+                "gold": 59,
+                "wood": 8892.25,
+                "oil": 2596,
+                "army": 47,
+                "workers": 16
+              }
+            ]
+          },
+          "surviving": {
+            "base": 1,
+            "powerplant": 3,
+            "barracks": 2,
+            "tower": 2,
+            "worker": 16,
+            "lumbermill": 3,
+            "refinery": 1,
+            "factory": 1,
+            "soldier": 20,
+            "research": 1,
+            "tank": 12,
+            "medic": 6,
+            "sniper": 7,
+            "airfield": 1,
+            "mech": 1,
+            "artillery": 2,
+            "fighter": 1
+          }
+        },
+        {
+          "side": 3,
+          "team": 3,
+          "style": "balanced",
+          "kills": 57,
+          "lost": 82,
+          "stats": {
+            "since": 0,
+            "income": {
+              "gold": 18559,
+              "wood": 11663.5,
+              "oil": 5000
+            },
+            "spent": {
+              "gold": 22658.52804058681,
+              "wood": 7313.527799259556,
+              "oil": 2062.0979020978975
+            },
+            "refunded": {
+              "gold": 0,
+              "wood": 0,
+              "oil": 0
+            },
+            "killedValue": {
+              "gold": 13350,
+              "wood": 3790,
+              "oil": 570
+            },
+            "lostValue": {
+              "gold": 22520,
+              "wood": 6780,
+              "oil": 1870
+            },
+            "damage": 12265.459566793892,
+            "healing": 1015.204970065523,
+            "workerIdleSeconds": 82.44999999999982,
+            "bounty": 2670,
+            "trained": {
+              "worker": 11,
+              "soldier": 35,
+              "tank": 9,
+              "medic": 3,
+              "sniper": 9
+            },
+            "series": [
+              {
+                "time": 0.05,
+                "gold": 1500,
+                "wood": 600,
+                "oil": 0,
+                "army": 3,
+                "workers": 3
+              },
+              {
+                "time": 30.050000000000292,
+                "gold": 179,
+                "wood": 650,
+                "oil": 0,
+                "army": 6,
+                "workers": 7
+              },
+              {
+                "time": 60.049999999998725,
+                "gold": 240,
+                "wood": 1460,
+                "oil": 120,
+                "army": 6,
+                "workers": 12
+              },
+              {
+                "time": 90.04999999999703,
+                "gold": 512,
+                "wood": 2110,
+                "oil": 1020,
+                "army": 6,
+                "workers": 12
+              },
+              {
+                "time": 120.04999999999532,
+                "gold": 414,
+                "wood": 2623.5,
+                "oil": 1920,
+                "army": 8,
+                "workers": 12
+              },
+              {
+                "time": 150.04999999999987,
+                "gold": 52,
+                "wood": 2433.5,
+                "oil": 2230,
+                "army": 7,
+                "workers": 12
+              },
+              {
+                "time": 180.0500000000067,
+                "gold": 786,
+                "wood": 2643.5,
+                "oil": 2480,
+                "army": 9,
+                "workers": 12
+              },
+              {
+                "time": 210.0500000000135,
+                "gold": 504,
+                "wood": 3083.5,
+                "oil": 2710,
+                "army": 11,
+                "workers": 12
+              },
+              {
+                "time": 240.05000000002033,
+                "gold": 216,
+                "wood": 2963.5,
+                "oil": 2850,
+                "army": 13,
+                "workers": 12
+              },
+              {
+                "time": 270.0500000000271,
+                "gold": 402,
+                "wood": 3073.5,
+                "oil": 3160,
+                "army": 16,
+                "workers": 12
+              },
+              {
+                "time": 300.05000000003395,
+                "gold": 286,
+                "wood": 2863.5,
+                "oil": 3100,
+                "army": 17,
+                "workers": 12
+              },
+              {
+                "time": 330.05000000004077,
+                "gold": 494,
+                "wood": 3413.5,
+                "oil": 3080,
+                "army": 14,
+                "workers": 12
+              },
+              {
+                "time": 360.0500000000476,
+                "gold": 151,
+                "wood": 4223.5,
+                "oil": 2980,
+                "army": 5,
+                "workers": 12
+              },
+              {
+                "time": 390.0500000000544,
+                "gold": 67,
+                "wood": 4813.5,
+                "oil": 2940,
+                "army": 1,
+                "workers": 12
+              },
+              {
+                "time": 420.05000000006123,
+                "gold": 84.4355957767723,
+                "wood": 4956.255837104075,
+                "oil": 2939.298461538465,
+                "army": 0,
+                "workers": 4
+              }
+            ]
+          },
+          "surviving": {
+            "powerplant": 2,
+            "barracks": 1,
+            "research": 1
+          }
+        },
+        {
+          "side": 4,
+          "team": 3,
+          "style": "defensive",
+          "kills": 20,
+          "lost": 71,
+          "stats": {
+            "since": 0,
+            "income": {
+              "gold": 13408,
+              "wood": 7421,
+              "oil": 3980.5
+            },
+            "spent": {
+              "gold": 15474.655384615495,
+              "wood": 4405.052835164953,
+              "oil": 987.7558241758362
+            },
+            "refunded": {
+              "gold": 320,
+              "wood": 60,
+              "oil": 0
+            },
+            "killedValue": {
+              "gold": 3400,
+              "wood": 680,
+              "oil": 40
+            },
+            "lostValue": {
+              "gold": 18850,
+              "wood": 5810,
+              "oil": 1350
+            },
+            "damage": 4407.038903701047,
+            "healing": 60,
+            "workerIdleSeconds": 69.54999999999903,
+            "bounty": 680,
+            "trained": {
+              "worker": 12,
+              "soldier": 34,
+              "tank": 7,
+              "medic": 1
+            },
+            "series": [
+              {
+                "time": 0.05,
+                "gold": 1500,
+                "wood": 600,
+                "oil": 0,
+                "army": 3,
+                "workers": 3
+              },
+              {
+                "time": 30.050000000000292,
+                "gold": 270,
+                "wood": 450,
+                "oil": 0,
+                "army": 6,
+                "workers": 7
+              },
+              {
+                "time": 60.049999999998725,
+                "gold": 213,
+                "wood": 1560,
+                "oil": 220,
+                "army": 6,
+                "workers": 12
+              },
+              {
+                "time": 90.04999999999703,
+                "gold": 1163,
+                "wood": 2990,
+                "oil": 820,
+                "army": 8,
+                "workers": 14
+              },
+              {
+                "time": 120.04999999999532,
+                "gold": 823,
+                "wood": 3430,
+                "oil": 1720,
+                "army": 14,
+                "workers": 14
+              },
+              {
+                "time": 150.04999999999987,
+                "gold": 923,
+                "wood": 3320,
+                "oil": 2220,
+                "army": 21,
+                "workers": 14
+              },
+              {
+                "time": 180.0500000000067,
+                "gold": 134,
+                "wood": 3030,
+                "oil": 2170,
+                "army": 26,
+                "workers": 14
+              },
+              {
+                "time": 210.0500000000135,
+                "gold": 990,
+                "wood": 3480,
+                "oil": 2570,
+                "army": 13,
+                "workers": 14
+              },
+              {
+                "time": 240.05000000002033,
+                "gold": 356,
+                "wood": 3410,
+                "oil": 2650,
+                "army": 11,
+                "workers": 14
+              },
+              {
+                "time": 270.0500000000271,
+                "gold": 94,
+                "wood": 3611,
+                "oil": 2830.5,
+                "army": 6,
+                "workers": 13
+              },
+              {
+                "time": 300.05000000003395,
+                "gold": 143.7446153846152,
+                "wood": 3640.14716483518,
+                "oil": 3018.4241758241938,
+                "army": 3,
+                "workers": 13
+              },
+              {
+                "time": 330.05000000004077,
+                "gold": 433.3446153846148,
+                "wood": 3675.9471648351696,
+                "oil": 2992.744175824198,
+                "army": 1,
+                "workers": 5
+              },
+              {
+                "time": 360.0500000000476,
+                "gold": 433.3446153846148,
+                "wood": 3675.9471648351696,
+                "oil": 2992.744175824198,
+                "army": 0,
+                "workers": 0
+              },
+              {
+                "time": 390.0500000000544,
+                "gold": 433.3446153846148,
+                "wood": 3675.9471648351696,
+                "oil": 2992.744175824198,
+                "army": 0,
+                "workers": 0
+              },
+              {
+                "time": 420.05000000006123,
+                "gold": 433.3446153846148,
+                "wood": 3675.9471648351696,
+                "oil": 2992.744175824198,
+                "army": 0,
+                "workers": 0
+              }
+            ]
+          },
+          "surviving": {}
+        }
+      ]
+    }
+  ]
+}

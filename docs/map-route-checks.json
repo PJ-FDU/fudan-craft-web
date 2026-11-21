@@ -1,0 +1,38 @@
+[
+  {
+    "side": 1,
+    "total": 12,
+    "arrived": 12,
+    "time": 21.700000000000173,
+    "wallHits": 0,
+    "overlaps": 0,
+    "remaining": []
+  },
+  {
+    "side": 2,
+    "total": 12,
+    "arrived": 12,
+    "time": 30.250000000000295,
+    "wallHits": 0,
+    "overlaps": 0,
+    "remaining": []
+  },
+  {
+    "side": 3,
+    "total": 12,
+    "arrived": 12,
+    "time": 26.950000000000248,
+    "wallHits": 0,
+    "overlaps": 0,
+    "remaining": []
+  },
+  {
+    "side": 4,
+    "total": 12,
+    "arrived": 12,
+    "time": 27.15000000000025,
+    "wallHits": 0,
+    "overlaps": 0,
+    "remaining": []
+  }
+]

@@ -1,0 +1,125 @@
+.dialog-top #close-dialog {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+}
+#close-dialog > svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+#codex-models {
+  margin-bottom: 16px;
+}
+.select-setting {
+  gap: 20px;
+}
+.select-setting > span:first-child {
+  flex: none;
+}
+.select-setting > game-select {
+  flex: 0 1 280px;
+}
+game-select {
+  display: block;
+  min-width: 0;
+  --select-border: #c9b68a60;
+  --select-surface: #11201b;
+  --select-accent: #c9b68a;
+  --select-padding: 14px;
+}
+.field > game-select {
+  margin-top: 8px;
+}
+.game-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 7px var(--select-padding);
+  border: 1px solid var(--select-border);
+  border-radius: 3px;
+  background: var(--select-surface);
+  color: #e8e2d2;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: start;
+}
+.game-select-trigger:enabled:hover,
+.game-select-trigger[aria-expanded="true"] {
+  background: #192a22;
+  border-color: #c9b68a9c;
+}
+.game-select-trigger:focus-visible {
+  outline: none;
+  border-color: var(--select-accent);
+}
+.game-select-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.game-select-chevron {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid var(--select-accent);
+  border-bottom: 1.5px solid var(--select-accent);
+  transform: translateY(-2px) rotate(45deg);
+}
+.game-select-trigger[aria-expanded="true"] .game-select-chevron {
+  transform: translateY(2px) rotate(225deg);
+}
+.game-select-list {
+  position: fixed;
+  inset: auto;
+  z-index: 100;
+  margin: 0;
+  padding: 4px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  color-scheme: dark;
+  border: 1px solid var(--select-border);
+  border-radius: 4px;
+  background: var(--select-surface);
+  color: #e8e2d2;
+  box-shadow: 0 12px 28px #0008;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.game-select-list [role="option"] {
+  min-height: 36px;
+  padding: 9px calc(var(--select-padding) - 4px);
+  border-radius: 2px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.game-select-list [aria-selected="true"] {
+  color: #efdeb0;
+  background: #c9b68a16;
+}
+.game-select-list [data-active] {
+  background: #31443a;
+}
+@media (pointer: coarse) {
+  .game-select-list [role="option"] { min-height: 44px; }
+}
+@media (max-width: 580px) {
+  .select-setting {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .select-setting > game-select {
+    flex: none;
+    width: 100%;
+  }
+}

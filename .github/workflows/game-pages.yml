@@ -1,0 +1,53 @@
+name: Deploy FudanCraft P2P to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: read
+    env:
+      VITE_METERED_PUBLISHABLE_KEY: ${{ vars.METERED_PUBLISHABLE_KEY }}
+      VITE_P2P_RELAY_ONLY: ${{ vars.P2P_RELAY_ONLY || 'false' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Check deployment key
+        run: |
+          node -e 'const key = process.env.VITE_METERED_PUBLISHABLE_KEY || ""; if (!/^pk_live_[A-Za-z0-9_-]+$/.test(key) || key === "pk_live_ci_build_only") { console.error("Set repository variable METERED_PUBLISHABLE_KEY to your real Metered Publishable key."); process.exit(1); }'
+      - run: npm ci
+      - run: npm run check:release
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist-pages
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,19 @@
+.title-tools #home-language{font-size:11px;letter-spacing:.1em;min-width:38px}
+.title-tools #home-language>span{display:inline}
+.resource-portrait{font-size:42px;line-height:1}
+html[lang="en"] .title-chapter h2{font-size:clamp(18px,2.3vw,32px);letter-spacing:.17em}
+html[lang="en"] .operation-map-copy strong{font-size:clamp(12px,1vw,16px)}
+html[lang="en"] .unit-detail-title strong{font-size:12px}
+html[lang="en"] .unit-commands small{font-size:9px;letter-spacing:0}
+html[lang="en"] .hud-label{font-size:10px}
+html[lang="en"] .production-tabs button{font-size:11px;letter-spacing:0}
+html[lang="en"] .operation-scale-copy small{max-width:27em}
+html[lang="en"] .economy-stat small{letter-spacing:0}
+html[lang="en"] .selection-placeholder{font-size:13px}
+@media(max-width:700px){
+  html[lang="en"] .operation-breadcrumb nav{white-space:normal;gap:7px;min-width:0}
+  html[lang="en"] .operation-breadcrumb nav>button,html[lang="en"] .operation-breadcrumb nav>span{font-size:7px;letter-spacing:.2px;min-width:0}
+  html[lang="en"] .operation-breadcrumb nav>button>span,html[lang="en"] .operation-breadcrumb nav>span>span{max-width:72px;line-height:1.5}
+  html[lang="en"] .operation-breadcrumb nav i{width:12px;flex:none}
+}
+@media(max-width:580px){html[lang="en"] .title-menu-item{font-size:19px}html[lang="en"] .title-tools{gap:8px}}

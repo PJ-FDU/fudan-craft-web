@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#152f29">
+  <meta name="description" content="Metered + GitHub Pages 的纯浏览器 WebRTC DataChannel 连接示例。">
+  <title>两端之间 · WebRTC 连接实验</title>
+</head>
+<body>
+  <main>
+    <header class="masthead">
+      <a class="wordmark" href="./">两端之间<span>BETWEEN PEERS</span></a>
+      <span class="edition">GITHUB PAGES × METERED</span>
+    </header>
+    <section class="intro">
+      <p class="eyebrow">01 / 建立联系</p>
+      <h1>同一个房间，<br>连接另一端。</h1>
+      <p class="lede">在两台设备上打开此页，加入同一个房间。<br>移动光点、发送一句话，看看连接是否真的建立。</p>
+    </section>
+    <div class="workspace">
+      <section class="setup" aria-labelledby="setup-title">
+        <h2 id="setup-title">你的连接</h2>
+        <label for="name">指挥官名称</label>
+        <input id="name" value="指挥官" maxlength="24" autocomplete="nickname">
+        <details id="configuration">
+          <summary>连接配置</summary>
+          <label for="key">Metered Publishable key</label>
+          <input id="key" placeholder="pk_live_…" autocomplete="off" spellcheck="false">
+          <p class="field-note">使用 Realtime Messaging 的公开密钥。两端须使用同一账户的配置。</p>
+          <label class="check"><input id="relay" type="checkbox"> 强制使用 TURN 中继</label>
+          <p class="field-note">用于验证中继是否可用，会消耗 TURN 流量额度。</p>
+        </details>
+        <button id="create" class="primary" type="button">创建房间 <span aria-hidden="true">↗</span></button>
+        <div class="or"><span>或加入朋友的房间</span></div>
+        <label for="room">房间码</label>
+        <input id="room" maxlength="12" placeholder="12 位房间码" autocomplete="off" spellcheck="false">
+        <button id="join" class="secondary" type="button">加入房间</button>
+        <div class="room-tools">
+          <button id="invite" type="button" disabled>复制邀请链接</button>
+          <button id="leave" type="button" disabled>离开</button>
+          <button id="retry" type="button" disabled>重新连接</button>
+        </div>
+        <p id="status" role="status" aria-live="polite">填写连接配置，然后创建或加入房间。</p>
+        <p id="error" class="error" role="alert" hidden></p>
+      </section>
+      <section class="experiment" aria-labelledby="experiment-title">
+        <div class="section-heading">
+          <div><p class="eyebrow">02 / 交换信号</p><h2 id="experiment-title">点击空地，移动你的光点。</h2></div>
+          <label class="check"><input id="broadcast" type="checkbox" checked> 同步位置</label>
+        </div>
+        <button id="board" class="board" type="button" aria-label="位置实验区：点击移动光点，方向键也可移动">
+          <span class="board-cross x" aria-hidden="true"></span><span class="board-cross y" aria-hidden="true"></span>
+          <span class="board-label" aria-hidden="true">A SHARED LITTLE SPACE</span>
+          <span id="local-dot" class="dot local" style="left:50%;top:50%"><span>你</span></span>
+        </button>
+        <div id="peers" class="peers" aria-live="polite"><p class="empty">另一端尚未加入。</p></div>
+        <div class="messages">
+          <div class="messages-heading"><h3>发给另一端</h3><span id="counts">发送 0 · 接收 0</span></div>
+          <ol id="messages" aria-live="polite"><li class="system-message">连接完成后，消息与位置都通过浏览器数据通道传输。</li></ol>
+          <form id="chat">
+            <label class="visually-hidden" for="message">消息内容</label>
+            <input id="message" maxlength="240" placeholder="写一句话，确认另一端收到了…" autocomplete="off">
+            <button id="send" class="primary" disabled>发送</button>
+          </form>
+        </div>
+      </section>
+    </div>
+    <footer><span>不需要摄像头，也不需要麦克风。</span><span>保持两端页面打开 · 同步位置 10 次/秒</span></footer>
+  </main>
+  <script type="module" src="./src/main.ts"></script>
+</body>
+</html>

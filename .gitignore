@@ -1,0 +1,14 @@
+node_modules/
+dist/
+dist-server/
+dist-pages/
+.rooms/
+.browser/
+.screenshots/
+.trae-html-share-packages/
+docs/reference-*.png
+.DS_Store
+*.log
+.env*
+!.env.example
+!.env.pages.example

@@ -1,0 +1,88 @@
+{
+  "before": {
+    "free": 10208,
+    "percent": 62.3046875,
+    "narrow": 254,
+    "roomy": 7036
+  },
+  "after": {
+    "free": 11269,
+    "percent": 68.780517578125,
+    "narrow": 89,
+    "roomy": 8289
+  },
+  "withBuildings": {
+    "before": {
+      "free": 10090,
+      "percent": 61.58447265625,
+      "narrow": 288,
+      "roomy": 6703
+    },
+    "after": {
+      "free": 11150,
+      "percent": 68.05419921875,
+      "narrow": 94,
+      "roomy": 7821
+    }
+  },
+  "newBlockers": 0,
+  "regions": [
+    {
+      "side": 1,
+      "before": {
+        "free": 320,
+        "total": 457,
+        "percent": 70.02188183807439
+      },
+      "after": {
+        "free": 388,
+        "total": 457,
+        "percent": 84.9015317286652
+      }
+    },
+    {
+      "side": 2,
+      "before": {
+        "free": 247,
+        "total": 442,
+        "percent": 55.88235294117647
+      },
+      "after": {
+        "free": 365,
+        "total": 442,
+        "percent": 82.57918552036199
+      }
+    },
+    {
+      "side": 3,
+      "before": {
+        "free": 241,
+        "total": 477,
+        "percent": 50.524109014675055
+      },
+      "after": {
+        "free": 406,
+        "total": 477,
+        "percent": 85.1153039832285
+      }
+    },
+    {
+      "side": 4,
+      "before": {
+        "free": 221,
+        "total": 457,
+        "percent": 48.35886214442014
+      },
+      "after": {
+        "free": 378,
+        "total": 457,
+        "percent": 82.71334792122538
+      }
+    }
+  ],
+  "features": {
+    "before": 1103,
+    "after": 889
+  },
+  "ponds": 4
+}

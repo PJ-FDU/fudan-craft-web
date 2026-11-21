@@ -1,0 +1,55 @@
+name: Deploy Metered example to GitHub Pages
+
+# 显式手动发布，避免把现有游戏的 Pages 站点自动替换为示例。
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
+    defaults:
+      run:
+        working-directory: examples/metered-pages
+    env:
+      VITE_METERED_PUBLISHABLE_KEY: ${{ vars.METERED_PUBLISHABLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: examples/metered-pages/package-lock.json
+      - name: Check publishable key
+        run: |
+          node -e 'if (!/^pk_live_[A-Za-z0-9_-]+$/.test(process.env.VITE_METERED_PUBLISHABLE_KEY || "")) { console.error("Set repository variable METERED_PUBLISHABLE_KEY to a Publishable key."); process.exit(1); }'
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: examples/metered-pages/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

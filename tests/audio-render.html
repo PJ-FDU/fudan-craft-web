@@ -1,0 +1,43 @@
+<!doctype html><html lang="zh-CN"><meta charset="UTF-8"><title>Audio render verification</title>
+<body><button id="render">验证音频解码与混音</button><pre id="result">尚未验证</pre>
+<script type="module">
+import { EFFECTS,LOOPS,VOICES,EN_VOICES,audioPath } from '/src/game/audio-catalog.ts';
+import { FACTION_EFFECTS,FACTION_LOOPS } from '/src/game/faction-sounds.ts';
+import { FACTION_VOICES } from '/src/game/faction-voice.ts';
+document.querySelector('#render').onclick=async()=>{
+  const result=document.querySelector('#result');
+  result.textContent='验证中';
+  try{
+    const decoder=new OfflineAudioContext(2,44100,44100),buffers=new Map();
+    const factionVoices=[...FACTION_VOICES.keys()];
+    const paths=[
+      ...[...EFFECTS,...LOOPS,...Object.keys(VOICES),...FACTION_EFFECTS,...FACTION_LOOPS,...factionVoices].map(name=>({name,path:audioPath(name)})),
+      ...[...Object.keys(EN_VOICES),...factionVoices].map(name=>({name:`en-${name}`,path:audioPath(name,'en')})),
+    ];
+    for(const {name,path} of paths){
+      const response=await fetch(path);
+      if(!response.ok)throw Error(`${name}: HTTP ${response.status}`);
+      const buffer=await decoder.decodeAudioData(await response.arrayBuffer());
+      let power=0;
+      for(const value of buffer.getChannelData(0))power+=value*value;
+      if(Math.sqrt(power/buffer.length)<.001)throw Error(`${name}: silent asset`);
+      if(['menu','rifle','command-start'].includes(name))buffers.set(name,buffer);
+    }
+    async function render(muted){
+      const context=new OfflineAudioContext(2,5*44100,44100),master=context.createGain(),compressor=context.createDynamicsCompressor();
+      master.gain.value=muted?0:.7;compressor.threshold.value=-8;compressor.ratio.value=8;compressor.knee.value=8;compressor.attack.value=.003;compressor.release.value=.18;
+      master.connect(compressor);compressor.connect(context.destination);
+      for(const [name,level] of [['menu',.42],['rifle',.72],['command-start',.85]]){
+        const source=context.createBufferSource(),gain=context.createGain();
+        source.buffer=buffers.get(name);gain.gain.value=level;source.connect(gain);gain.connect(master);source.start(name==='rifle'?1:0);
+      }
+      const buffer=await context.startRendering();
+      let power=0,peak=0;for(const value of buffer.getChannelData(0)){power+=value*value;peak=Math.max(peak,Math.abs(value));}
+      return {rms:Math.sqrt(power/buffer.length),peak};
+    }
+    const audible=await render(false),muted=await render(true);
+    if(audible.rms<.015||audible.peak>1||muted.peak!==0)throw Error('Mixer output outside expected range');
+    result.textContent=JSON.stringify({status:'PASS',decoded:paths.length,audible,muted},null,2);
+  }catch(error){result.textContent=JSON.stringify({status:'FAIL',message:error.message});}
+};
+</script></body></html>

@@ -1,0 +1,24 @@
+{
+  "damageTiming": {
+    "simulatedMs": 50,
+    "damageAlreadyApplied": 9,
+    "visualShotStillAlive": true,
+    "shotLife": 0.25
+  },
+  "gathererSpacing": {
+    "minimumCenterDistance": 1.5999999999994543,
+    "radiusSum": 28,
+    "time": 7.699999999999981
+  },
+  "enemyArmorHp": {
+    "hp": 118.75,
+    "actualMaxHp": 118.75,
+    "clientCalculatedMaxHp": 95
+  },
+  "eagerAssets": {
+    "pngCount": 20,
+    "sourceBytes": 52546313,
+    "transferMiB": 50.1,
+    "rgbaPixelStorageMiB": 120
+  }
+}

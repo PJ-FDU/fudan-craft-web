@@ -1,0 +1,20 @@
+.operation-style{display:flex;gap:14px;align-items:center;margin-top:16px;color:#a8baa2;font-size:13px}
+.operation-style > span{min-width:5em;flex:none}
+.operation-style game-select{flex:0 1 240px}
+.match-scroll{overflow-x:auto;max-width:100%;margin:16px 0}
+.match-report table{border-collapse:collapse;min-width:680px;width:100%;font-size:11px;text-align:left}
+.match-report th,.match-report td{padding:10px 8px;border-bottom:1px solid #92ae8040;white-space:nowrap}
+.match-report caption{text-align:left;color:#acbd9f;padding:8px;font-size:12px}
+.match-report thead{color:#c4cfaf}
+
+.field-alerts{position:absolute;top:42px;left:14px;z-index:5;display:grid;gap:4px;justify-items:start;pointer-events:none}
+.field-alerts[hidden],#app.hud-hidden .field-alerts{display:none}
+.field-alerts button{display:flex;align-items:center;gap:6px;padding:6px 9px;border:1px solid #cda36a88;border-radius:3px;background:#19221bf0;color:#f5dfb9;font-size:10px;pointer-events:auto}
+.field-alerts button:hover,.field-alerts button:focus-visible{border-color:#f7d294;background:#43412e}
+#app.touch-ui .field-alerts{top:9px;left:8px}
+#app.touch-ui .field-alerts button{min-height:32px}
+.match-timeline h3{color:#c9d7b8;font-size:12px;margin:14px 0 7px}
+.match-timeline ol{list-style:none;max-height:180px;overflow:auto;margin:0;padding:0}
+.match-timeline li{display:grid;grid-template-columns:44px minmax(74px,1fr) 1fr;gap:8px;border-bottom:1px solid #92ae8030;padding:5px;font-size:10px}
+.match-timeline time{color:#9fb5a2;font-family:var(--mono)}
+.match-timeline strong{font-weight:500;color:#dce3c7}
