@@ -22,7 +22,7 @@ export function modelGallery(root:HTMLElement,images:Map<string,HTMLImageElement
     <div class="settings-row model-filters">
       <div class="field">种族${dropdownMarkup('model-race','种族',RACES.map(r=>[r,RACE_NAMES[r]]))}</div>
       <div class="field">分类${dropdownMarkup('model-category','分类',[['units','部队'],['buildings','建筑']])}</div>
-      <div class="field">对象${dropdownMarkup('model-kind','对象')}</div>
+      <div class="field model-object-field">对象${dropdownMarkup('model-kind','对象')}</div>
     </div>
     <div class="animation-stage model-stage"><canvas id="model-preview" aria-label="三维模型预览，可拖动旋转" tabindex="0"></canvas></div>
     <div class="settings-row model-filters">

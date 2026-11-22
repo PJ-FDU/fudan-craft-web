@@ -24,6 +24,26 @@
 .select-setting > game-select {
   flex: 0 1 280px;
 }
+/* 保留原生复选框语义与事件，勾选外观统一使用 SVG。 */
+.toggle-label input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0 0 0 12px;
+  border: 1px solid #8faa9766;
+  border-radius: 3px;
+  background: #0b1710;
+}
+.toggle-label input[type="checkbox"]:checked {
+  border-color: #a5bf9d;
+  background: #263d2c url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m5 12 4 4L19 6' fill='none' stroke='%23d7e8bf' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 16px no-repeat;
+}
+.toggle-label input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 3px;
+}
 game-select {
   display: block;
   min-width: 0;

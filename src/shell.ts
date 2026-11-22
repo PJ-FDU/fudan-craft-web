@@ -5,6 +5,7 @@ import './locale.css';
 import { GameAudio } from './game/game-audio.js';
 import { getLanguage, localizeDocument, onLanguageChange, setLanguage, t } from './game/locale.js';
 import { lockPageZoom } from './game/viewport-lock.js';
+import { mountUIIcons } from './game/icons.js';
 
 export const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 export const app = $('app');
@@ -93,6 +94,7 @@ export function handleHomeKeys(event: KeyboardEvent) {
 }
 
 lockPageZoom();
+mountUIIcons(app);
 audio.scene('menu');
 document.addEventListener('pointerdown', () => void audio.unlock(), {capture: true});
 document.addEventListener('keydown', () => void audio.unlock(), {capture: true});

@@ -7,3 +7,4 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none}
 .toast{background:#11251eee;border:1px solid #a5edca44;color:#c7e5d1;box-shadow:0 8px 30px #0003;border-radius:4px;padding:12px 19px;font-size:11px;animation:toast .2s ease}
 .toast.error{border-color:#e29b7044;color:#f2c1a3}
 #app.home-screen .toasts{top:65px;z-index:85}
+.ui-icon{display:inline-block;width:1em;height:1em;vertical-align:middle;flex:none;pointer-events:none}

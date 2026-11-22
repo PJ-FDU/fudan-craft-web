@@ -1,6 +1,6 @@
 /* 战场铺满视口，控制台覆盖画布，不挤占相机的布局尺寸。 */
 #battle-3d{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-#app{--toolbar-height:48px;background:#102018}
+#app{--toolbar-height:48px;min-height:0;background:#102018}
 #app main{position:relative;display:block;min-height:0;flex:1}
 #app .battlefield{position:absolute;inset:0;min-height:0;height:100%;overflow:hidden}
 /* 顶栏与底部共用金属材质；库存读数嵌入屏槽，操作按钮保留实体按键感。 */
@@ -342,14 +342,25 @@
 #dialog.animation-dialog .dialog-actions{margin-top:8px}
 #dialog.animation-dialog .settings-row{margin:6px 0}
 #dialog.animation-dialog .field{margin:4px 0}
-.model-filters{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
-.model-filters .field{flex:1;min-width:130px}
+.settings-row.model-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:end}
+.model-filters .field{min-width:0}
+.model-filters .toggle-label{grid-column:1/-1}
 .model-stage canvas{touch-action:none;cursor:grab}
 .model-stage canvas:active{cursor:grabbing}
 .model-stage canvas:focus-visible{outline:2px solid #b9d9ba;outline-offset:-3px}
 #dialog.animation-dialog .model-stage{width:min(900px,calc((100dvh - 360px)*1.6));min-width:min(300px,100%)}
 #dialog.animation-dialog .model-stage canvas{aspect-ratio:8/5}
 .model-filters [hidden]{display:none}
+/* 手机图鉴优先保持完整宽度，内容超过视口时在对话框内滚动。 */
+@media(max-width:720px){
+  #dialog.animation-dialog{padding:16px;overflow:auto;overscroll-behavior:contain}
+  #dialog.animation-dialog .settings-row{align-items:stretch}
+  .settings-row.model-filters{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .model-filters .model-object-field{grid-column:1/-1}
+  #dialog.animation-dialog .animation-stage{width:100%;min-width:0}
+  #dialog.animation-dialog .dialog-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  #dialog.animation-dialog .dialog-actions button{min-width:0;min-height:44px;margin:0}
+}
 
 .atlas-art.oilwell-art{display:grid;place-items:center;color:#a1bed3;font-size:22px;line-height:1}
 

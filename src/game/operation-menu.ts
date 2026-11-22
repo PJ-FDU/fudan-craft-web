@@ -7,6 +7,7 @@ import { STARTING_RESOURCES } from './resource-world.js';
 import type { Difficulty,AiStyle } from './types.js';
 import { AI_STYLES } from './ai-strategy.js';
 import { dropdownMarkup,GameSelect } from './dropdown.js';
+import { uiIcon } from './icons.js';
 
 const SCALES=[
   {count:2,name:'1 对 1',detail:'你与一位 AI 指挥官交锋',en:'DUEL'},
@@ -93,7 +94,7 @@ export class OperationMenu{
       <div class="operation-stage ${maps?'operation-maps':'operation-settings'}" tabindex="-1">
         ${maps?this.mapMarkup():this.settingsMarkup()}
       </div>
-      <footer class="operation-footer"><span class="operation-keyhint"><kbd>ESC</kbd> 返回 <i>·</i> <kbd>ENTER</kbd> ${maps?'部署':'下一步'}</span>${!maps?`<button id="load-setup" class="operation-load" ${!this.options.canLoad?'disabled':''}>↗ 读取上次存档</button>`:''}<span id="operation-summary"></span><button id="${maps?'deploy':'choose-operation-map'}" class="operation-continue">${maps?'开始部署':'选择战场'} <span>→</span></button></footer>`;
+      <footer class="operation-footer"><span class="operation-keyhint"><kbd>ESC</kbd> 返回 <i>·</i> <kbd>ENTER</kbd> ${maps?'部署':'下一步'}</span>${!maps?`<button id="load-setup" class="operation-load" ${!this.options.canLoad?'disabled':''}>${uiIcon('arrow-up-right')} 读取上次存档</button>`:''}<span id="operation-summary"></span><button id="${maps?'deploy':'choose-operation-map'}" class="operation-continue">${maps?'开始部署':'选择战场'} <span>→</span></button></footer>`;
     this.root.scrollTop=0;this.updateSummary();
     if(maps)this.renderMapDetails();else this.updateDifficulty();
     this.root.querySelector<HTMLElement>('.operation-stage')?.focus({preventScroll:true});
