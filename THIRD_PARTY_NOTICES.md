@@ -12,10 +12,11 @@ FudanCraft Web 的原创代码及项目生成的美术和录音在权利人可�
 
 `src/game/map.ts` 通过 [导入脚本](scripts/import-assets.mjs) 将上述 TMX 的地形和出生点提取成 TypeScript。三位原作者已确认这份地图数据可按 Apache-2.0 随本项目发布。
 
-另外四张参考经典布局的地图通过手工锚点和程序化地形实现。外部预览图保留为 [来源链接](docs/FOUR_MAPS.md#经典地图的布局锚点)。Web 版发布包只包含本项目生成的贴图、配乐、音效与录音，以及下列字体。
+另外四张参考经典布局的地图通过手工锚点和程序化地形实现。外部预览图保留为 [来源链接](docs/FOUR_MAPS.md#经典地图的布局锚点)。
 
 ## 美术与音频
 
+- 突击步兵的 3D 模型改编自「太阳当空照」发布的《特种部队兵人组合站姿警察》（`特工3.3mf`，模型编号 `CNe3f0f66c30a3ba`）。原文件的许可字段为 `Standard Digital File License`。游戏版包含网格简化、重新绑定和独立材质，制作步骤见 [突击步兵](docs/RIFLEMAN.md)。
 - `public/assets/generated/` 包含为本项目生成的图集、材质和首页封面。生成记录见 [生成美术](docs/GENERATED_ART.md)、[八方向素材](docs/DIRECTIONAL_ART.md) 和 [序列帧与地表素材](docs/ANIMATION_ART.md)。
 - `public/assets/audio/` 包含项目脚本合成的配乐和音效，以及用 [Qwen3-TTS VoiceDesign 的 MLX 转换模型](https://huggingface.co/mlx-community/Qwen3-TTS-12Hz-1.7B-VoiceDesign-4bit)（Apache-2.0）离线生成的中英文配音。生成工具及步骤见 [声音文档](docs/audio.md#qwen3-tts-中英文配音)。
 - `public/assets/audio/factions-v1/` 包含项目脚本合成的四族音效和循环。其 `voice-qwen3-v1/` 子目录中的中英文配音由 [Qwen3-TTS VoiceDesign 1.7B 的 MLX 4-bit 转换](https://huggingface.co/mlx-community/Qwen3-TTS-12Hz-1.7B-VoiceDesign-4bit/tree/5c390979e4b93af5f2932f90742ca99c7dd04687)（Apache-2.0）离线生成。生成步骤见 [声音文档](docs/audio.md#重新生成四族素材)。

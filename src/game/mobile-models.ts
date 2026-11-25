@@ -1,5 +1,5 @@
 import { armor, dark, orange, paint, Parts, steel, type Size } from './model-parts.js';
-import { RigDefinition, humanoid, legLengths, sides, wheelLayout } from './unit-rig.js';
+import { RigDefinition, humanoid, legLengths, sides, wheelLayout, workerToolReach, workerWheelHeight } from './unit-rig.js';
 import type { MobileKind } from './types.js';
 import { humanoidModel } from './humanoid-models.js';
 import { trackedModel } from './tracked-models.js';
@@ -43,7 +43,7 @@ function titan(model:MobileModel){
       p.add('armorPlate',titanShell,s*11,-2,5,10,7,7,-.18,0,-s*.18);
     }
   });
-  model.joint('torso',[0,6,0],'hips',p=>{
+  model.joint('torso',[0,6.2,0],'hips',p=>{
     p.add('armorHull',titanFrame,0,7,1,39,20,25,-.09);
     p.add('armorPlate',titanShell,0,10,11,35,9,14,-.38);
     p.add('armorHull',dark,0,4.3,11,23,7,9,-.1);
@@ -63,7 +63,7 @@ function titan(model:MobileModel){
     }
   });
   model.at('torso',p=>p.add('sleeve',titanSeal,0,0,0,15,7,12),true);
-  model.joint('head',[0,17.2,4.8],'torso',p=>{
+  model.joint('head',[0,18.2,4.6],'torso',p=>{
     p.add('armorHull',titanFrame,0,.5,0,10.5,7,9);
     p.add('armorPlate',titanShell,0,3,.4,10,3.1,8,-.1);
     p.add('canopy',visor,0,.1,4,8,2.4,3.8,-.1);
@@ -75,8 +75,8 @@ function titan(model:MobileModel){
   });
   for(const [i,side] of sides.entries()){
     const s=i===0?-1:1;
-    // 横向站距与承重装甲加宽；腿段长度继续共用 IK 契约。
-    model.joint(side+'Leg',[s*10.2,0,0],'hips',p=>{
+    // 横向站距与承重装甲挺拔化；腿段长度继续共用 IK 契约。
+    model.joint(side+'Leg',[s*9.6,0,0],'hips',p=>{
       p.add('armorHull',titanFrame,0,-thigh*.44,0,12.4,thigh*.88,11);
       p.add('armorPlate',titanShell,0,-thigh*.42,5,10.8,thigh*.75,4.4,-.08);
       strut(p,service,[s*5,-1.4,-2],[s*5,-thigh*.8,-2],2.5);
@@ -94,7 +94,7 @@ function titan(model:MobileModel){
       p.add('armorPlate',rubber,0,-ankle*.83,3.4,13.5,ankle*.34,18);
       for(const toe of [-1,1])p.add('armorPlate',titanShell,toe*3.25,-.95,8,5.7,2.7,8.3,-.13);
     });
-    model.joint(side+'Arm',[s*19,11.8,0],'torso',p=>{
+    model.joint(side+'Arm',[s*17.5,12.4,0],'torso',p=>{
       p.add('drum',service,0,-.6,0,9,11,9,0,0,Math.PI/2);
       p.add('armorHull',titanFrame,s*1.8,1,-.6,16.8,10.2,16,0,s*.12,-s*.16);
       p.add('armorPlate',titanShell,s*1.8,4.7,.3,17.4,5.1,15.6,0,s*.15,-s*.16);
@@ -106,7 +106,7 @@ function titan(model:MobileModel){
         p.add('drum',hazard,s*1.8+dx,3,-1,1.3,.7,1.3,Math.PI/2);
       }
     });
-    model.joint(side+'Elbow',[0,-10,0],side+'Arm',p=>{
+    model.joint(side+'Elbow',[0,-10.2,0],side+'Arm',p=>{
       p.add('drum',service,0,.05,0,5.2,7.6,5.2,0,0,Math.PI/2);
       p.add('armorHull',titanShell,0,-4,1,8.2,7.5,8);
       strut(p,hydraulic,[s*3.8,-1,0],[s*3.6,-6.6,1],1.35);
@@ -118,7 +118,7 @@ function titan(model:MobileModel){
       }
     });
     model.at(side+'Elbow',p=>p.add('sleeve',titanSeal,0,0,0,6.2,4.9,6.1),true);
-    model.joint(side+'Hand',[0,-8.3,0],side+'Elbow',p=>{
+    model.joint(side+'Hand',[0,-8.5,0],side+'Elbow',p=>{
       p.add('armorHull',dark,0,0,1,6.4,5.5,6.5);
       if(i===0){
         p.add('armorPlate',federal,0,.7,3.3,7.3,3.3,4.8);
@@ -242,7 +242,7 @@ function vehicle(model:MobileModel,kind:MobileKind){
   });
   for(const [i,side] of sides.entries())for(const [wheel,z] of wheelLayout(kind).entries()){
     const x=i===0?-1:1,d=tracked?9.5:14.2;
-    model.joint(side+'Wheel'+wheel,[x*width*.52,7,z],'chassis',p=>{
+    model.joint(side+'Wheel'+wheel,[x*width*.52,worker?workerWheelHeight:7,z],'chassis',p=>{
       p.add('drum',rubber,0,0,0,d,tracked?5.3:7.1,d,0,0,Math.PI/2);
       p.add('drum',tracked?mechSteel:steel,x*3.1,0,0,d*.67,1.65,d*.67,0,0,Math.PI/2);
       p.add('drum',hydraulic,x*4.2,0,0,d*.34,1.3,d*.34,0,0,Math.PI/2);
@@ -258,7 +258,7 @@ function vehicle(model:MobileModel,kind:MobileKind){
     });
   }
   if(worker){
-    model.joint('boom',[0,6.4,7],'body',p=>{
+    model.joint('boom',[0,8.4,7],'body',p=>{
       p.add('bevel',hazard,0,2,7,16,5.5,17,-.11);
       for(const x of [-6,6]){
         p.add('box',orange,x,3,8,4.8,5.0,17,-.19);
@@ -266,7 +266,7 @@ function vehicle(model:MobileModel,kind:MobileKind){
         for(const z of [4,12])p.add('ring',service,x,-.45,z,3.6,3.6,1.3);
       }
     });
-    model.joint('tool',[0,0,16],'boom',p=>{
+    model.joint('tool',[0,-2,workerToolReach],'boom',p=>{
       p.add('bevel',weaponHousing,0,0,2.7,16,7.2,8.2);
       p.box('lamp',0,1,6,4.5,1.4,1.0);
     });

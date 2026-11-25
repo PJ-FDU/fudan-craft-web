@@ -3,6 +3,7 @@ import { getWorld,initialNodes } from './world.js';
 import { COLORS } from './types.js';
 import { traceWater } from './terrain-shapes.js';
 import { gridSize,TILE } from './pathfinding.js';
+import { heightAt } from './terrain-height.js';
 
 export function mapPickerMarkup(selected:MapId,locked=false,playerCount=2){
   return `<fieldset class="map-picker"><legend>选择战场 <span>${MAPS.length} 张地图 · ${locked?'由房主选择':'含 4 张魔兽经典布局'}</span></legend>
@@ -15,21 +16,27 @@ export function mapPickerMarkup(selected:MapId,locked=false,playerCount=2){
 }
 
 /** 大地图与房间缩略图共用权威地形、资源点与出生位，不维护另一套预览数据。 */
-export function drawMapPreview(canvas:HTMLCanvasElement,mapId:MapId){
+export function drawMapPreview(canvas:HTMLCanvasElement,mapId:MapId|string){
     const world=getWorld(mapId),c=canvas.getContext('2d')!,size=gridSize(world.land),scale=canvas.width/(size*TILE);
     const raster=document.createElement('canvas');raster.width=raster.height=size;
     const paint=raster.getContext('2d')!,pixels=paint.createImageData(size,size);
     const obstacle=world.id==='shattered-highlands'?[119,125,104]:[22,44,37];
     for(let i=0;i<world.land.length;i++){
       const road=world.roads[i]/255,at=i*4,blocked=world.land[i];
-      pixels.data[at]=blocked?obstacle[0]:64+Math.round(77*road);
-      pixels.data[at+1]=blocked?obstacle[1]:88+Math.round(45*road);
-      pixels.data[at+2]=blocked?obstacle[2]:62+Math.round(34*road);
+      const h=world.heights?Math.max(0,heightAt(world,(i%size+.5)*TILE,(Math.floor(i/size)+.5)*TILE)):0;
+      const lift=Math.round(Math.min(34,h*.65));
+      pixels.data[at]=Math.min(255,(blocked?obstacle[0]:64+Math.round(77*road))+lift);
+      pixels.data[at+1]=Math.min(255,(blocked?obstacle[1]:88+Math.round(45*road))+lift);
+      pixels.data[at+2]=Math.min(255,(blocked?obstacle[2]:62+Math.round(34*road))+Math.round(lift*.75));
       pixels.data[at+3]=255;
     }
     paint.putImageData(pixels,0,0);
     c.drawImage(raster,0,0,canvas.width,canvas.height);
     c.save();c.scale(scale,scale);
+    if(world.waterMask){
+      c.fillStyle='#6196a5';
+      for(let i=0;i<world.waterMask.length;i++)if(world.waterMask[i])c.fillRect(i%size*TILE,Math.floor(i/size)*TILE,TILE,TILE);
+    }
     for(const f of world.features)if(f.kind==='water'){
       c.fillStyle='#6196a5';traceWater(c,f);c.fill();
     }

@@ -29,6 +29,31 @@ export class Camera {
     const offset=this.screenOffset(p.x-this.width/2,p.y-this.height/2);
     return {x:this.x+offset.x,y:this.y+offset.y};
   }
+  /** 沿正交视线与 3D 高度场求交，消除点击高地或斜坡时的视差偏移。 */
+  screenToTerrain(p:Point,sampleHeight:(x:number,z:number)=>number,maxHeight=80,minHeight=-24):Point {
+    const base=this.screenToWorld(p);
+    if(this.tilt>=.9999)return base;
+    const k=Math.sqrt(1-this.tilt**2)/this.tilt,c=Math.cos(this.yaw),s=Math.sin(this.yaw);
+    const pointAt=(h:number):Point=>({x:base.x-h*k*s,y:base.y+h*k*c});
+    const steps=20;
+    let prevH=maxHeight;
+    let prevP=pointAt(prevH);
+    if(sampleHeight(prevP.x,prevP.y)>=prevH)return prevP;
+    for(let i=1;i<=steps;i++){
+      const h=maxHeight-(maxHeight-minHeight)*(i/steps);
+      const cur=pointAt(h);
+      if(sampleHeight(cur.x,cur.y)>=h){
+        let lo=h,hi=prevH;
+        for(let j=0;j<8;j++){
+          const mid=(lo+hi)/2,mp=pointAt(mid);
+          if(sampleHeight(mp.x,mp.y)>=mid)lo=mid;else hi=mid;
+        }
+        return pointAt((lo+hi)/2);
+      }
+      prevH=h;prevP=cur;
+    }
+    return base;
+  }
   worldToScreen(p:Point,elevation=0):Point {
     const x=p.x-this.x,y=p.y-this.y,c=Math.cos(this.yaw),s=Math.sin(this.yaw);
     return {x:(x*c+y*s)*this.zoom+this.width/2,

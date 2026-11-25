@@ -8,8 +8,25 @@ import { DataLink } from './data-link.js';
 const CONTROL='fudancraft-control-v1',SNAPSHOT='fudancraft-snapshot-v1';
 const REQUESTS=new Set(['join','resume','leave','start','select-map','select-race','rematch','command']);
 const RESPONSES=new Set(['lobby','started','state','error','resume-error','notice','left']);
-type Remote={peer:RemotePeer;link?:DataLink;updates?:DataLink;control?:RTCDataChannel;snapshot?:RTCDataChannel;ready:boolean};
+const JOIN_DEADLINE_MS=30_000,RETRY_DELAY_MS=600,NUDGE_INTERVAL_MS=5000,MAX_PENDING_REQUESTS=32;
+type Remote={
+  peer:RemotePeer;link?:DataLink;updates?:DataLink;control?:RTCDataChannel;snapshot?:RTCDataChannel;
+  ready:boolean;connected:boolean;pending:RoomMessage[];nudgeTimer?:ReturnType<typeof setInterval>;
+};
 export type P2POptions={key:string;relayOnly:boolean};
+
+function isRetryableSignalingError(error:unknown):boolean {
+  const name=(error as {name?:string}|null)?.name??'';
+  const message=((error as {message?:string}|null)?.message??String(error)).toLowerCase();
+  if(/unauthorized|forbidden|invalid.?key|permission|401|403/.test(message)||name==='MeteredPeerStateError')return false;
+  return /no welcome frame|timeout|timed out|websocket|network|closed|disconnect|failed to connect|1006|4000/.test(message);
+}
+
+function formatSignalingError(error:unknown):string {
+  const message=(error as {message?:string}|null)?.message??'';
+  if(/no welcome frame|timeout|timed out/i.test(message))return '信令服务器响应超时，请稍后重试或检查网络';
+  return message||'连接失败，请稍后重试';
+}
 
 /** Metered 仅用于信令及 ICE 凭据；权威战局在房主 Worker，通信在数据通道。 */
 export class P2PConnection implements GameConnection {
@@ -67,24 +84,58 @@ export class P2PConnection implements GameConnection {
     const invite=this.role==='guest'?parseInvite(message.code):null;
     if(this.role==='guest'&&!invite)throw Error('请粘贴完整的 P2P 邀请链接或房间标识');
     const channel=invite?.channel??randomHex(6).toUpperCase();this.hostId=invite?.hostId??'';this.code=invite?.code??'';
-    const peer=new MeteredPeer({apiKey:this.options.key,rtcPeerConnectionFactory:config=>new RTCPeerConnection({
-      ...preferTcpRelays(config),iceTransportPolicy:this.options.relayOnly?'relay':'all',
-    })});
-    this.peer=peer;
-    peer.on('peer-joined',({peer:remote})=>this.attach(remote));
-    peer.on('peer-left',({peer:remote})=>{
-      this.remove(remote.id);
-      if(this.role==='guest'&&remote.id===this.hostId)this.finish(4004,'房主已离开');
-    });
-    peer.on('left',()=>{if(this.readyState===1)this.finish(1006,'信令连接已关闭');});
-    peer.on('error',({err})=>{if(this.readyState===1)this.deliver({type:'notice',message:`连接异常：${err.message}`});});
-    let timeout:ReturnType<typeof setTimeout>|undefined;
-    try{
-      await Promise.race([peer.join(`fudancraft-game-v1-${channel}`),new Promise<never>((_,reject)=>{
-        timeout=setTimeout(()=>reject(Error('连接超时，请检查 Metered 权限与网络')),30_000);
-      })]);
-    }finally{clearTimeout(timeout);}
-    if(this.readyState!==1)return;
+    const deadline=Date.now()+JOIN_DEADLINE_MS;
+    let peer:MeteredPeer|null=null;
+    while(true){
+      if(this.readyState!==1)return;
+      const remaining=deadline-Date.now();
+      if(remaining<=0)throw Error('信令服务器响应超时，请稍后重试或检查网络');
+      const attempt=new MeteredPeer({apiKey:this.options.key,rtcPeerConnectionFactory:config=>new RTCPeerConnection({
+        ...preferTcpRelays(config),iceTransportPolicy:this.options.relayOnly?'relay':'all',
+      })});
+      this.peer=attempt;
+      attempt.on('peer-joined',({peer:remote})=>{if(this.peer===attempt)this.attach(remote);});
+      attempt.on('peer-left',({peer:remote})=>{
+        if(this.peer!==attempt)return;
+        this.remove(remote.id);
+        if(this.role==='guest'&&remote.id===this.hostId)this.finish(4004,'房主已离开');
+      });
+      attempt.on('data',({senderPeerId,data})=>{
+        if(this.peer!==attempt||this.readyState!==1)return;
+        if(data&&typeof data==='object'&&(data as {type?:unknown}).type==='p2p-nudge'){
+          const remote=this.remotes.get(senderPeerId);
+          if(remote&&!remote.ready&&!remote.peer.polite){
+            try{(remote.peer.pc as RTCPeerConnection).restartIce?.();}catch{/* 等待下一次协商。 */}
+          }
+        }
+      });
+      attempt.on('left',()=>{
+        if(this.peer!==attempt||this.readyState!==1||!this.joined)return;
+        this.finish(1006,'信令连接已关闭');
+      });
+      attempt.on('error',({err})=>{
+        if(this.peer===attempt&&this.readyState===1&&this.joined)this.deliver({type:'notice',message:`连接异常：${err.message}`});
+      });
+      let timeout:ReturnType<typeof setTimeout>|undefined;
+      try{
+        await Promise.race([attempt.join(`fudancraft-game-v1-${channel}`),new Promise<never>((_,reject)=>{
+          timeout=setTimeout(()=>reject(Error('信令服务器响应超时，请稍后重试或检查网络')),remaining);
+        })]);
+        peer=attempt;
+        break;
+      }catch(error){
+        if(this.peer===attempt)this.peer=null;
+        for(const id of Array.from(this.remotes.keys()))this.remove(id);
+        void attempt.close('retry').catch(()=>{});
+        if(this.readyState!==1)return;
+        if(isRetryableSignalingError(error)&&deadline-Date.now()>RETRY_DELAY_MS+1000){
+          await new Promise(resolve=>setTimeout(resolve,RETRY_DELAY_MS));
+          continue;
+        }
+        throw Error(formatSignalingError(error));
+      }finally{clearTimeout(timeout);}
+    }
+    if(this.readyState!==1||!peer)return;
     this.joined=true;
     if(this.role==='host'){
       if(!peer.peerId)throw Error('房主标识未分配');
@@ -100,10 +151,11 @@ export class P2PConnection implements GameConnection {
       };
       this.worker.onerror=()=>{this.deliver({type:'notice',message:'房主模拟已停止，请重新创建房间'});this.finish(1006,'模拟已停止');};
       this.post({type:'init',hostId:this.hostId,code:this.code,message});
-      for(const [id,remote] of this.remotes)if(remote.ready)this.post({type:'connect',id});
+      for(const remote of this.remotes.values())this.flushRemote(remote);
     }else{
       this.failureTimer=setTimeout(()=>{
-        this.deliver({type:'resume-error',message:'无法连接邀请中的房主。请确认房主页面仍然打开。'});this.finish(1006,'房主不可达');
+        this.deliver({type:this.initial?.type==='resume'?'resume-error':'error',message:'无法连接邀请中的房主。请确认房主页面仍然打开。'});
+        this.finish(1006,'房主不可达');
       },30_000);
       const host=this.remotes.get(this.hostId);if(host?.ready)this.guestReady(host);
     }
@@ -117,13 +169,33 @@ export class P2PConnection implements GameConnection {
   private attach(peer:RemotePeer):void {
     if(this.readyState!==1||this.remotes.has(peer.id)||this.role==='guest'&&peer.id!==this.hostId)return;
     if(this.remotes.size>=8)return;
-    const remote:Remote={peer,ready:false};this.remotes.set(peer.id,remote);
+    const remote:Remote={peer,ready:false,connected:false,pending:[]};this.remotes.set(peer.id,remote);
     peer.on('data-channel',({channel})=>this.wire(remote,channel));
     peer.on('connection-reset',()=>{
       if(this.remotes.get(peer.id)!==remote)return;
-      this.drop(remote);this.createChannel(remote);
+      this.drop(remote);this.createChannel(remote);this.armNudge(remote);
     });
     this.createChannel(remote);
+    this.armNudge(remote);
+  }
+  private armNudge(remote:Remote):void {
+    clearInterval(remote.nudgeTimer);
+    remote.nudgeTimer=setInterval(()=>{
+      if(remote.ready||this.readyState!==1||this.remotes.get(remote.peer.id)!==remote){
+        clearInterval(remote.nudgeTimer);remote.nudgeTimer=undefined;return;
+      }
+      if(!remote.peer.polite){
+        try{(remote.peer.pc as RTCPeerConnection).restartIce?.();}catch{/* 等待下一次协商。 */}
+      }else{
+        void remote.peer.send({type:'p2p-nudge'}).catch(()=>{});
+      }
+    },NUDGE_INTERVAL_MS);
+  }
+  private flushRemote(remote:Remote):void {
+    if(this.role!=='host'||!this.worker||!remote.ready||remote.connected)return;
+    remote.connected=true;
+    this.post({type:'connect',id:remote.peer.id});
+    while(remote.pending.length)this.post({type:'message',id:remote.peer.id,message:remote.pending.shift()!});
   }
   private createChannel(remote:Remote):void {
     if(remote.peer.polite||this.readyState!==1)return;
@@ -143,7 +215,8 @@ export class P2PConnection implements GameConnection {
       if(slot==='control')remote.link=link;else remote.updates=link;
       if(!remote.ready&&remote.link&&remote.updates){
         remote.ready=true;
-        if(this.role==='host')this.post({type:'connect',id:remote.peer.id});
+        clearInterval(remote.nudgeTimer);remote.nudgeTimer=undefined;
+        if(this.role==='host')this.flushRemote(remote);
         else if(this.joined)this.guestReady(remote);
       }
       void this.stats();
@@ -160,7 +233,11 @@ export class P2PConnection implements GameConnection {
     const message=JSON.parse(text) as RoomMessage;
     if(this.role==='host'){
       if(slot==='control'&&message.type==='state-ack'&&Number.isSafeInteger(message.sequence))remote.updates?.ack(message.sequence as number);
-      if(slot==='control'&&REQUESTS.has(message.type))this.post({type:'message',id:remote.peer.id,message});
+      if(slot==='control'&&REQUESTS.has(message.type)){
+        if(remote.connected&&this.worker)this.post({type:'message',id:remote.peer.id,message});
+        else if(remote.pending.length<MAX_PENDING_REQUESTS)remote.pending.push(message);
+        else this.drop(remote);
+      }
       return;
     }
     if(remote.peer.id!==this.hostId)return;
@@ -178,12 +255,15 @@ export class P2PConnection implements GameConnection {
     this.deliver(message);
   }
   private drop(remote:Remote):void {
-    const ready=remote.ready;remote.ready=false;remote.link?.close();remote.updates?.close();remote.link=remote.updates=undefined;
+    const ready=remote.ready,connected=remote.connected;
+    remote.ready=false;remote.connected=false;remote.pending=[];
+    clearInterval(remote.nudgeTimer);remote.nudgeTimer=undefined;
+    remote.link?.close();remote.updates?.close();remote.link=remote.updates=undefined;
     for(const slot of ['control','snapshot'] as const){
       const channel=remote[slot];
       if(channel){channel.onopen=channel.onclose=channel.onerror=null;channel.close();remote[slot]=undefined;}
     }
-    if(ready&&this.role==='host')this.post({type:'disconnect',id:remote.peer.id});
+    if(connected&&this.role==='host')this.post({type:'disconnect',id:remote.peer.id});
     if(ready&&this.role==='guest')this.deliver({type:'transport',message:'P2P 连接中断 · 正在恢复'});
   }
   private remove(id:string):void {const remote=this.remotes.get(id);if(!remote)return;this.drop(remote);this.remotes.delete(id);}

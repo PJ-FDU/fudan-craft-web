@@ -19,12 +19,22 @@
     "benchmark": "node --import tsx scripts/benchmark-balance.ts",
     "benchmark:outposts": "node --import tsx scripts/benchmark-outposts.ts",
     "assets": "node scripts/import-assets.mjs",
+    "assets:blender": "node scripts/build-blender-assets.mjs",
+    "assets:sculpt": "node scripts/build-sculpt-assets.mjs",
+    "assets:worker": "node scripts/build-worker-hero.mjs",
+    "assets:sniper": "node scripts/build-sniper-hero.mjs",
+    "assets:rifleman": "node scripts/build-rifleman.mjs",
+    "assets:hero": "node scripts/build-hero.mjs",
+    "check:blender": "node --import tsx scripts/check-blender-assets.ts",
     "audio:generate": "node --import tsx scripts/generate-audio.ts"
   },
   "dependencies": {
     "@metered-ca/realtime": "1.2.1",
     "three": "^0.187.0",
-    "ws": "^8.18.0"
+    "three-gpu-pathtracer": "0.0.28",
+    "three-mesh-bvh": "0.9.17",
+    "ws": "^8.18.0",
+    "xatlas-web": "0.1.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

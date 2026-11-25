@@ -3,6 +3,7 @@ import { drawCell } from './art.js';
 import { TILE,gridSize } from './pathfinding.js';
 import { ByteLRU,TERRAIN_BUDGET,TERRAIN_CHUNK,fitTerrainLOD } from './terrain-detail.js';
 import { traceWater } from './terrain-shapes.js';
+import { heightAt } from './terrain-height.js';
 
 export class DetailedTerrain {
   private cache=new ByteLRU<HTMLCanvasElement>(TERRAIN_BUDGET);
@@ -65,9 +66,22 @@ export class DetailedTerrain {
   overview(canvas:HTMLCanvasElement,land=this.world.land){
     const c=canvas.getContext('2d')!;c.save();c.scale(canvas.width/this.extent,canvas.height/this.extent);c.fillStyle=this.grass;c.fillRect(0,0,this.extent,this.extent);
     const tint=document.createElement('canvas');tint.width=tint.height=this.size;const d=tint.getContext('2d')!;d.fillStyle='#a09061';d.fillRect(0,0,this.size,this.size);d.globalCompositeOperation='destination-in';d.drawImage(this.dirtMask,0,0);c.drawImage(tint,0,0,this.extent,this.extent);
-    // 小地图直接呈现碰撞掩码，岩脊和大湖同样可见。
+    // 小地图直接呈现碰撞掩码、高地海拔与水体。
+    if(this.world.heights){
+      for(let y=0;y<this.size;y++)for(let x=0;x<this.size;x++){
+        const h=heightAt(this.world,(x+.5)*TILE,(y+.5)*TILE);
+        if(h>6){
+          c.fillStyle=`rgba(230,224,185,${Math.min(.28,h/180)})`;
+          c.fillRect(x*TILE,y*TILE,TILE,TILE);
+        }
+      }
+    }
     c.fillStyle=this.world.id==='shattered-highlands'?'#5b6055':'#163c29';
     for(let i=0;i<land.length;i++)if(land[i])c.fillRect(i%this.size*TILE,Math.floor(i/this.size)*TILE,TILE,TILE);
+    if(this.world.waterMask){
+      c.fillStyle='#58878a';
+      for(let i=0;i<this.world.waterMask.length;i++)if(this.world.waterMask[i])c.fillRect(i%this.size*TILE,Math.floor(i/this.size)*TILE,TILE,TILE);
+    }
     for(const f of this.world.features)if(f.kind==='water'){
       c.fillStyle='#58878a';traceWater(c,f);c.fill();
     }

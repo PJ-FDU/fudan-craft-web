@@ -12,3 +12,7 @@ docs/reference-*.png
 .env*
 !.env.example
 !.env.pages.example
+.cache/
+artifacts/
+__pycache__/
+*.pyc

@@ -1,25 +1,27 @@
 import {
   AmbientLight, Box3, BufferAttribute, BufferGeometry, CircleGeometry, Color, CylinderGeometry, DataTexture,
   DirectionalLight, Group, HemisphereLight, LinearFilter, Matrix4, Mesh, MeshBasicMaterial, MeshStandardMaterial,
-  OrthographicCamera, PCFShadowMap, PlaneGeometry, Raycaster, RedFormat, RingGeometry, Scene, ShaderMaterial,
-  ShapeUtils, SkinnedMesh, Texture, Vector2, Vector3, WebGLRenderer, type Object3D,
+  OrthographicCamera, PCFShadowMap, PlaneGeometry, Raycaster, RedFormat, RingGeometry, Scene, ShaderChunk, ShaderMaterial,
+  SkinnedMesh, Texture, Vector2, Vector3, WebGLRenderer, type Object3D,
 } from 'three';
 import { AnimationClock, UnitMotion, deathPose } from './animation.js';
 import { atlasCellGLSL, atlasSamplingGLSL, battleAtlas, factionDetailTexture } from './battle-materials.js';
 import { battleLighting } from './battle-lighting.js';
-import { BattleGI, type LightingQuality } from './battle-gi.js';
+import { BattleGI, MAX_BATTLE_LIGHTS, type BattleDynamicLight, type LightingQuality } from './battle-gi.js';
 import { buildingFacing,buildingSize,type BuildPlacement } from './building-layout.js';
 import { turnToward, type Camera } from './camera.js';
-import { oilNodeAt, visibleOilPipes } from './oil.js';
-import { oilPipeMaterials,oilPipeModel,type OilPipeTextures } from './oil-pipe-model.js';
+import { oilNodeAt } from './oil.js';
 import { placementError } from './engine.js';
 import { BattleModels, natureGeometry, type BattleModel } from './models-3d.js';
+import type { BlenderAssets } from './blender-assets.js';
+import { modelSurface } from './model-surface.js';
+import { terrainGeometry, waterGeometry, waterMaskGeometry } from './battle-terrain.js';
+import { heightAt, normalAt } from './terrain-height.js';
 import { humanoid,poseRig } from './unit-rig.js';
 import { weapon } from './weapons.js';
 import { TILE, gridSize, distance } from './pathfinding.js';
 import { COLORS, RESOURCE_INFO, STATS, isMobile, type BuildingKind, type MobileKind, type Point, type ResourceNode, type Side, type ViewState } from './types.js';
 import { getWorld,type WorldData,type Feature } from './world.js';
-import { waterContour } from './terrain-shapes.js';
 import { harvestLand,isTree } from './resource-world.js';
 
 type VisibleUnit = ViewState['units'][number];
@@ -45,7 +47,6 @@ interface SceneMaterial {
 }
 
 const border = 760;
-const groundPlane = new PlaneGeometry(1,1).rotateX(-Math.PI/2);
 const shadowPlane = new PlaneGeometry(1,1).rotateX(-Math.PI/2);
 const selectionRing = new RingGeometry(.8,1,96).rotateX(-Math.PI/2);
 const noSelection:ReadonlySet<number>=new Set();
@@ -54,6 +55,31 @@ const sunOffset = new Vector3(-598,1150,-462);
 const initialYaw = -.39;
 const groundTilt = .62;
 const life = {impact:.43,heal:.48,spawn:.85,complete:.85,death:3.2};
+const bufferOutputs='layout(location=1) out vec4 battleNormal; layout(location=2) out vec4 battleSurface;';
+// MRT 要求所有活动附件都有输出。透明特效输出 alpha=0，通过混合保留下层材质数据。
+const neutralBuffers='battleNormal=vec4(0.0); battleSurface=vec4(0.0);';
+// 接触硬化软阴影（PCSS）：基于 WebGL2 硬件 sampler2DShadow 探测近地／高空遮挡器，脚底锐利、高处柔和。
+const pcssShadowChunk=ShaderChunk.shadowmap_pars_fragment.replace(
+  'float phi = interleavedGradientNoise( gl_FragCoord.xy ) * PI2;',
+  `float phi = interleavedGradientNoise( gl_FragCoord.xy ) * PI2;
+   if ( battleSoftShadow > 0.05 ) {
+     float nearHit = 0.0, midHit = 0.0;
+     for ( int b = 0; b < 4; b++ ) {
+       vec2 bo = vogelDiskSample( b, 4, phi ) * texelSize * 2.6;
+       nearHit += 1.0 - texture( shadowMap, vec3( shadowCoord.xy + bo, max( 0.0, shadowCoord.z - 0.0024 ) ) );
+       midHit  += 1.0 - texture( shadowMap, vec3( shadowCoord.xy + bo * 1.9, max( 0.0, shadowCoord.z - 0.0115 ) ) );
+     }
+     float contact = clamp( nearHit * 0.25, 0.0, 1.0 );
+     float lofty = clamp( midHit * 0.25, 0.0, 1.0 );
+     float penumbra = mix( mix( 0.50, 1.72, lofty ), 0.42, contact * 0.85 );
+     vec2 softRadius = radius * mix( 1.0, penumbra, clamp( battleSoftShadow, 0.0, 1.0 ) );
+     float acc = 0.0;
+     for ( int s = 0; s < 12; s++ ) {
+       acc += texture( shadowMap, vec3( shadowCoord.xy + vogelDiskSample( s, 12, phi ) * softRadius, shadowCoord.z ) );
+     }
+     shadow = acc / 12.0;
+   } else`
+);
 
 export class BattleScene {
   private gl:WebGLRenderer;
@@ -68,8 +94,6 @@ export class BattleScene {
   private sun=new DirectionalLight(0xffe6c7,3.1);
   private units=new Map<number,UnitVisual>();
   private nodes=new Map<number,NodeVisual>();
-  private pipes=new Map<string,Group>();
-  private pipeMaterials:ReturnType<typeof oilPipeMaterials>;
   private effects=new Map<number,BattleEffect>();
   private motion=new UnitMotion();
   private clock=new AnimationClock();
@@ -84,13 +108,19 @@ export class BattleScene {
   private extent={value:0};
   private fogView?:ViewState;
   private ambient={value:0};
+  private softShadow={value:0};
+  private dynamicLights:BattleDynamicLight[]=Array.from({length:MAX_BATTLE_LIGHTS},()=>({x:0,y:0,z:0,radius:0,r:0,g:0,b:0,intensity:0}));
+  private dynamicScores=new Float32Array(MAX_BATTLE_LIGHTS);
+  private dynamicLightCount=0;
   private shadowMaterial=new ShaderMaterial({
     transparent:true,depthWrite:false,
     vertexShader:`varying vec2 shadowUv;
       void main(){shadowUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
-    fragmentShader:`varying vec2 shadowUv;
+    fragmentShader:`${bufferOutputs}
+      varying vec2 shadowUv;
       void main(){float fog=1.0-smoothstep(.07,.50,length(shadowUv-.5));
-        gl_FragColor=vec4(.032,.036,.028,fog*.27);}`,
+        gl_FragColor=vec4(.032,.036,.028,fog*.27);
+        ${neutralBuffers}}`,
   });
   private construction?:{kind:BuildingKind;side:Side;model:BattleModel};
   private viewportWidth=0;
@@ -107,7 +137,7 @@ export class BattleScene {
   private gi:BattleGI;
   get lightingQuality(){return this.gi.quality;}
   get supportsGI(){return this.gi.supported;}
-  set lightingQuality(value:LightingQuality){this.gi.quality=value;}
+  set lightingQuality(value:LightingQuality){this.gi.quality=value;this.softShadow.value=this.gi.pcssStrength;}
   private shadowHz=30;
   setShadowQuality(size:number,hz:number){
     size=Math.min(size,this.gl.capabilities.maxTextureSize);this.shadowHz=hz;
@@ -116,12 +146,13 @@ export class BattleScene {
     this.sun.shadow.mapSize.set(size,size);this.gl.shadowMap.needsUpdate=true;this.lastShadow=-Infinity;
   }
 
-  constructor(canvas:HTMLCanvasElement,context:WebGL2RenderingContext,atlasImage:HTMLImageElement,unitAtlas:HTMLImageElement,factionAtlas:HTMLImageElement,pipeTextures:OilPipeTextures,private world:WorldData=getWorld(),factionDetail?:HTMLImageElement) {
+  constructor(canvas:HTMLCanvasElement,context:WebGL2RenderingContext,atlasImage:HTMLImageElement,unitAtlas:HTMLImageElement,factionAtlas:HTMLImageElement,private assets:BlenderAssets,private world:WorldData=getWorld(),factionDetail?:HTMLImageElement) {
     this.gl=new WebGLRenderer({canvas,context,antialias:true,alpha:false,powerPreference:'high-performance'});
     const anisotropy=this.gl.capabilities.getMaxAnisotropy();
-    this.pipeMaterials=oilPipeMaterials(pipeTextures,anisotropy);
     this.atlas=battleAtlas(atlasImage,unitAtlas,factionAtlas,anisotropy);
-    this.models=new BattleModels(this.atlas,factionDetail&&factionDetailTexture(factionDetail,anisotropy));
+    for(const texture of Object.values(assets.surface))texture.anisotropy=Math.min(8,anisotropy);
+    this.models=new BattleModels(this.atlas,factionDetail&&factionDetailTexture(factionDetail,anisotropy),assets,
+      material=>this.addHaze(material));
     battleLighting(this.gl,this.scene);
     this.gl.shadowMap.enabled=true;
     this.gl.shadowMap.type=PCFShadowMap;
@@ -139,12 +170,12 @@ export class BattleScene {
     this.scene.add(this.sun,this.sun.target,this.shots);
     this.resizeHaze();
     this.gi=new BattleGI(this.gl,this.haze,this.extent);
-    this.gi.quality=innerWidth<700?'off':'balanced';
+    this.gi.setSunDirection(sunOffset);
+    this.lightingQuality=innerWidth<700?'off':'balanced';
 
     this.scene.add(this.landscape);
     for(const material of [this.models.solid,...Object.values(this.models.lamps),...this.models.teams])this.addHaze(material);
     this.addHaze(this.models.forest,{wind:true});
-    for(const material of Object.values(this.pipeMaterials))this.addHaze(material,{hideInFog:'solid'});
     for(const material of this.selectionMaterials){
       material.customProgramCacheKey=()=>'battle-selection-ring-v1';
       material.onBeforeCompile=shader=>{
@@ -163,21 +194,21 @@ export class BattleScene {
     this.buildLandscape();
   }
 
-  setWorld(world:WorldData){
-    if(this.world.id===world.id&&this.world.revision===world.revision)return;
+  setWorld(world:WorldData,force=false){
+    if(!force&&this.world.id===world.id&&this.world.revision===world.revision)return;
     this.reset();
     // 只释放本地图拥有的几何、材质和纹理；全局地面几何与资产图集继续复用。
     const materials=new Set<MeshStandardMaterial>();
     this.landscape.traverse(object=>{
       if(object instanceof Mesh){
-        if(object.geometry!==groundPlane)object.geometry.dispose();
+        object.geometry.dispose();
         for(const material of Array.isArray(object.material)?object.material:[object.material])materials.add(material);
       }
     });
     for(const material of materials)material.dispose();
     for(const texture of this.landscapeTextures)texture.dispose();
     this.landscapeTextures=[];this.landscape.clear();this.world=world;
-    this.resizeHaze();this.buildLandscape();this.lastShadow=-Infinity;this.fogView=undefined;
+    this.resizeHaze();this.buildLandscape();this.lastShadow=-Infinity;this.fogView=undefined;this.gi.resetHistory();
   }
 
   private resizeHaze(){
@@ -193,6 +224,16 @@ export class BattleScene {
 
   private buildLandscape(){
     this.landscape.add(this.makeTerrain());
+    if(this.world.waterMask){
+      const maskGeo=waterMaskGeometry(this.world.waterMask,gridSize(this.world.land));
+      if(maskGeo){
+        const material=new MeshStandardMaterial({color:0xffffff,roughness:.36,metalness:.04,envMapIntensity:.8});
+        this.addHaze(material,{water:true});
+        const mesh=new Mesh(maskGeo,material);
+        mesh.receiveShadow=true;
+        this.landscape.add(mesh);
+      }
+    }
     const chunks=new Map<string,Feature[]>();
     for(const feature of this.world.features){
       if(feature.kind==='water'){this.addWater(feature);continue;}
@@ -201,10 +242,10 @@ export class BattleScene {
       const chunk=chunks.get(key)??[];
       chunk.push(feature);chunks.set(key,chunk);
     }
-    const vegetation=new MeshStandardMaterial({map:this.atlas,vertexColors:true,roughness:1});
+    const vegetation=modelSurface(this.atlas,undefined,false,this.assets.surface);
     this.addHaze(vegetation,{wind:true});
     for(const chunk of chunks.values()){
-      const geometry=natureGeometry(chunk);
+      const geometry=natureGeometry(chunk,this.assets,this.world);
       if(geometry){
         const mesh=new Mesh(geometry,vegetation);
         mesh.castShadow=mesh.receiveShadow=true;
@@ -217,12 +258,14 @@ export class BattleScene {
     const {wind,ground,water,hideInFog}=options;
     // 组合材质钩子，保留模型 PBR 参数，同时应用战争迷雾。
     const surfaceCompile=material.onBeforeCompile.bind(material),surfaceKey=material.customProgramCacheKey();
-    material.customProgramCacheKey=()=>surfaceKey+(ground?':ground':water?':water':wind?':vegetation':hideInFog==='solid'?':hidden-solid':hideInFog?':fx':':fog');
+    const gbuffer=material instanceof MeshStandardMaterial&&!material.transparent;
+    material.customProgramCacheKey=()=>surfaceKey+':gbuffer-v2'+(ground?':ground':water?':water':wind?':vegetation':hideInFog==='solid'?':hidden-solid':hideInFog?':fx':':fog');
     material.onBeforeCompile=(shader,renderer)=>{
       surfaceCompile(shader,renderer);
       shader.uniforms.battleFog=this.haze;
       shader.uniforms.battleExtent=this.extent;
       shader.uniforms.battleTime=this.ambient;
+      if(gbuffer)shader.uniforms.battleSoftShadow=this.softShadow;
       if(ground||water)shader.uniforms.paintedAtlas={value:this.atlas};
       if(ground){
         shader.uniforms.roads={value:ground.roads};
@@ -230,18 +273,37 @@ export class BattleScene {
       }
       shader.vertexShader=`varying vec2 battleUv;
         uniform float battleTime, battleExtent;
+        ${ground?'varying vec3 battleWorldNormal; varying vec3 battleWorldPos;':''}
+        ${water?'attribute float waterDepth; varying float shorelineDepth;':''}
       `+shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
         ${wind?`vec3 original=(modelMatrix*vec4(position,1.0)).xyz;
           float sway=smoothstep(15.0,90.0,position.y);
           transformed.x += sway*(sin(battleTime*1.4+original.x*.013+original.z*.008)-sin(original.x*.013+original.z*.008))*2.0;
           transformed.z += sway*sin(battleTime*.9)*1.5;`:''}
+        ${water?`shorelineDepth=waterDepth;
+          vec2 wavePoint=(modelMatrix*vec4(position,1.0)).xz;
+          transformed.y+=smoothstep(1.0,24.0,waterDepth)*(
+            sin(wavePoint.x*.032+wavePoint.y*.021+battleTime*1.3)*.65
+            +sin(wavePoint.x*-.018+wavePoint.y*.045+battleTime*.84)*.35);`:''}
       `).replace('#include <project_vertex>',`
-        battleUv=(modelMatrix*vec4(transformed,1.0)).xz/battleExtent;
+        vec4 battleWorldV=modelMatrix*vec4(transformed,1.0);
+        battleUv=battleWorldV.xz/battleExtent;
+        ${ground?'battleWorldPos=battleWorldV.xyz; battleWorldNormal=normalize(mat3(modelMatrix)*normal);':''}
         #include <project_vertex>
       `);
-      shader.fragmentShader=`varying vec2 battleUv;
+      shader.fragmentShader=`${bufferOutputs}
+        varying vec2 battleUv;
         uniform sampler2D battleFog;
         uniform float battleTime, battleExtent;
+        ${ground?'varying vec3 battleWorldNormal; varying vec3 battleWorldPos;':''}
+        ${gbuffer?'uniform float battleSoftShadow;':''}
+        ${water?`varying float shorelineDepth;
+          float rippleHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+          float rippleNoise(vec2 p){
+            vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
+            return mix(mix(rippleHash(i),rippleHash(i+vec2(1,0)),f.x),
+              mix(rippleHash(i+vec2(0,1)),rippleHash(i+vec2(1,1)),f.x),f.y);
+          }`:''}
         ${ground||water?atlasSamplingGLSL:''}
         ${ground?`uniform sampler2D roads;
           uniform sampler2D groundShade;`:''}
@@ -254,11 +316,32 @@ export class BattleScene {
           float shade=sin(battleUv.x*57.0+sin(battleUv.y*33.0)*1.55)*cos(battleUv.y*62.0);
           vec3 field=mix(vec3(.075,.119,.055),grass*.76,.77)*(1.0+shade*.24);
           vec3 trail=mix(vec3(.178,.137,.088),dirt*vec3(.72,.89,1.13),.62)*(1.0+shade*.16);
+          float slope=1.0-clamp(battleWorldNormal.y,0.0,1.0);
+          float cliffBlend=smoothstep(.13,.38,slope);
+          vec3 cliffTex=paintGround(${atlasCellGLSL('stone')},vec2((battleWorldPos.x+battleWorldPos.z)*(13.0/4096.0),battleWorldPos.y*.022));
+          vec3 cliff=mix(vec3(.14,.145,.135),cliffTex*.82,.75)*(1.0+shade*.14);
+          float elevationLift=1.0+clamp(battleWorldPos.y/58.0,0.0,1.0)*.14;
+          vec3 baseGround=mix(max(field,vec3(.018)),trail,road)*elevationLift;
           float canopy=texture2D(groundShade,battleUv).a;
-          diffuseColor.rgb*=mix(max(field,vec3(.018)),trail,road)*(1.0-canopy*.34);`:''}
-        ${water?`vec2 ripples=battleUv*battleExtent*(27.0/4096.0)+battleTime*vec2(.007,-.008);
-          diffuseColor.rgb*=vec3(.09,.18,.21)+paintGround(${atlasCellGLSL('water')},ripples)*1.5;`:''}
-      `).replace('#include <opaque_fragment>',`
+          diffuseColor.rgb*=mix(baseGround,cliff,cliffBlend)*(1.0-canopy*.34);`:''}
+        ${water?`vec2 waterPoint=battleUv*battleExtent;
+          float shallow=1.0-smoothstep(2.0,48.0,shorelineDepth);
+          float foamBand=1.0-smoothstep(1.0,6.0+sin(battleTime*1.8+waterPoint.x*.07+waterPoint.y*.03)*2.0,shorelineDepth);
+          float bubbles=smoothstep(.1,.75,sin(waterPoint.x*.41+battleTime*.7)*sin(waterPoint.y*.36-battleTime*.5));
+          float foam=foamBand*(.28+bubbles*.48);
+          diffuseColor.rgb=mix(vec3(.025,.09,.115),vec3(.15,.28,.24),shallow);
+          diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.64,.74,.67),foam);`:''}
+      `).replace('#include <normal_fragment_maps>',`#include <normal_fragment_maps>
+        ${water?`vec2 wavePoint=battleUv*battleExtent;
+          float waveA=wavePoint.x*.032+wavePoint.y*.021+battleTime*1.3;
+          float waveB=wavePoint.x*-.018+wavePoint.y*.045+battleTime*.84;
+          vec2 rippleUv=wavePoint*.13+battleTime*vec2(.21,-.17);
+          float rippleX=(rippleNoise(rippleUv)-.5)*.036;
+          float rippleZ=(rippleNoise(rippleUv+vec2(23.4,11.7))-.5)*.036;
+          vec3 waveNormal=normalize(vec3(-cos(waveA)*.055+cos(waveB)*.03+rippleX,1.0,
+            -cos(waveA)*.04-cos(waveB)*.075+rippleZ));
+          normal=normalize(mat3(viewMatrix)*waveNormal);`:''}
+      `).replace('#include <shadowmap_pars_fragment>',gbuffer?pcssShadowChunk:'#include <shadowmap_pars_fragment>').replace('#include <opaque_fragment>',`
         vec2 fogUv=clamp(battleUv,0.0,1.0), kernel=vec2(15.56/battleExtent);
         float battlefieldHaze=texture2D(battleFog,fogUv).r*.56
           +(texture2D(battleFog,fogUv+kernel).r+texture2D(battleFog,fogUv-kernel).r)*.22;
@@ -267,6 +350,10 @@ export class BattleScene {
         outgoingLight=mix(outgoingLight,vec3(.0028,.0075,.0058),battlefieldHaze*.993);
         ${hideInFog==='solid'?'if(battlefieldHaze>.28) discard;':hideInFog?'diffuseColor.a *= 1.0-smoothstep(.05,.28,battlefieldHaze);':''}
         #include <opaque_fragment>
+        ${gbuffer?`
+          // 主光照使用的最终贴图法线与 PBR 参数，供间接光和反射读取。
+          battleNormal=vec4(normalize(normal),clamp(roughnessFactor,.04,1.0));
+          battleSurface=vec4(diffuseColor.rgb,clamp(metalnessFactor,0.0,1.0));`:neutralBuffers}
       `);
     };
   }
@@ -296,46 +383,22 @@ export class BattleScene {
     this.landscapeTextures.push(roads,shade);
     const ground=new MeshStandardMaterial({roughness:1});
     this.addHaze(ground,{ground:{roads,shade}});
-    const mesh=new Mesh(groundPlane,ground);
-    mesh.scale.set(extent+border*2,1,extent+border*2);
-    mesh.position.set(extent/2,0,extent/2);
+    const mesh=new Mesh(terrainGeometry(this.world,border),ground);
     mesh.receiveShadow=true;
     return mesh;
   }
 
   private addWater(feature:Feature) {
-    const rings=feature.outline
-      ?[{radius:1.045,color:0x6b7555,height:.6},{radius:1,color:0x779d90,height:1},{radius:.965,color:0x74949a,height:1.6}]
-      :[{radius:1.08,color:0x605c46,height:.6},{radius:1,color:0x92bdaa,height:1.0},{radius:.91,color:0xa4c9c6,height:1.6}];
-    for(const ring of rings){
-      const positions=[0,ring.height,0],indices:number[]=[];
-      const contour=waterContour(feature,ring.radius);
-      for(let i=0;i<contour.length;i++){
-        positions.push(contour[i].x,ring.height,contour[i].y);
-        indices.push(0,(i+1)%contour.length+1,i+1);
-      }
-      // 弯河的岸线是凹多边形，中心扇形会把河湾内的陆地误画成水。
-      if(feature.river){
-        indices.length=0;
-        for(const [a,b,c] of ShapeUtils.triangulateShape(contour.map(p=>new Vector2(p.x,p.y)),[]))
-          indices.push(a+1,c+1,b+1);
-      }
-      const surface=new BufferGeometry();
-      surface.setAttribute('position',new BufferAttribute(new Float32Array(positions),3));
-      if(feature.outline&&ring.radius<=1){
-        const colors=[.43,.58,.62];
-        for(let i=0;i<contour.length;i++)colors.push(.86,1,.92);
-        surface.setAttribute('color',new BufferAttribute(new Float32Array(colors),3));
-      }
-      surface.setIndex(indices);
-      surface.computeVertexNormals();
-      const material=new MeshStandardMaterial({color:ring.color,roughness:.46,vertexColors:!!feature.outline&&ring.radius<=1});
-      this.addHaze(material,{water:ring.radius<=1});
-      const mesh=new Mesh(surface,material);
-      mesh.position.set(feature.x+(feature.waterRadii?0:16),0,feature.y+(feature.waterRadii?0:16));
-      mesh.receiveShadow=true;
-      this.landscape.add(mesh);
-    }
+    // 岸边使用地表本身；整片浅色覆盖网格会与起伏地面相交，露出三角形斑块。
+    const surface=waterGeometry(feature);
+    const material=new MeshStandardMaterial({
+      color:0xffffff,roughness:.36,metalness:.04,envMapIntensity:.8,
+    });
+    this.addHaze(material,{water:true});
+    const mesh=new Mesh(surface,material);
+    mesh.position.set(feature.x+(feature.waterRadii?0:16),0,feature.y+(feature.waterRadii?0:16));
+    mesh.receiveShadow=true;
+    this.landscape.add(mesh);
   }
 
   orient(view:Camera,yaw=initialYaw) {view.orient(yaw,groundTilt,border);}
@@ -410,16 +473,27 @@ export class BattleScene {
       visual.unit=unit;
       const heading=visual.angle;
       visual.angle=snap?unit.angle:turnToward(heading,unit.angle,dt*(stat.air?7:stat.size>80?5:12));
-      visual.altitude=stat.air?57+(animate?Math.sin(time*2.1+unit.id)*3:0):0;
+      const groundY=heightAt(this.world,visual.point.x,visual.point.y);
+      visual.altitude=stat.air?Math.max(groundY,0)+57+(animate?Math.sin(time*2.1+unit.id)*3:0):groundY;
       const root=visual.root;
       root.position.set(visual.point.x,visual.altitude,visual.point.y);
-      visual.shadow.position.set(visual.point.x+5+visual.altitude*.3,.26,visual.point.y-4);
-      visual.selection.position.set(visual.point.x,.4,visual.point.y);
+      visual.shadow.position.set(visual.point.x+5+(visual.altitude-groundY)*.3,groundY+.26,visual.point.y-4);
+      visual.selection.position.set(visual.point.x,groundY+.45,visual.point.y);
       visual.selection.visible=selected.has(unit.id);
       visual.range.position.copy(visual.selection.position);
       visual.range.visible=selected.has(unit.id)&&showRanges&&stat.range>0;
       const yaw=isMobile(unit)||packed(unit)?Math.PI/2-visual.angle:(unit.facing??buildingFacing(unit.kind as BuildingKind,unit,this.extent.value))*Math.PI/2;
-      root.rotation.set(0,yaw,0);
+      if(isMobile(unit)&&!stat.air&&!humanoid(unit.kind as MobileKind)&&this.world.heights){
+        const [nx,ny,nz]=normalAt(this.world,visual.point.x,visual.point.y);
+        const fx=Math.sin(yaw),fz=Math.cos(yaw),rx=fz,rz=-fx;
+        const pitch=Math.atan2(nx*fx+nz*fz,ny)*.75;
+        const roll=Math.atan2(-(nx*rx+nz*rz),ny)*.75;
+        root.rotation.order='YXZ';
+        root.rotation.set(pitch,yaw,roll);
+      }else{
+        root.rotation.order='XYZ';
+        root.rotation.set(0,yaw,0);
+      }
       root.scale.y=Math.max(.17,unit.construction);
       const action=unit.action;
       const age=action?.fired==null?Infinity:time-action.fired;
@@ -452,7 +526,7 @@ export class BattleScene {
         lamp.visible=animate&&(damaged||building||producing);
         if(lamp.visible){
           const beat=(Math.sin(time*(damaged?9:5)+unit.id)+1)/2;
-          lamp.position.set(visual.point.x+stat.radius*.28,visual.height*Math.max(.17,unit.construction)+2,visual.point.y+stat.radius*.24);
+          lamp.position.set(visual.point.x+stat.radius*.28,groundY+visual.height*Math.max(.17,unit.construction)+2,visual.point.y+stat.radius*.24);
           lamp.quaternion.copy(this.camera.quaternion);
           lamp.scale.setScalar(3+beat*3);
           lamp.material.color.setHex(damaged?0xff6e32:building?0xffc877:0xafffdc);
@@ -474,11 +548,12 @@ export class BattleScene {
       if(!visual||visual.empty!==empty||visual.node.kind!==node.kind){
         if(visual)this.scene.remove(visual.root,visual.selection);
         const model=this.models.resource(node.kind,empty,node.tree===undefined?undefined:this.world.features[node.tree]);
-        model.root.position.set(node.x,0,node.y);
+        const gy=heightAt(this.world,node.x,node.y);
+        model.root.position.set(node.x,gy,node.y);
         model.root.rotation.y=node.id*.51;
         const selection=new Mesh(selectionRing,this.selectionMaterials[4+['gold','wood','oil'].indexOf(node.kind)]);
         const radius=node.radius+12;selection.scale.set(radius,1,radius);
-        selection.position.set(node.x,.4,node.y);selection.renderOrder=2;
+        selection.position.set(node.x,gy+.45,node.y);selection.renderOrder=2;
         this.scene.add(model.root,selection);
         visual={...model,node,empty,selection};this.nodes.set(node.id,visual);
       }
@@ -486,25 +561,6 @@ export class BattleScene {
       visual.root.visible=!covered.has(node.id);
       visual.selection.visible=!empty&&(node.id===hoverNode||node.id===selectedNode);
     }
-  }
-
-  private updatePipes(view:ViewState){
-    const visible=new Set<string>();
-    for(const {well,refinery} of visibleOilPipes(view)){
-      const key=`${well.id}:${refinery.id}`;
-      visible.add(key);
-      if(this.pipes.has(key))continue;
-      const pipe=oilPipeModel(well,refinery,this.pipeMaterials,this.world.land);
-      this.pipes.set(key,pipe);this.scene.add(pipe);
-    }
-    for(const [key,pipe] of this.pipes)if(!visible.has(key)){
-      this.removePipe(pipe);this.pipes.delete(key);
-    }
-  }
-
-  private removePipe(pipe:Group){
-    for(const part of pipe.children)if(part instanceof Mesh)part.geometry.dispose();
-    this.scene.remove(pipe);
   }
 
   private shotMesh(pool:ShotMesh[],index:number,geometry:BufferGeometry){
@@ -534,10 +590,11 @@ export class BattleScene {
       const t=Math.min(1,Math.max(0,shot.firedAt!==undefined?(time-shot.firedAt)/duration:1-shot.life/duration));
       if(t===1)continue;
       const beam=this.shotMesh(this.beams,beamIndex++,this.shotGeometry);
-      const height=STATS[shot.kind].air?59:isMobile(shot)?19:40;
+      const startG=heightAt(this.world,shot.x,shot.y),endG=heightAt(this.world,shot.tx,shot.ty);
+      const height=(STATS[shot.kind].air?Math.max(startG,0)+59:startG+(isMobile(shot)?19:40));
       const arc=(f:number)=>new Vector3(
         shot.x+(shot.tx-shot.x)*f,
-        height*(1-f)+5*f+Math.sin(f*Math.PI)*(shot.kind==='artillery'?85:40),
+        height*(1-f)+(endG+5)*f+Math.sin(f*Math.PI)*(shot.kind==='artillery'?85:40),
         shot.y+(shot.ty-shot.y)*f,
       );
       if(shot.mode==='shell'){
@@ -548,7 +605,7 @@ export class BattleScene {
         core.position.copy(tip);core.quaternion.copy(this.camera.quaternion);core.scale.setScalar(3.4);
       }else{
         const color=shot.kind==='medic'?0x8affb5:shot.side===side?0xd4ffe4:0xffa989;
-        this.streak(beam,new Vector3(shot.x,height,shot.y),new Vector3(shot.tx,16,shot.ty),color,shot.kind==='medic'?1.2:.7,1-t);
+        this.streak(beam,new Vector3(shot.x,height,shot.y),new Vector3(shot.tx,endG+16,shot.ty),color,shot.kind==='medic'?1.2:.7,1-t);
       }
     }
     for(let i=beamIndex;i<this.beams.length;i++)this.beams[i].visible=false;
@@ -571,7 +628,7 @@ export class BattleScene {
       let effect=this.effects.get(event.id);
       if(!effect){
         const root=new Group();
-        root.position.set(event.x,1,event.y);
+        root.position.set(event.x,heightAt(this.world,event.x,event.y)+1,event.y);
         const wreck=event.type==='death'?this.models.unit(event.kind,event.side,false,view.players.find(p=>p.side===event.side)?.race):undefined;
         if(wreck){
           wreck.root.rotation.y=isMobile(event)?Math.PI/2-event.angle:(event.facing??buildingFacing(event.kind as BuildingKind,event,this.extent.value))*Math.PI/2;
@@ -622,9 +679,93 @@ export class BattleScene {
       this.scene.add(model.root);this.construction={kind,side,model};
     }
     const root=this.construction.model.root;
-    root.visible=true;root.position.set(point.x,1,point.y);
+    root.visible=true;root.position.set(point.x,heightAt(this.world,point.x,point.y)+1,point.y);
     root.rotation.y=facing*Math.PI/2;
-    this.models.preview.color.setHex(placementError(side,kind,point,view.units,view.nodes,view.visible,facing,harvestLand(this.world,view.nodes),view.oilWells)?0xff705a:0x83f5bb);
+    this.models.preview.color.setHex(placementError(side,kind,point,view.units,view.nodes,view.visible,facing,harvestLand(this.world,view.nodes),view.oilWells,false,this.world)?0xff705a:0x83f5bb);
+  }
+
+  private addDynamicLight(camera:Camera,x:number,y:number,z:number,radius:number,r:number,g:number,b:number,intensity:number){
+    if(intensity<=.02||radius<=1)return;
+    // 只收集当前屏幕附近的可见战火／自发光光源，按亮度与屏幕距离择优保留前 32 盏。
+    const dx=x-camera.x,dz=z-camera.y;
+    const span=Math.max(camera.width,camera.height)/Math.max(.35,camera.zoom)*.85+radius;
+    if(dx*dx+dz*dz>span*span)return;
+    const score=intensity*radius/(Math.hypot(dx,dz)+120);
+    let slot=this.dynamicLightCount;
+    if(slot<MAX_BATTLE_LIGHTS){
+      this.dynamicLightCount++;
+    }else{
+      let worst=0;
+      for(let i=1;i<MAX_BATTLE_LIGHTS;i++)if(this.dynamicScores[i]<this.dynamicScores[worst])worst=i;
+      if(score<=this.dynamicScores[worst])return;
+      slot=worst;
+    }
+    this.dynamicScores[slot]=score;
+    const dst=this.dynamicLights[slot];
+    dst.x=x;dst.y=y;dst.z=z;dst.radius=radius;dst.r=r;dst.g=g;dst.b=b;dst.intensity=intensity;
+  }
+
+  private collectDynamicLights(view:ViewState,camera:Camera,time:number,animate:boolean,side:Side){
+    this.dynamicLightCount=0;
+    if(this.gi.quality==='off')return;
+    // 1) 爆炸、受击、治疗与建造完成的强动态闪光
+    for(const event of view.events||[]){
+      if(!(event.type in life))continue;
+      const duration=life[event.type as keyof typeof life],age=time-event.time;
+      if(age<0||age>=duration||(!animate&&event.type!=='death'))continue;
+      const fade=Math.max(0,1-age/(event.type==='death'?.65:duration));
+      if(fade<=.02)continue;
+      const pulse=fade*fade;
+      if(event.type==='impact'||event.type==='death'){
+        const heavy=event.kind==='artillery'||event.kind==='mech'||event.kind==='behemoth'||event.kind==='colossus'||!isMobile(event);
+        this.addDynamicLight(camera,event.x,heavy?28:18,event.y,heavy?210:135,1.0,.52,.18,(heavy?3.4:2.2)*pulse);
+      }else{
+        this.addDynamicLight(camera,event.x,20,event.y,115,.30,.98,.72,1.65*pulse);
+      }
+    }
+    // 2) 飞行炮弹火球、激光束与医疗光束实时照亮沿途地形与装甲
+    for(const shot of view.shots){
+      const duration=shot.duration??.3;
+      const t=Math.min(1,Math.max(0,shot.firedAt!==undefined?(time-shot.firedAt)/duration:1-shot.life/duration));
+      if(t>=1)continue;
+      const height=STATS[shot.kind].air?59:isMobile(shot)?19:40;
+      if(shot.mode==='shell'){
+        const px=shot.x+(shot.tx-shot.x)*t;
+        const py=height*(1-t)+8*t+Math.sin(t*Math.PI)*(shot.kind==='artillery'?85:40);
+        const pz=shot.y+(shot.ty-shot.y)*t;
+        this.addDynamicLight(camera,px,py,pz,shot.kind==='artillery'?155:105,1.0,.68,.28,shot.kind==='artillery'?2.2:1.45);
+      }else{
+        const fade=1-t;
+        const medic=shot.kind==='medic';
+        const r=medic?.35:shot.side===side?.48:1.0;
+        const g=medic?.98:shot.side===side?.96:.52;
+        const b=medic?.76:shot.side===side?.82:.30;
+        // 枪口闪光 + 光束落点照亮
+        this.addDynamicLight(camera,shot.x,height+4,shot.y,85,r,g,b,(medic?1.2:1.5)*fade);
+        this.addDynamicLight(camera,shot.tx,18,shot.ty,95,r,g,b,(medic?1.35:1.65)*fade);
+      }
+    }
+    // 3) 运作中的建筑能量核心、受损火光与高能单位灯槽柔和环境照明
+    for(const visual of this.units.values()){
+      const u=visual.unit;
+      if(!isMobile(u)){
+        const damaged=u.hp/u.maxHp<.45,producing=u.activity==='produce',energy=u.kind==='powerplant'||u.kind==='research'||u.kind==='base';
+        if(damaged){
+          const flicker=.78+.22*Math.sin(time*14+u.id);
+          this.addDynamicLight(camera,visual.point.x,visual.height*.6+10,visual.point.y,110,1.0,.42,.15,1.15*flicker);
+        }else if(producing||energy){
+          const glow=.86+.14*Math.sin(time*3.2+u.id);
+          const race=view.players.find(p=>p.side===u.side)?.race;
+          const r=race==='stellar'?.42:race==='brood'?.45:.40;
+          const g=race==='stellar'?.88:race==='brood'?.95:.92;
+          const b=race==='stellar'?1.0:race==='brood'?.35:.95;
+          this.addDynamicLight(camera,visual.point.x,visual.height*.7+12,visual.point.y,105,r,g,b,(producing?.68:.44)*glow);
+        }
+      }else if(u.kind==='mech'||u.kind==='colossus'||u.kind==='prism'){
+        this.addDynamicLight(camera,visual.point.x,26,visual.point.y,78,.36,.90,1.0,.52);
+      }
+    }
+    this.gi.setDynamicLights(this.dynamicLights,this.dynamicLightCount);
   }
 
   draw(view:ViewState,camera:Camera,dpr:number,now:number,dt:number,animate:boolean,side:Side,placement:BuildPlacement|null,selected:ReadonlySet<number>=noSelection,hoverNode:number|null=null,selectedNode:number|null=null,showRanges=false) {
@@ -652,10 +793,10 @@ export class BattleScene {
     const time=this.clock.advance(view.time,dt,!!view.winner);
     this.updateUnits(view,camera,dt,time,animate,selected,showRanges);
     this.updateNodes(view,hoverNode,selectedNode);
-    this.updatePipes(view);
     this.updateEffects(view,time,animate);
     this.updateShots(view,time,side);
     this.updatePreview(view,side,placement);
+    this.collectDynamicLights(view,camera,time,animate,side);
     this.gi.render(this.scene,this.camera);
   }
 
@@ -712,8 +853,6 @@ export class BattleScene {
   nodeHeight(id:number) {return this.nodes.get(id)?.height??0;}
 
   reset(){
-    for(const pipe of this.pipes.values())this.removePipe(pipe);
-    this.pipes.clear();
     for(const visual of this.units.values())this.removeUnit(visual);
     this.units.clear();
     for(const visual of this.nodes.values())this.scene.remove(visual.root,visual.selection);
@@ -723,6 +862,7 @@ export class BattleScene {
     this.motion=new UnitMotion();
     this.clock=new AnimationClock();
     this.lastShadow=-Infinity;
+    this.gi.resetHistory();
   }
 
   pick(screen:Point,view:Camera):ScenePick|null {
@@ -738,7 +878,7 @@ export class BattleScene {
       roots.push(root);ids.set(root,id);
     };
     for(const [id,visual] of this.units)consider(visual.root,visual.point,visual.altitude+visual.height/2,STATS[visual.unit.kind].size*.62,{unit:id});
-    for(const [id,visual] of this.nodes)if(!visual.empty&&visual.root.visible)consider(visual.root,visual.node,visual.height/2,70,{node:id});
+    for(const [id,visual] of this.nodes)if(!visual.empty&&visual.root.visible)consider(visual.root,visual.node,heightAt(this.world,visual.node.x,visual.node.y)+visual.height/2,70,{node:id});
     for(const hit of this.raycaster.intersectObjects(roots,true)){
       for(let object=hit.object.parent;object;object=object.parent){
         const id=ids.get(object);

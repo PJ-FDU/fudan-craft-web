@@ -22,8 +22,12 @@ function room(mode='ffa'){
 test('Pages invites preserve the pinned host and reject incomplete or malformed identifiers',()=>{
   const code='aabbccddeeff:Case_Sensitive-host';
   assert.equal(parseInvite(code)?.code,'AABBCCDDEEFF:Case_Sensitive-host');
+  assert.equal(parseInvite(encodeURIComponent(code))?.code,'AABBCCDDEEFF:Case_Sensitive-host');
+  assert.equal(parseInvite(`#room=${encodeURIComponent(code)}`)?.code,'AABBCCDDEEFF:Case_Sensitive-host');
   assert.equal(parseInvite(`https://example.github.io/game/#room=${encodeURIComponent(code)}`)?.hostId,'Case_Sensitive-host');
-  for(const invalid of ['AABBCCDDEEFF','AABBCC:host','AABBCCDDEEFF:host:guest','javascript:evil',null])assert.equal(parseInvite(invalid),null);
+  assert.equal(parseInvite(`https://example.github.io/game/#room=${encodeURIComponent(code)}&ref=share`)?.hostId,'Case_Sensitive-host');
+  assert.equal(parseInvite(`https://example.github.io/game/?room=${encodeURIComponent(code)}`)?.hostId,'Case_Sensitive-host');
+  for(const invalid of ['AABBCCDDEEFF','AABBCC:host','AABBCCDDEEFF:host:guest','javascript:evil','%E0%A4%A',null])assert.equal(parseInvite(invalid),null);
 });
 test('TCP relay selection preserves STUN, credentials and configuration, and retains UDP when TCP is unavailable',()=>{
   const config:RTCConfiguration={bundlePolicy:'max-bundle',iceServers:[

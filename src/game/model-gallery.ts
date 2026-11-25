@@ -5,14 +5,17 @@ import {
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { battleAtlas, factionDetailTexture } from './battle-materials.js';
 import { battleLighting } from './battle-lighting.js';
+import { cinematicEnvironment } from './cinematic-lighting.js';
+import type { CinematicTracer } from './cinematic-tracer.js';
 import { BattleModels, type BattleModel } from './models-3d.js';
+import type { BlenderAssets } from './blender-assets.js';
 import { poseRig } from './unit-rig.js';
 import { ROSTERS } from './races.js';
 import { RACES, RACE_NAMES, STATS, type Kind, type MobileKind, type Race, type Side } from './types.js';
 import { dropdownMarkup,type Choice,type GameSelect } from './dropdown.js';
 
 /** 与战场共用几何、材质和骨骼，避免预览与实际单位产生两份事实来源。 */
-export function modelGallery(root:HTMLElement,images:Map<string,HTMLImageElement>){
+export function modelGallery(root:HTMLElement,images:Map<string,HTMLImageElement>,assets:BlenderAssets){
   const terrain=images.get('battle-materials'),units=images.get('unit-materials'),factions=images.get('faction-materials');
   if(!terrain||!units||!factions){
     root.textContent='当前设备未启用 3D 渲染，无法显示模型图鉴。';return ()=>{};
@@ -25,6 +28,11 @@ export function modelGallery(root:HTMLElement,images:Map<string,HTMLImageElement
       <div class="field model-object-field">对象${dropdownMarkup('model-kind','对象')}</div>
     </div>
     <div class="animation-stage model-stage"><canvas id="model-preview" aria-label="三维模型预览，可拖动旋转" tabindex="0"></canvas></div>
+    <div class="model-lighting-row">
+      <label class="toggle-label">高清实时光追<input type="checkbox" id="model-cinema"></label>
+      <label class="toggle-label">实时降噪<input type="checkbox" id="model-denoise" checked disabled></label>
+      <span class="room-note" id="model-lighting-status" role="status">实时光栅预览 · 勾选后开启高清实时光追</span>
+    </div>
     <div class="settings-row model-filters">
       <div class="field">动作${dropdownMarkup('model-state','动作')}</div>
       <div class="field">玩家颜色${dropdownMarkup('model-team','玩家颜色',[['1','翡翠绿'],['2','赤红'],['3','天蓝'],['4','金黄']])}</div>
@@ -49,9 +57,11 @@ export function modelGallery(root:HTMLElement,images:Map<string,HTMLImageElement
   gl.shadowMap.enabled=true;gl.shadowMap.type=PCFShadowMap;
   const scene=new Scene();scene.background=new Color(0x151d24);
   const environment=battleLighting(gl,scene);
+  const cinematicSky=cinematicEnvironment();scene.environment=cinematicSky;scene.environmentIntensity=.85;
+  gl.toneMappingExposure=1.05;
   const anisotropy=gl.capabilities.getMaxAnisotropy(),detail=images.get('faction-detail');
   const atlas=battleAtlas(terrain,units,factions,anisotropy);
-  const models=new BattleModels(atlas,detail&&factionDetailTexture(detail,anisotropy));
+  const models=new BattleModels(atlas,detail&&factionDetailTexture(detail,anisotropy),assets);
   const camera=new OrthographicCamera(-70,70,55,-55,.1,1000);
   const controls=new OrbitControls(camera,canvas);
   controls.enablePan=false;controls.minZoom=.5;controls.maxZoom=3;
@@ -68,10 +78,52 @@ export function modelGallery(root:HTMLElement,images:Map<string,HTMLImageElement
   const floor=new Mesh(new PlaneGeometry(1600,1600),new MeshStandardMaterial({color:0x1b2831,roughness:.88}));
   floor.rotation.x=-Math.PI/2;floor.position.y=-.8;floor.receiveShadow=true;scene.add(floor);
   const holder=new Group();scene.add(holder);
-  let model:BattleModel|undefined,playing=true,elapsed=0,last=0,request=0,span=100;
+  let model:BattleModel|undefined,playing=true,interacting=false,elapsed=0,last=0,request=0,span=100;
+  controls.addEventListener('start',()=>{interacting=true;});
+  controls.addEventListener('end',()=>{interacting=false;});
+  let cinema:CinematicTracer|undefined,disposed=false,cinemaVersion=0,lastCinemaPose='';
+  const cinemaToggle=get<HTMLInputElement>('model-cinema'),lightingStatus=get('model-lighting-status');
+  const denoiseToggle=get<HTMLInputElement>('model-denoise');
+  denoiseToggle.onchange=()=>{if(cinema)cinema.denoise=denoiseToggle.checked;};
+  const stopCinema=()=>{
+    cinemaVersion++;cinema?.dispose();cinema=undefined;
+    denoiseToggle.disabled=true;
+    root.querySelector('#model-pathtrace')?.remove();
+  };
+  const startCinema=(forceWebGL=false)=>{
+    stopCinema();
+    const version=cinemaVersion;
+    lightingStatus.textContent=forceWebGL?'切换到 WebGL 2 光追…':'初始化 GPU 光追…';
+    void import('./cinematic-tracer.js').then(async({CinematicTracer})=>{
+      if(disposed||version!==cinemaVersion)return;
+      const overlay=document.createElement('canvas');overlay.id='model-pathtrace';overlay.hidden=true;
+      overlay.setAttribute('aria-label','GPU 路径追踪模型预览');canvas.parentElement!.append(overlay);
+      const pending=new CinematicTracer(overlay,lightingStatus,{forceWebGL});
+      pending.denoise=denoiseToggle.checked;
+      cinema=pending;
+      await pending.init();
+      if(disposed||version!==cinemaVersion){pending.dispose();return;}
+      pending.capture(scene,span);
+      denoiseToggle.disabled=false;
+    }).catch(error=>{
+      if(disposed||version!==cinemaVersion)return;
+      if(!forceWebGL&&cinema?.backendId==='webgpu-bvh'){
+        console.warn('WebGPU 光追捕获失败，切换到 WebGL 2 光追后备',error);
+        startCinema(true);return;
+      }
+      stopCinema();cinemaToggle.checked=false;
+      lightingStatus.textContent='此设备暂不能运行电影光追，已恢复实时预览。';
+      console.warn('电影光追初始化失败',error);
+    });
+  };
+  cinemaToggle.onchange=()=>{
+    if(!cinemaToggle.checked){stopCinema();lightingStatus.textContent='实时光栅预览 · 勾选后开启高清实时光追';return;}
+    startCinema(false);
+  };
   const raceKind=()=>race.value as Race,unitKind=()=>kind.value as Kind;
   function resize(){
     const rect=canvas.getBoundingClientRect(),width=Math.max(1,rect.width),height=Math.max(1,rect.height);
+    gl.setPixelRatio(Math.min(devicePixelRatio,2));
     gl.setSize(width,height,false);
     camera.left=-span*width/height/2;camera.right=-camera.left;camera.top=span/2;camera.bottom=-camera.top;
     camera.updateProjectionMatrix();
@@ -97,6 +149,7 @@ export function modelGallery(root:HTMLElement,images:Map<string,HTMLImageElement
     get('model-packed-label').hidden=unitKind()!=='assembly';
     get('model-caption').textContent=`${RACE_NAMES[raceKind()]} · ${STATS[unitKind()].name} / ${STATS[unitKind()].en} · ${STATS[unitKind()].description}`;
     canvas.dataset.kind=unitKind();canvas.dataset.race=raceKind();elapsed=0;reset();
+    cinema?.capture(scene,span);
   }
   function options(){
     const roster=ROSTERS[raceKind()],building=category.value==='buildings';
@@ -115,6 +168,8 @@ export function modelGallery(root:HTMLElement,images:Map<string,HTMLImageElement
   };
   const observer=new ResizeObserver(resize);observer.observe(canvas);
   function tick(now:number){
+    // 跨屏移动或浏览器缩放可能只改变 DPR，不触发 ResizeObserver。
+    if(gl.getPixelRatio()!==Math.min(devicePixelRatio,2))resize();
     const dt=last?Math.min((now-last)/1000,.05):0;last=now;if(playing)elapsed+=dt;
     const action=state.value,cycle=elapsed%1.5,moving=action==='move';
     if(model?.rig)poseRig(model.rig,unitKind() as MobileKind,{
@@ -129,12 +184,25 @@ export function modelGallery(root:HTMLElement,images:Map<string,HTMLImageElement
       else arm.rotation.y=elapsed*.25;
     }
     canvas.dataset.time=elapsed.toFixed(3);
-    controls.update(dt);gl.render(scene,camera);request=requestAnimationFrame(tick);
+    controls.update(dt);gl.render(scene,camera);
+    const cinemaPose=`${elapsed}:${state.value}`;
+    const poseChanging=playing||cinemaPose!==lastCinemaPose;
+    try{cinema?.render(camera,poseChanging||interacting||controls.autoRotate,now,poseChanging);}catch(error){
+      if(cinema?.backendId==='webgpu-bvh'){
+        console.warn('WebGPU 光追渲染失败，切换到 WebGL 2 光追后备',error);
+        startCinema(true);
+      }else{
+        stopCinema();cinemaToggle.checked=false;lightingStatus.textContent='光追已恢复为实时预览，请重新开启重试。';
+        console.warn('电影光追渲染失败',error);
+      }
+    }
+    lastCinemaPose=cinemaPose;
+    request=requestAnimationFrame(tick);
   }
   options();request=requestAnimationFrame(tick);
   return ()=>{
-    cancelAnimationFrame(request);observer.disconnect();controls.dispose();model?.rig?.skeleton.dispose();
-    models.dispose();atlas.dispose();environment.dispose();light.shadow.dispose();
+    disposed=true;stopCinema();cancelAnimationFrame(request);observer.disconnect();controls.dispose();model?.rig?.skeleton.dispose();
+    models.dispose();atlas.dispose();environment.dispose();cinematicSky.dispose();light.shadow.dispose();
     floor.geometry.dispose();floor.material.dispose();gl.dispose();gl.forceContextLoss();
   };
 }

@@ -18,8 +18,15 @@ export function parseInvite(value:unknown):{channel:string;hostId:string;code:st
   if(typeof value!=='string'||value.length>2048)return null;
   let code=value.trim();
   if(/^https?:\/\//i.test(code)){
-    try{code=new URL(code).hash.slice(1);if(code.startsWith('room='))code=decodeURIComponent(code.slice(5));}catch{return null;}
+    try{
+      const url=new URL(code),hash=url.hash.slice(1);
+      code=(hash?hash.includes('=')?new URLSearchParams(hash).get('room'):hash:null)??url.searchParams.get('room')??'';
+    }catch{return null;}
+  }else{
+    if(code.startsWith('#'))code=code.slice(1);
+    if(/^room=/i.test(code))code=new URLSearchParams(code).get('room')??'';
   }
+  try{code=decodeURIComponent(code).trim();}catch{return null;}
   const match=/^([A-Fa-f0-9]{12}):([A-Za-z0-9_-]{1,128})$/.exec(code);
   return match?{channel:match[1].toUpperCase(),hostId:match[2],code:`${match[1].toUpperCase()}:${match[2]}`}:null;
 }

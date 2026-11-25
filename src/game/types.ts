@@ -71,7 +71,7 @@ export interface Windup {source:number;target:number;fireAt:number;healing:boole
 export type VisibleUnit=Unit&{maxHp:number};
 export interface SkillArea extends Point {id:number;skill:AbilityId;source:number;side:Side;radius:number;until:number}
 export interface GameState { areas?:SkillArea[]; version: 2; oilWells?:true; mapId:MapId; mapRevision:number; time: number; units: Unit[]; nodes: ResourceNode[]; players: Player[]; nextId: number; shots: Shot[]; windups:Windup[]; events: VisualEvent[]; nextEventId: number; winner: Side | null; difficulty: Difficulty; aiTimer: number; explored: Record<number, number[]>;aiPlans?:Partial<Record<Side,AIPlan>> }
-export interface ViewState { areas?:SkillArea[];areaEdges?:{skill:AbilityId;start:Point;end:Point}[]; oilWells?:true; oilPipes?:{well:number;refinery:number}[]; mapId:MapId; mapRevision:number; time: number; units: VisibleUnit[]; nodes: ResourceNode[]; players: Player[]; shots: VisibleShot[]; events: Omit<VisualEvent,'audience'>[]; winner: Side | null; explored: number[]; visible: ArrayLike<number>; difficulty: Difficulty }
+export interface ViewState { areas?:SkillArea[];areaEdges?:{skill:AbilityId;start:Point;end:Point}[]; oilWells?:true; mapId:MapId; mapRevision:number; time: number; units: VisibleUnit[]; nodes: ResourceNode[]; players: Player[]; shots: VisibleShot[]; events: Omit<VisualEvent,'audience'>[]; winner: Side | null; explored: number[]; visible: ArrayLike<number>; difficulty: Difficulty }
 export type Command =
   | { type: 'train'; kind: MobileKind; producer?:number }
   | { type: 'cast'; ids:number[]; skill:AbilityId; target?:number; point?:Point; area?:number }
@@ -110,11 +110,11 @@ export const STATS: Record<Kind, Stat> = {
   barracks:building('步兵营','BARRACKS',1,'生产突击步兵，搭配研究中心解锁医疗兵与狙击手。',{hp:900,cost:500,wood:240,requires:'powerplant',size:144}),
   factory:building('战车工厂','VEHICLE WORKS',2,'生产侦察车、坦克、火炮与重型机甲。',{hp:1100,cost:800,wood:360,oil:80,build:24,requires:'barracks',power:20,size:158}),
   airfield:building('航空机库','AIRFIELD',3,'研究航空技术后生产猎隼战机。',{hp:1000,cost:1000,wood:450,oil:150,build:26,requires:'factory',power:25,radius:46,size:174}),
-  refinery:building('石油精炼厂','REFINERY',4,'连接附近油井并处理石油，也接收金矿。',{hp:850,cost:550,wood:280,build:18,requires:'barracks',power:15,size:144}),
+  refinery:building('石油精炼厂','REFINERY',4,'解锁油井并精炼石油，也接收金矿。',{hp:850,cost:550,wood:280,build:18,requires:'barracks',power:15,size:144}),
   research:building('科技研究中心','RESEARCH LAB',5,'研发火力、装甲、物流、先进工程与航空技术。',{hp:800,cost:700,wood:340,oil:50,build:24,requires:'barracks',power:15,size:146}),
   lumbermill:building('木材加工厂','LUMBER MILL',6,'提高伐木效率 50%，接收金矿和木材。',{hp:750,cost:350,wood:180,power:5,size:138}),
   powerplant:building('聚能电站','POWER PLANT',7,'提供 60 电力，低电力时军事生产与研究暂停。',{hp:800,cost:300,wood:150,power:-60,size:127}),
-  oilwell:building('油井','OIL WELL',9,'建于精炼厂覆盖的油点上，通过管道自动输油。',{hp:550,cost:120,wood:50,build:6,requires:'refinery',power:5,radius:35,size:88}),
+  oilwell:building('油井','OIL WELL',9,'建于油点上自动采油，需先建成石油精炼厂。',{hp:550,cost:120,wood:50,build:6,requires:'refinery',power:5,radius:35,size:88}),
   tower:building('哨戒炮塔','SENTINEL',8,'自动攻击范围内的地面与空中敌人，需要部队配合防守。',{hp:650,damage:18,range:285,cooldown:1,cost:400,wood:200,oil:40,build:18,power:10,radius:25,size:94,requires:'barracks'}),
   commander:special('战术指挥官','TACTICAL COMMANDER','barracks',{hp:165,requires:'commandPost',speed:86}),
   disruptor:special('电子干扰车','SIGNAL JAMMER','factory',{hp:200,speed:88,cell:2,size:74}),

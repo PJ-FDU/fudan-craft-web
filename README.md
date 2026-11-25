@@ -71,17 +71,23 @@ npm run preview:pages
 
 ## 3D 战场
 
-战场默认使用 Three.js 和 WebGL 2。传统单位、建筑及四族扩展阵容、资源和植被均使用立体模型。战机有飞行高度，炮弹沿空中弧线飞行。地形阻挡、建筑占地和视野沿用现有地图与战斗规则，v2 存档可直接读取。
+战场使用 Three.js 和 WebGL 2，全部四族单位、建筑与自然物件由 Blender 导出的 GLB 加载。新增可编辑骨架工程、Cycles PBR 图集、真实分叉树木、立体地表与凹岸线波浪水面；构建、编辑和验证见 [Blender 工作流](docs/BLENDER_GAME.md)。战机有飞行高度，炮弹沿空中弧线飞行。地形阻挡、建筑占地和视野沿用现有地图与战斗规则，v2 存档可直接读取。
+
+四族 78 个模型进一步新增高模曲面与局部雕刻、独立 UV、高低模法线和 AO 投射，以及各模型专属的颜色与 ORM 纹理。装甲、甲壳、角质和帆布采用不同造型与材质规则，见 [模型精修与重建](docs/BLENDER_SCULPT.md)。
+
+工业联邦工程采集车已单独重做斜面驾驶舱、四轮胎纹和轮毂、双液压臂、伸缩导轨与采集钳，使用独立 2K PBR 和可编辑 Blender 工程。材质结合生图纹理与按部件位置控制的掉漆、锈流和积泥，并加入挡泥板及采集臂的实体凹陷。查看 [做旧前后](artifacts/worker-hero/battlewear-comparison.png)、[参考对照](artifacts/worker-hero/reference-comparison.png)、[实际图鉴](artifacts/worker-hero/game-worker-idle.png) 和 [专项重建说明](docs/WORKER_HERO.md)；使用 `npm run assets:worker` 只重建这辆车。
+
+幽影狙击手也使用独立高低模和 2K PBR，胸腰采用弧形收边，双手握持与贴腮瞄准按枪械接触点求解，披风用八段骨骼独立风摆。精密步枪包含枪机、真实孔洞、分段瞄准镜和可调枪托。查看 [修订前后对照](artifacts/sniper-hero/revision-comparison.png)、[握枪侧面](artifacts/sniper-hero/grip-side-detail.png)、[披风动作](artifacts/sniper-hero/cape-motion.gif)、[光追瞄准](artifacts/sniper-hero/cinematic-aim.png) 和 [重建说明](docs/SNIPER_HERO.md)；使用 `npm run assets:sniper` 单独重建。
 
 模型使用真实圆角装甲、平滑曲面和分层机械结构。车辆包含履带块、轮毂螺栓、散热百叶和检修盖；建筑包含扶梯、管道法兰、护栏与屋顶设备。沿用原创图集表现磨损，同时按表面区分金属、喷漆、橡胶、织物和玻璃的粗糙度与金属度，并加入轻微凹凸。
 
-光照采用 ACES 色调映射、一次烘焙的天空环境反射、冷暖环境补光与方向光阴影，并增加屏幕空间单次漫反射反弹、接触遮蔽和双边降噪。「间接光照」提供基础／均衡／精细三档偏好，桌面默认均衡，手机宽度默认基础；自动性能模式可临时降低 GI 上限，不覆盖偏好。源表面与接收表面均受战争迷雾约束。模型加入独立程序化法线图集、分段侧裙、后掠翼、喷口瓣片和工业阀管。阴影贴图按实测性能档位采用 512 / 1024 / 2048 / 4096。地表纹理在草地与道路之间混合，配合正交俯视镜头。该 GI 只利用屏幕内信息，不包含 UE5 的 Nanite / Lumen 或多次反弹。参见 [模型效果图](docs/refined-assets-preview.png)、[实战截图](docs/battlefield-gi-preview.png)、[实现与实测预算](docs/3D_RENDERING.md)、[材质图集](docs/GENERATED_ART.md#threejs-战场材质)。
+战场光照采用 ACES、烘焙天空反射、冷暖补光与方向光阴影，新增读取实际贴图法线、albedo、粗糙度和金属度的屏幕空间反弹及动态反射，源表面与接收面均遵守战争迷雾。「间接光照」提供基础／均衡／精细三档，自动性能模式可临时降低效果上限并保留偏好。模型图鉴另有可选「电影光追」：运动时显示没有路径采样噪点的光栅预览，暂停动作与镜头后由 WebGPU 对完整模型的三角形 BVH 计算六次反弹和面积光软阴影，完成全分辨率 256 次采样及静态降噪后才显示光追结果。准备期间保留实时画面并显示进度；恢复运动立即切回光栅，两种模式的光照会有所不同。查看 [动态与静态效果](artifacts/cinematic-hybrid/comparison.png)、[实际光追对照](artifacts/worker-hero/cinematic-comparison.png)、[当前战场](artifacts/worker-hero/cinematic-battle-high.png)、[实现与预算](docs/3D_RENDERING.md)。
 
 传统九类移动单位使用骨骼蒙皮和部件贴图。步兵与机甲有膝、踝和肩肘关节，步态随实际移动距离推进。车辆会转动车轮、控制炮塔和机械臂，战机转向时侧倾。战场对局最多绘制 60 帧每秒，暂停时最多 24 帧；首页不绘制或模拟战场，动态阴影最多每秒更新 30 次。
 
 四族单位与建筑共用表面做旧：金属锈蚀、掉漆、油污和弹痕，陶瓷与甲壳擦伤，布料和橡胶积灰；阵营色板也保留使用痕迹。磨损随部件运动，沿用现有合批与纹理。[四族实机效果](docs/faction-materials/weathering-preview.jpg)。
 
-默认镜头俯角约 38°。按 Z / C 或点击缩放栏的旋转按钮，可每次旋转视角 30°。滚轮继续围绕指针缩放，框选以屏幕上的单位位置为准，小地图边框随视角旋转。原有手绘素材用于头像、动画图鉴，以及 WebGL 2 不可用时的 Canvas 2D 战场。
+默认镜头俯角约 38°。按 Z / C 或点击缩放栏的旋转按钮，可每次旋转视角 30°。滚轮继续围绕指针缩放，框选以屏幕上的单位位置为准，小地图边框随视角旋转。头像、动画图鉴、HUD 和小地图保留二维信息展示。WebGL 2 不可用时显示启动错误；图形上下文中断时等待浏览器恢复。
 
 ## 远征主菜单
 
@@ -388,7 +394,7 @@ src/game/camera.ts      相机、缩放锚点、方向量化与转向
 src/game/controls.ts    鼠标 / 触屏手势与拖动防误触
 src/game/touch-hud.ts   独立触屏布局与共享面板切换
 src/game/viewport-lock.ts  页面缩放拦截
-src/game/renderer.ts    战场标记、小地图和 2D 回退
+src/game/renderer.ts    3D 战场入口、信息标记和小地图
 src/game/battle-scene.ts  Three.js 场景、立体特效、迷雾和鼠标拾取
 src/game/models-3d.ts   单位、建筑与自然物的低多边形模型
 src/home.ts            首页入口和游戏模块加载

@@ -14,9 +14,18 @@ importers:
       three:
         specifier: ^0.187.0
         version: 0.187.0
+      three-gpu-pathtracer:
+        specifier: 0.0.28
+        version: 0.0.28(three-mesh-bvh@0.9.17(three@0.187.0))(three@0.187.0)(xatlas-web@0.1.0)
+      three-mesh-bvh:
+        specifier: 0.9.17
+        version: 0.9.17(three@0.187.0)
       ws:
         specifier: ^8.18.0
         version: 8.23.0
+      xatlas-web:
+        specifier: 0.1.0
+        version: 0.1.0
     devDependencies:
       '@types/node':
         specifier: ^22.10.0
@@ -577,6 +586,18 @@ packages:
     resolution: {integrity: sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw==}
     engines: {node: '>=0.10.0'}
 
+  three-gpu-pathtracer@0.0.28:
+    resolution: {integrity: sha512-Ybfa6qpRIU2QP4EXQJaawYZzVN4raSFqsr9qhXXVSiCi59fjef0pyyXztYYWqAnX7bweKmD70p2xMEWehl019A==}
+    peerDependencies:
+      three: '>=0.187.0'
+      three-mesh-bvh: '>=0.9.17'
+      xatlas-web: ^0.1.0
+
+  three-mesh-bvh@0.9.17:
+    resolution: {integrity: sha512-uU2DNnTHsMcrsAM1kiLXEeLx4JNsPLayLTPE5Rf7exbFRuQYEifS4DhGEA+lDiU8/7mID1PsE9sH8i6p5prZSg==}
+    peerDependencies:
+      three: '>= 0.159.0'
+
   three@0.187.0:
     resolution: {integrity: sha512-Qiu7R+Cmh8CstZsY1uJOSWnVlfo7ZtNLV7mF8Jltk3LB3AtDu9cRZlcnRKkAk8Y4z6KKw35z7Y7Urd7jWY8etA==}
 
@@ -648,6 +669,9 @@ packages:
         optional: true
       utf-8-validate:
         optional: true
+
+  xatlas-web@0.1.0:
+    resolution: {integrity: sha512-PprVfuXbaIskxLTLBUQRaWfgSy9xUQqAMIRooOw0P6NYqwgh6T0voeer6+Z5M7AFt5SGXUybuww/uDGs1yw8vQ==}
 
 snapshots:
 
@@ -1029,6 +1053,16 @@ snapshots:
 
   source-map-js@1.2.2: {}
 
+  three-gpu-pathtracer@0.0.28(three-mesh-bvh@0.9.17(three@0.187.0))(three@0.187.0)(xatlas-web@0.1.0):
+    dependencies:
+      three: 0.187.0
+      three-mesh-bvh: 0.9.17(three@0.187.0)
+      xatlas-web: 0.1.0
+
+  three-mesh-bvh@0.9.17(three@0.187.0):
+    dependencies:
+      three: 0.187.0
+
   three@0.187.0: {}
 
   tinyglobby@0.2.17:
@@ -1060,3 +1094,5 @@ snapshots:
       tsx: 4.23.15
 
   ws@8.23.0: {}
+
+  xatlas-web@0.1.0: {}

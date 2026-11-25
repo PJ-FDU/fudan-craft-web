@@ -1,0 +1,42 @@
+{
+  "ceramic-armor-grain.png": {
+    "sha256": "8e273483f2f8f50d5f8e13d017c2bdc42b1c5b7a3c97eb69f7e34d0c7c4c7366",
+    "source": "ai-generated + flat-lit seamless normalized",
+    "size": 1024
+  },
+  "tactical-nylon-ripstop.png": {
+    "sha256": "cd12a13404da5b2af8edb05daac76c6fe4ef8afff7e9f34b6169acc0a13ea3e2",
+    "source": "ai-generated + flat-lit seamless normalized",
+    "size": 1024
+  },
+  "desert-canvas-weave.png": {
+    "sha256": "6dc83a4b9358ad733e3c87b3ea0704198e4deb66f189183b34968464f01af744",
+    "source": "synthesized seamless 2/2 heavy twill canvas",
+    "size": 1024
+  },
+  "wool-coat-weave.png": {
+    "sha256": "da93f0779c6a4bbfe8906099d8ae2d1606dcf39a13f2fdd957d29d1eee70c640",
+    "source": "synthesized seamless melton officer wool",
+    "size": 1024
+  },
+  "brushed-gunmetal-wear.png": {
+    "sha256": "58b28a7168558c3f36f5c0509a7daca53f1e8ce0048ff00f72d29b88f93a2b4f",
+    "source": "synthesized seamless brushed parkerized steel",
+    "size": 1024
+  },
+  "tactical-radar-screen.png": {
+    "sha256": "06fc453082bc5110d2c29c3b3cf7741c20d2fdb1bfdaee406502c22c9a8e08e1",
+    "source": "synthesized orthographic holographic radar UI",
+    "size": 1024
+  },
+  "decal-medic-emblem.png": {
+    "sha256": "6bff81985e225abeabed511e7508a70404431d34f309b1b523a30ba5a6d5b7b9",
+    "source": "synthesized industrial medic stencil decal",
+    "size": 512
+  },
+  "decal-hazard-stripe.png": {
+    "sha256": "9e1e62a21e708ec3988da18387181dbdfd459fe1e57907d56ce835f2f22a53c9",
+    "source": "synthesized industrial hazard stripe decal",
+    "size": 512
+  }
+}

@@ -3,6 +3,7 @@ import { MAPS,isMapId,mapInfo,supportsPlayers,type MapId } from './maps.js';
 import { drawMapPreview } from './map-picker.js';
 import { gridSize } from './grid.js';
 import { getWorld } from './world.js';
+import { syncCustomWorlds, isCustomMapId, type CustomMapDocument } from './custom-maps.js';
 import { STARTING_RESOURCES } from './resource-world.js';
 import type { Difficulty,AiStyle } from './types.js';
 import { AI_STYLES } from './ai-strategy.js';
@@ -20,12 +21,12 @@ const DIFFICULTIES=[
   {id:'hard',name:'挑战',en:'VETERAN',description:'每一次决策，都关乎生存。',detail:'对手更早施加进攻压力，需要更紧凑的建设与作战节奏。'},
 ] as const;
 type Options={
-  mapId:MapId;
+  mapId:MapId|string;
   canLoad:boolean;
   fromBattle:boolean;
   onBack:()=>void;
   onLoad:()=>void;
-  onDeploy:(count:number,difficulty:Difficulty,mapId:MapId,style:AiStyle,race:Race,opponent:Race)=>void;
+  onDeploy:(count:number,difficulty:Difficulty,mapId:MapId|string,style:AiStyle,race:Race,opponent:Race)=>void;
 };
 
 /** 只管理两级菜单的候选配置；真正开局仍由 main.ts 提交给 Engine。 */
@@ -36,17 +37,29 @@ export class OperationMenu{
   private aiStyle:AiStyle='balanced';
   private race:Race='industrial';
   private opponent:Race='brood';
-  private mapId:MapId;
+  private mapId:MapId|string;
+  private customMaps:CustomMapDocument[]=[];
   private mapNotice='';
   constructor(private root:HTMLElement,private options:Options){
-    this.mapId=options.mapId;
+    this.customMaps=syncCustomWorlds();
+    this.mapId=isMapId(options.mapId)||this.customMaps.some(m=>m.id===options.mapId)?options.mapId:MAPS[0].id;
+    const mapSupports=(id:string,count:number)=>{
+      if(isMapId(id))return supportsPlayers(id,count);
+      const custom=this.customMaps.find(m=>m.id===id);
+      return !!custom&&count>=2&&count<=custom.maxPlayers;
+    };
+    const mapMeta=(id:string)=>{
+      if(isMapId(id))return mapInfo(id);
+      const custom=this.customMaps.find(m=>m.id===id)!;
+      return {id:custom.id,name:custom.name,en:'CUSTOM MAP',maxPlayers:custom.maxPlayers,tag:'自定义 · 3D 地形',description:custom.description};
+    };
     root.onclick=e=>{
       const button=(e.target as Element).closest<HTMLButtonElement>('button');
       if(!button||button.disabled)return;
       if(button.id==='operation-back'||button.id==='operation-settings-step')this.back();
       if(button.id==='choose-operation-map'){this.stage='maps';this.render();}
       if(button.id==='load-setup')options.onLoad();
-      if(button.id==='deploy'&&supportsPlayers(this.mapId,this.count))options.onDeploy(this.count,this.difficulty,this.mapId,this.aiStyle,this.race,this.opponent);
+      if(button.id==='deploy'&&mapSupports(this.mapId,this.count))options.onDeploy(this.count,this.difficulty,this.mapId,this.aiStyle,this.race,this.opponent);
     };
     root.onchange=e=>{
       const input=e.target;
@@ -61,9 +74,9 @@ export class OperationMenu{
         const count=Number(input.value);if(!SCALES.some(scale=>scale.count===count))return;
         this.count=count;
         // 人数是用户先做出的选择；切换人数时保留它，并换成兼容地图。
-        if(!supportsPlayers(this.mapId,count)){
+        if(!mapSupports(this.mapId,count)){
           this.mapId=MAPS.find(map=>supportsPlayers(map.id,count))!.id;
-          this.mapNotice=`已为 ${count} 人战役选择${mapInfo(this.mapId).name}；两人地图在此规模下不可用。`;
+          this.mapNotice=`已为 ${count} 人战役选择${mapMeta(this.mapId).name}；两人地图在此规模下不可用。`;
         }else this.mapNotice='';
         this.updateSummary();
       }
@@ -71,7 +84,7 @@ export class OperationMenu{
         const difficulty=DIFFICULTIES.find(item=>item.id===input.value);if(!difficulty)return;
         this.difficulty=difficulty.id;this.updateDifficulty();this.updateSummary();
       }
-      if(input.name==='operation-map'&&isMapId(input.value)&&supportsPlayers(input.value,this.count)){
+      if(input.name==='operation-map'&&(isMapId(input.value)||isCustomMapId(input.value))&&mapSupports(input.value,this.count)){
         this.mapId=input.value;this.mapNotice='';this.renderMapDetails();this.updateSummary();
       }
     };
@@ -110,18 +123,30 @@ export class OperationMenu{
       <p class="operation-supply">初始补给 <span>金矿 ${STARTING_RESOURCES.gold.toLocaleString('en-US')} · 木材 ${STARTING_RESOURCES.wood} · 石油 ${STARTING_RESOURCES.oil}</span></p>
     </div><aside class="operation-briefing" aria-live="polite"><span class="operation-briefing-rule"></span><p id="operation-difficulty-en"></p><h3 id="operation-difficulty-description"></h3><p id="operation-difficulty-detail"></p></aside>`;
   }
+  private allMaps(){
+    return [
+      ...MAPS.map(m=>({id:m.id as string,name:m.name,en:m.en,maxPlayers:m.maxPlayers,tag:m.tag,description:m.description,custom:false})),
+      ...this.customMaps.map(m=>({id:m.id,name:m.name,en:'CUSTOM MAP',maxPlayers:m.maxPlayers,tag:'自定义 · 3D 地形',description:m.description,custom:true})),
+    ];
+  }
   private mapMarkup(){
-    return `<div class="operation-map-list"><p class="operation-eyebrow">CHOOSE YOUR BATTLEFIELD</p><h2>选择战场</h2><p class="operation-intro">${MAPS.length} 张地图，${this.count} 支军团。</p>
-      <fieldset class="operation-map-options"><legend class="visually-hidden">战场地图</legend>${MAPS.map((map,index)=>`<label class="operation-map-option"><input type="radio" name="operation-map" value="${map.id}" ${this.mapId===map.id?'checked':''} ${!supportsPlayers(map.id,this.count)?'disabled':''}/><span class="operation-map-index">${String(index+1).padStart(2,'0')}</span><span class="operation-map-copy"><strong>${map.name}</strong><small>${map.en}</small></span><span class="operation-map-capacity">${supportsPlayers(map.id,this.count)?map.maxPlayers===2?'2 人':'2–4 人':'限 2 人'}</span></label>`).join('')}</fieldset>
+    const list=this.allMaps();
+    return `<div class="operation-map-list"><p class="operation-eyebrow">CHOOSE YOUR BATTLEFIELD</p><h2>选择战场</h2><p class="operation-intro">${list.length} 张地图，${this.count} 支军团。</p>
+      <fieldset class="operation-map-options"><legend class="visually-hidden">战场地图</legend>${list.map((map,index)=>{
+        const ok=this.count>=2&&this.count<=map.maxPlayers;
+        return `<label class="operation-map-option"><input type="radio" name="operation-map" value="${map.id}" ${this.mapId===map.id?'checked':''} ${!ok?'disabled':''}/><span class="operation-map-index">${String(index+1).padStart(2,'0')}</span><span class="operation-map-copy"><strong>${map.name}</strong><small>${map.en}</small></span><span class="operation-map-capacity">${ok?map.maxPlayers===2?'2 人':`2–${map.maxPlayers} 人`:`限 ${map.maxPlayers} 人`}</span></label>`;
+      }).join('')}</fieldset>
     </div><div id="operation-map-details" class="operation-map-details" aria-live="polite"></div>`;
   }
   private renderMapDetails(){
-    const size=gridSize(getWorld(this.mapId).land);
-    const map=mapInfo(this.mapId),index=MAPS.findIndex(item=>item.id===map.id)+1;
+    const list=this.allMaps();
+    const map=list.find(item=>item.id===this.mapId)??list[0];
+    const size=gridSize(getWorld(map.id).land);
+    const index=list.findIndex(item=>item.id===map.id)+1;
     this.root.querySelector('#operation-map-details')!.innerHTML=`
       <div class="operation-cartography"><div class="operation-chart-top"><span>TACTICAL OVERVIEW</span><span>N ↑</span></div><div class="operation-preview-wrap"><canvas id="operation-map-preview" width="768" height="768" aria-label="${map.name}地形、资源与出生位置预览"></canvas></div><div class="operation-chart-legend"><span><i class="spawn"></i>出生点</span><span><i class="gold"></i>金矿</span><span><i class="oil"></i>油井</span><span><i class="water"></i>水域</span></div></div>
-      <div class="operation-map-info"><p class="operation-eyebrow">SECTOR ${String(index).padStart(2,'0')} / ${map.en}</p><h3>${map.name}</h3><p class="operation-map-tag">${map.tag}</p><p class="operation-map-description">${map.description}</p><dl><div><dt>战场尺寸</dt><dd>${size} × ${size} 格</dd></div><div><dt>支持规模</dt><dd>${map.maxPlayers===2?'2 人交锋':'2–4 人混战'}</dd></div><div><dt>当前部署</dt><dd>${this.count} 支军团 · ${DIFFICULTIES.find(item=>item.id===this.difficulty)!.name}</dd></div></dl><p class="operation-map-note">${this.mapNotice||'资源采集并运回后才可使用。先建立补给，再推进战线。'}</p></div>`;
-    drawMapPreview(this.root.querySelector<HTMLCanvasElement>('#operation-map-preview')!,this.mapId);
+      <div class="operation-map-info"><p class="operation-eyebrow">SECTOR ${String(index).padStart(2,'0')} / ${map.en}</p><h3>${map.name}</h3><p class="operation-map-tag">${map.tag}</p><p class="operation-map-description">${map.description}</p><dl><div><dt>战场尺寸</dt><dd>${size} × ${size} 格</dd></div><div><dt>支持规模</dt><dd>${map.maxPlayers===2?'2 人交锋':`2–${map.maxPlayers} 人混战`}</dd></div><div><dt>当前部署</dt><dd>${this.count} 支军团 · ${DIFFICULTIES.find(item=>item.id===this.difficulty)!.name}</dd></div></dl><p class="operation-map-note">${this.mapNotice||'资源采集并运回后才可使用。先建立补给，再推进战线。'}</p></div>`;
+    drawMapPreview(this.root.querySelector<HTMLCanvasElement>('#operation-map-preview')!,map.id);
   }
   private updateDifficulty(){
     const item=DIFFICULTIES.find(item=>item.id===this.difficulty)!;
@@ -131,7 +156,8 @@ export class OperationMenu{
   }
   private updateSummary(){
     const scale=SCALES.find(item=>item.count===this.count)!,difficulty=DIFFICULTIES.find(item=>item.id===this.difficulty)!;
-    this.root.querySelector('#operation-summary')!.textContent=`${RACE_NAMES[this.race]} · ${scale.name} · ${difficulty.name} · ${AI_STYLES[this.aiStyle].name}${this.stage==='maps'?' · '+mapInfo(this.mapId).name:''}`;
+    const current=this.allMaps().find(m=>m.id===this.mapId);
+    this.root.querySelector('#operation-summary')!.textContent=`${RACE_NAMES[this.race]} · ${scale.name} · ${difficulty.name} · ${AI_STYLES[this.aiStyle].name}${this.stage==='maps'&&current?' · '+current.name:''}`;
   }
   destroy(){this.root.onclick=null;this.root.onchange=null;this.root.replaceChildren();}
 }

@@ -1,6 +1,7 @@
 import { MeshStandardMaterial, ShaderChunk, Vector2, type Texture } from 'three';
 import { ATLAS_COLUMNS, atlasCell, type Surface } from './battle-materials.js';
 import { surfaceNormals } from './surface-normals.js';
+import type { BlenderSurface } from './blender-assets.js';
 import {
   weatherColor, weatherFragmentDeclarations, weatherMetalness, weatherRelief, weatherRoughness,
   weatherVertex, weatherVertexDeclarations,
@@ -27,17 +28,28 @@ const finishes:Partial<Record<Surface,Finish>>={
 const matte:Finish=[.95,0,.8];
 export const surfaceFinish=(surface:Surface):Finish=>finishes[surface]??matte;
 
+/** 独立 UV 烘焙材质直接读美术颜色，避免旧图集与顶点染色重复覆盖。 */
+export function sculptSurface(surface:BlenderSurface){
+  return new MeshStandardMaterial({
+    map:surface.albedo,normalMap:surface.normal,normalScale:new Vector2(1,1),
+    roughnessMap:surface.orm,metalnessMap:surface.orm,aoMap:surface.orm,
+    roughness:1,metalness:1,aoMapIntensity:1,envMapIntensity:.8,
+  });
+}
+
 const factionStart=atlasCell('chitin').x;
 const factionUV=Number(factionStart/ATLAS_COLUMNS).toFixed(6);
 
-export function modelSurface(atlas:Texture,factionDetail?:Texture,weathered=true){
+export function modelSurface(atlas:Texture,factionDetail?:Texture,weathered=true,blender?:BlenderSurface){
+  if(blender)factionDetail=undefined;
   const material=new MeshStandardMaterial({
-    map:atlas,normalMap:surfaceNormals(),normalScale:new Vector2(.7,.7),
+    map:atlas,normalMap:blender?.normal??surfaceNormals(),normalScale:new Vector2(blender?1:.7,blender?1:.7),
     vertexColors:true,roughness:1,metalness:1,envMapIntensity:.8,
   });
-  material.customProgramCacheKey=()=>`battle-pbr-v6${factionDetail?'-detail':''}${weathered?'-weathered':''}`;
+  material.customProgramCacheKey=()=>`battle-pbr-v7${blender?'-blender':''}${factionDetail?'-detail':''}${weathered?'-weathered':''}`;
   material.onBeforeCompile=shader=>{
     if(factionDetail)shader.uniforms.factionDetail={value:factionDetail};
+    if(blender){shader.uniforms.blenderAlbedo={value:blender.albedo};shader.uniforms.blenderORM={value:blender.orm};}
     shader.vertexShader=`${weathered?weatherVertexDeclarations:''}
       attribute vec3 surfaceFinish;
       varying vec3 vSurfaceFinish;
@@ -52,14 +64,17 @@ export function modelSurface(atlas:Texture,factionDetail?:Texture,weathered=true
       varying vec3 vSurfaceFinish;
       varying float vSurfaceTexture;
       ${factionDetail?'uniform sampler2D factionDetail;':''}
+      ${blender?'uniform sampler2D blenderAlbedo,blenderORM;':''}
     `+shader.fragmentShader
       .replace('#include <map_fragment>',ShaderChunk.map_fragment.replace(
         'diffuseColor *= sampledDiffuseColor;',
-        'diffuseColor *= mix(vec4(1.0),sampledDiffuseColor,vSurfaceTexture);'))
+        `diffuseColor *= mix(vec4(1.0),sampledDiffuseColor,vSurfaceTexture);
+        ${blender?'diffuseColor.rgb *= mix(vec3(1.0),texture2D(blenderAlbedo,vMapUv).rgb*1.85,.34*vSurfaceTexture);':''}`))
       .replace('#include <color_fragment>','#include <color_fragment>'+(weathered?weatherColor:''))
       .replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
         float wear=dot(diffuseColor.rgb,vec3(.2126,.7152,.0722));
         roughnessFactor=clamp(vSurfaceFinish.x+(wear-.35)*.12,.12,1.0);
+        ${blender?'roughnessFactor=mix(roughnessFactor,texture2D(blenderORM,vMapUv).g,.42);':''}
         ${factionDetail?`
         bool useFactionDetail=vMapUv.x>${factionUV};
         vec3 surfaceDetail=vec3(.5);

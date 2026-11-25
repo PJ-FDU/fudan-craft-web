@@ -185,8 +185,51 @@ function sweptWing(){
   return facetedGeometry(positions,uvs);
 }
 const airfoil=sweptWing();
+// Irregular geological mound and fluid seep silhouettes avoid artificial circular/oval bases.
+function organicPatch(
+  harmonics:readonly (readonly [freq:number,amp:number,phase:number])[],
+  rings:readonly (readonly [y:number,scale:number])[],
+  sides=24,
+){
+  const positions:number[]=[],uvs:number[]=[];
+  const radiusAt=(angle:number)=>{
+    let r=.5;
+    for(const [freq,amp,phase] of harmonics)r+=amp*Math.sin(angle*freq+phase);
+    return Math.max(.18,r);
+  };
+  const rim=rings.map(([y,scale])=>Array.from({length:sides},(_,i)=>{
+    const angle=i*2*Math.PI/sides,r=radiusAt(angle)*scale;
+    return [Math.cos(angle)*r,y,Math.sin(angle)*r] as const;
+  }));
+  const pushVertex=(level:number,side:number)=>{
+    const [x,y,z]=rim[level][side%sides];
+    positions.push(x,y,z);uvs.push(x+.5,z+.5);
+  };
+  const top=rings.length-1;
+  for(let side=0;side<sides;side++){
+    for(let level=0;level<top;level++){
+      pushVertex(level,side);pushVertex(level+1,side+1);pushVertex(level,side+1);
+      pushVertex(level,side);pushVertex(level+1,side);pushVertex(level+1,side+1);
+    }
+    positions.push(0,rings[top][0],0);uvs.push(.5,.5);
+    pushVertex(top,side+1);pushVertex(top,side);
+    positions.push(0,rings[0][0],0);uvs.push(.5,.5);
+    pushVertex(0,side);pushVertex(0,side+1);
+  }
+  return facetedGeometry(positions,uvs);
+}
+const rockMound=organicPatch(
+  [[2,.085,.4],[3,.075,-1.1],[4,.045,2.2],[5,.038,.8],[7,.022,-0.5]],
+  [[-.5,1.04],[-.22,.96],[.18,.78],[.5,.44]],
+  22,
+);
+const oilPool=organicPatch(
+  [[2,.11,-.6],[3,.095,.9],[4,.055,-2.1],[5,.042,1.7],[6,.024,.3]],
+  [[-.5,1.02],[.15,.96],[.5,.88]],
+  26,
+);
 const octagon = new CylinderGeometry(.47,.5,1,8).rotateY(Math.PI/8);
-const geometry = { box, panel, drum, pin, ring, arch, archConduit, tire, elbow, duct, airfoil, cone, nose, facet, shard, bevel, armorHull, armorPlate, canopy, crown, spruce, gable, octagon, dome, sleeve, carapace, scute, scalePlate, jointBall, horn, limb, membrane };
+const geometry = { box, panel, drum, pin, ring, arch, archConduit, tire, elbow, duct, airfoil, cone, nose, facet, shard, bevel, armorHull, armorPlate, canopy, crown, spruce, gable, octagon, dome, sleeve, carapace, scute, scalePlate, jointBall, horn, limb, membrane, rockMound, oilPool };
 export type Shape = keyof typeof geometry;
 export type Size = readonly [number, number, number];
 interface Paint {surface:Surface;tint:number;gain:number;finish?:readonly [number,number,number];texture:number;weathering?:Weathering}
@@ -289,6 +332,14 @@ export class Parts {
       return piece.applyMatrix4(transform);
     });
     const result=mergeGeometries(pieces)!;
+    // Blender 精修需要知道每段网格的结构与材质；运行时仍只绘制合批几何。
+    let start=0;
+    result.userData.primitives=use.map((part,index)=>{
+      const count=pieces[index].getAttribute('position').count;
+      const description={...part,start,count};
+      start+=count;
+      return description;
+    });
     for(const piece of pieces)piece.dispose();
     result.computeBoundingBox();
     result.computeBoundingSphere();

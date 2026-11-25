@@ -5,7 +5,7 @@ import { MAPS } from '../src/game/maps.js';
 import { getWorld,initialNodes,latestMapRevision,openingMapRevision } from '../src/game/world.js';
 import { RESOURCE_STOCK,STARTING_RESOURCES,harvestLand,isTree } from '../src/game/resource-world.js';
 import { STATS,type ResourceNode } from '../src/game/types.js';
-import { linkedRefinery } from '../src/game/oil.js';
+import { hasRefinery } from '../src/game/oil.js';
 import { distance } from '../src/game/pathfinding.js';
 import { circleFree,groundPath } from '../src/game/movement.js';
 import { STARTER_TREE_COUNT } from '../src/game/woodland.js';
@@ -175,19 +175,18 @@ test('new ground production avoids the enclosed pocket behind a northern temple 
   assert.ok(path.length&&distance(path.at(-1)!,mine)<100);
 });
 
-test('oil production requires an in-range own refinery and reroutes after it is lost',()=>{
+test('oil production requires a completed own refinery as prerequisite tech building',()=>{
   const e=new Engine(players(2)),p=e.player(1);
   const oil=e.state.nodes.find(n=>n.startSide===1&&n.kind==='oil')!;
   const worker=e.state.units.find(u=>u.side===1&&u.kind==='worker')!;
   const build={type:'build',kind:'oilwell',point:oil,worker:worker.id} as const;
   assert.match(e.command(1,build)!,/精炼厂/);
   const remote=e.spawn('refinery',1,{x:oil.x+480,y:oil.y});
-  const first=e.spawn('refinery',1,e.findBuildSpot(1,'refinery',oil,e.visible.get(1))!);
-  const fallback=e.spawn('refinery',1,e.findBuildSpot(1,'refinery',oil,e.visible.get(1))!);
-  assert.equal(linkedRefinery(1,oil,e.state.units)?.id,first.id);
-  first.construction=.5;fallback.construction=.5;
+  remote.construction=.5;
+  assert.equal(hasRefinery(1,e.state.units),false);
   assert.match(e.command(1,build)!,/精炼厂/);
-  first.construction=1;
+  remote.construction=1;
+  assert.equal(hasRefinery(1,e.state.units),true);
   assert.equal(e.command(1,build),null);
   assert.match(e.command(1,build)!,/现有建筑/);
   tick(e,1);
@@ -195,20 +194,18 @@ test('oil production requires an in-range own refinery and reroutes after it is 
   tick(e,20);
   assert.ok(p.oil>=80);
   const well=e.state.units.find(u=>u.side===1&&u.kind==='oilwell')!;
-  assert.deepEqual(e.view(1).oilPipes,[{well:well.id,refinery:first.id}]);
-  assert.deepEqual(e.view(2).oilPipes,[],'the pipeline cannot expose an unseen enemy well');
+  assert.ok(well);
   assert.equal(Engine.restore(e.save()).state.oilWells,true);
-  assert.ok(remote.hp>0);
   const delivered=p.oil;
-  first.hp=0;
+  remote.hp=0;
   tick(e,1);
-  assert.equal(p.oil,delivered,'unfinished and out-of-range refineries cannot receive oil');
+  assert.equal(p.oil,delivered,'oil extraction pauses when no completed refinery remains');
+  const fallback=e.spawn('refinery',1,e.findBuildSpot(1,'refinery',oil,e.visible.get(1))!);
   fallback.construction=1;
   oil.amount=2;
   tick(e,1);
   assert.ok(Math.abs(p.oil-delivered-2)<1e-6);
   assert.equal(oil.amount,0);
-  assert.deepEqual(e.view(1).oilPipes,[{well:well.id,refinery:fallback.id}]);
 });
 
 test('wood skips the refinery and gold chooses the shorter drive around a wall',()=>{

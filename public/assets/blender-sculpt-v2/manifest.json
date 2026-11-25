@@ -1,0 +1,8316 @@
+{
+  "version": 2,
+  "generator": "Blender semantic sculpt / Cycles high-to-low dedicated PBR",
+  "reference": "generated/model-portraits-v2.webp",
+  "templates": {
+    "industrial:base": {
+      "bounds": [
+        [
+          -47.54648971557617,
+          0,
+          -55.47209167480469
+        ],
+        [
+          47.54648971557617,
+          158.5,
+          54.959999084472656
+        ]
+      ],
+      "rig": [],
+      "moving": [
+        [
+          0,
+          78,
+          -13
+        ]
+      ],
+      "surface": "industrial"
+    },
+    "industrial:worker": {
+      "bounds": [
+        [
+          -22.057861328125,
+          -0.35679998993873596,
+          -25.933828353881836
+        ],
+        [
+          22.0576171875,
+          37.42067337036133,
+          34.52735137939453
+        ]
+      ],
+      "rig": [
+        {
+          "name": "chassis",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "body",
+          "parent": 0,
+          "offset": [
+            0,
+            12,
+            0
+          ],
+          "origin": [
+            0,
+            12,
+            0
+          ]
+        },
+        {
+          "name": "LWheel0",
+          "parent": 0,
+          "offset": [
+            -16.64,
+            8.2,
+            -15
+          ],
+          "origin": [
+            -16.64,
+            8.2,
+            -15
+          ]
+        },
+        {
+          "name": "LWheel1",
+          "parent": 0,
+          "offset": [
+            -16.64,
+            8.2,
+            15
+          ],
+          "origin": [
+            -16.64,
+            8.2,
+            15
+          ]
+        },
+        {
+          "name": "RWheel0",
+          "parent": 0,
+          "offset": [
+            16.64,
+            8.2,
+            -15
+          ],
+          "origin": [
+            16.64,
+            8.2,
+            -15
+          ]
+        },
+        {
+          "name": "RWheel1",
+          "parent": 0,
+          "offset": [
+            16.64,
+            8.2,
+            15
+          ],
+          "origin": [
+            16.64,
+            8.2,
+            15
+          ]
+        },
+        {
+          "name": "boom",
+          "parent": 1,
+          "offset": [
+            0,
+            8.4,
+            7
+          ],
+          "origin": [
+            0,
+            20.4,
+            7
+          ]
+        },
+        {
+          "name": "tool",
+          "parent": 6,
+          "offset": [
+            0,
+            -2,
+            18.4
+          ],
+          "origin": [
+            0,
+            18.4,
+            25.4
+          ]
+        },
+        {
+          "name": "LGrip",
+          "parent": 7,
+          "offset": [
+            -6,
+            0,
+            5
+          ],
+          "origin": [
+            -6,
+            18.4,
+            30.4
+          ]
+        },
+        {
+          "name": "RGrip",
+          "parent": 7,
+          "offset": [
+            6,
+            0,
+            5
+          ],
+          "origin": [
+            6,
+            18.4,
+            30.4
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "worker"
+    },
+    "industrial:soldier": {
+      "bounds": [
+        [
+          -9.8154296875,
+          0,
+          -7.239999771118164
+        ],
+        [
+          9.8154296875,
+          41.23126983642578,
+          16.619998931884766
+        ]
+      ],
+      "rig": [
+        {
+          "name": "hips",
+          "parent": -1,
+          "offset": [
+            0,
+            18.15,
+            0
+          ],
+          "origin": [
+            0,
+            18.15,
+            0
+          ]
+        },
+        {
+          "name": "torso",
+          "parent": 0,
+          "offset": [
+            0,
+            3.8,
+            0
+          ],
+          "origin": [
+            0,
+            21.95,
+            0
+          ]
+        },
+        {
+          "name": "head",
+          "parent": 1,
+          "offset": [
+            0,
+            14,
+            1
+          ],
+          "origin": [
+            0,
+            35.95,
+            1
+          ]
+        },
+        {
+          "name": "LLeg",
+          "parent": 0,
+          "offset": [
+            -4.1,
+            0,
+            0
+          ],
+          "origin": [
+            -4.1,
+            18.15,
+            0
+          ]
+        },
+        {
+          "name": "LKnee",
+          "parent": 3,
+          "offset": [
+            0,
+            -8.5,
+            0
+          ],
+          "origin": [
+            -4.1,
+            9.649999999999999,
+            0
+          ]
+        },
+        {
+          "name": "LFoot",
+          "parent": 4,
+          "offset": [
+            0,
+            -8,
+            0
+          ],
+          "origin": [
+            -4.1,
+            1.6499999999999986,
+            0
+          ]
+        },
+        {
+          "name": "LArm",
+          "parent": 1,
+          "offset": [
+            -6.8,
+            9.5,
+            0
+          ],
+          "origin": [
+            -6.8,
+            31.45,
+            0
+          ]
+        },
+        {
+          "name": "LElbow",
+          "parent": 6,
+          "offset": [
+            0,
+            -7.2,
+            0
+          ],
+          "origin": [
+            -6.8,
+            24.25,
+            0
+          ]
+        },
+        {
+          "name": "LHand",
+          "parent": 7,
+          "offset": [
+            0,
+            -6.2,
+            0
+          ],
+          "origin": [
+            -6.8,
+            18.05,
+            0
+          ]
+        },
+        {
+          "name": "RLeg",
+          "parent": 0,
+          "offset": [
+            4.1,
+            0,
+            0
+          ],
+          "origin": [
+            4.1,
+            18.15,
+            0
+          ]
+        },
+        {
+          "name": "RKnee",
+          "parent": 9,
+          "offset": [
+            0,
+            -8.5,
+            0
+          ],
+          "origin": [
+            4.1,
+            9.649999999999999,
+            0
+          ]
+        },
+        {
+          "name": "RFoot",
+          "parent": 10,
+          "offset": [
+            0,
+            -8,
+            0
+          ],
+          "origin": [
+            4.1,
+            1.6499999999999986,
+            0
+          ]
+        },
+        {
+          "name": "RArm",
+          "parent": 1,
+          "offset": [
+            6.8,
+            9.5,
+            0
+          ],
+          "origin": [
+            6.8,
+            31.45,
+            0
+          ]
+        },
+        {
+          "name": "RElbow",
+          "parent": 12,
+          "offset": [
+            0,
+            -7.2,
+            0
+          ],
+          "origin": [
+            6.8,
+            24.25,
+            0
+          ]
+        },
+        {
+          "name": "RHand",
+          "parent": 13,
+          "offset": [
+            0,
+            -6.2,
+            0
+          ],
+          "origin": [
+            6.8,
+            18.05,
+            0
+          ]
+        },
+        {
+          "name": "rifle",
+          "parent": 1,
+          "offset": [
+            6.8,
+            -3.9000000000000004,
+            0
+          ],
+          "origin": [
+            6.8,
+            18.049999999999997,
+            0
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "rifleman"
+    },
+    "industrial:scout": {
+      "bounds": [
+        [
+          -19.21484375,
+          -0.5160000324249268,
+          -22.516000747680664
+        ],
+        [
+          19.21484375,
+          28.649999618530273,
+          28.01099967956543
+        ]
+      ],
+      "rig": [
+        {
+          "name": "chassis",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "body",
+          "parent": 0,
+          "offset": [
+            0,
+            12,
+            0
+          ],
+          "origin": [
+            0,
+            12,
+            0
+          ]
+        },
+        {
+          "name": "LWheel0",
+          "parent": 0,
+          "offset": [
+            -14.040000000000001,
+            7,
+            -15
+          ],
+          "origin": [
+            -14.040000000000001,
+            7,
+            -15
+          ]
+        },
+        {
+          "name": "LWheel1",
+          "parent": 0,
+          "offset": [
+            -14.040000000000001,
+            7,
+            15
+          ],
+          "origin": [
+            -14.040000000000001,
+            7,
+            15
+          ]
+        },
+        {
+          "name": "RWheel0",
+          "parent": 0,
+          "offset": [
+            14.040000000000001,
+            7,
+            -15
+          ],
+          "origin": [
+            14.040000000000001,
+            7,
+            -15
+          ]
+        },
+        {
+          "name": "RWheel1",
+          "parent": 0,
+          "offset": [
+            14.040000000000001,
+            7,
+            15
+          ],
+          "origin": [
+            14.040000000000001,
+            7,
+            15
+          ]
+        },
+        {
+          "name": "turret",
+          "parent": 1,
+          "offset": [
+            0,
+            8,
+            7
+          ],
+          "origin": [
+            0,
+            20,
+            7
+          ]
+        },
+        {
+          "name": "barrel",
+          "parent": 6,
+          "offset": [
+            0,
+            5,
+            3
+          ],
+          "origin": [
+            0,
+            25,
+            10
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "industrial"
+    },
+    "industrial:medic": {
+      "bounds": [
+        [
+          -10.1650390625,
+          0,
+          -8.34965991973877
+        ],
+        [
+          10.1650390625,
+          41.14400100708008,
+          13.47499942779541
+        ]
+      ],
+      "rig": [
+        {
+          "name": "hips",
+          "parent": -1,
+          "offset": [
+            0,
+            18.15,
+            0
+          ],
+          "origin": [
+            0,
+            18.15,
+            0
+          ]
+        },
+        {
+          "name": "torso",
+          "parent": 0,
+          "offset": [
+            0,
+            3.8,
+            0
+          ],
+          "origin": [
+            0,
+            21.95,
+            0
+          ]
+        },
+        {
+          "name": "head",
+          "parent": 1,
+          "offset": [
+            0,
+            14,
+            1
+          ],
+          "origin": [
+            0,
+            35.95,
+            1
+          ]
+        },
+        {
+          "name": "LLeg",
+          "parent": 0,
+          "offset": [
+            -4.1,
+            0,
+            0
+          ],
+          "origin": [
+            -4.1,
+            18.15,
+            0
+          ]
+        },
+        {
+          "name": "LKnee",
+          "parent": 3,
+          "offset": [
+            0,
+            -8.5,
+            0
+          ],
+          "origin": [
+            -4.1,
+            9.649999999999999,
+            0
+          ]
+        },
+        {
+          "name": "LFoot",
+          "parent": 4,
+          "offset": [
+            0,
+            -8,
+            0
+          ],
+          "origin": [
+            -4.1,
+            1.6499999999999986,
+            0
+          ]
+        },
+        {
+          "name": "LArm",
+          "parent": 1,
+          "offset": [
+            -6.4,
+            9.5,
+            0
+          ],
+          "origin": [
+            -6.4,
+            31.45,
+            0
+          ]
+        },
+        {
+          "name": "LElbow",
+          "parent": 6,
+          "offset": [
+            0,
+            -7,
+            0
+          ],
+          "origin": [
+            -6.4,
+            24.45,
+            0
+          ]
+        },
+        {
+          "name": "LHand",
+          "parent": 7,
+          "offset": [
+            0,
+            -6,
+            0
+          ],
+          "origin": [
+            -6.4,
+            18.45,
+            0
+          ]
+        },
+        {
+          "name": "RLeg",
+          "parent": 0,
+          "offset": [
+            4.1,
+            0,
+            0
+          ],
+          "origin": [
+            4.1,
+            18.15,
+            0
+          ]
+        },
+        {
+          "name": "RKnee",
+          "parent": 9,
+          "offset": [
+            0,
+            -8.5,
+            0
+          ],
+          "origin": [
+            4.1,
+            9.649999999999999,
+            0
+          ]
+        },
+        {
+          "name": "RFoot",
+          "parent": 10,
+          "offset": [
+            0,
+            -8,
+            0
+          ],
+          "origin": [
+            4.1,
+            1.6499999999999986,
+            0
+          ]
+        },
+        {
+          "name": "RArm",
+          "parent": 1,
+          "offset": [
+            6.4,
+            9.5,
+            0
+          ],
+          "origin": [
+            6.4,
+            31.45,
+            0
+          ]
+        },
+        {
+          "name": "RElbow",
+          "parent": 12,
+          "offset": [
+            0,
+            -7,
+            0
+          ],
+          "origin": [
+            6.4,
+            24.45,
+            0
+          ]
+        },
+        {
+          "name": "RHand",
+          "parent": 13,
+          "offset": [
+            0,
+            -6,
+            0
+          ],
+          "origin": [
+            6.4,
+            18.45,
+            0
+          ]
+        },
+        {
+          "name": "rifle",
+          "parent": 1,
+          "offset": [
+            6.4,
+            -3.5,
+            0
+          ],
+          "origin": [
+            6.4,
+            18.45,
+            0
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "medic"
+    },
+    "industrial:sniper": {
+      "bounds": [
+        [
+          -7.05224609375,
+          0,
+          -8.121720314025879
+        ],
+        [
+          7.39453125,
+          40.698001861572266,
+          24.049999237060547
+        ]
+      ],
+      "rig": [
+        {
+          "name": "hips",
+          "parent": -1,
+          "offset": [
+            0,
+            18.15,
+            0
+          ],
+          "origin": [
+            0,
+            18.15,
+            0
+          ]
+        },
+        {
+          "name": "torso",
+          "parent": 0,
+          "offset": [
+            0,
+            3.8,
+            0
+          ],
+          "origin": [
+            0,
+            21.95,
+            0
+          ]
+        },
+        {
+          "name": "head",
+          "parent": 1,
+          "offset": [
+            0,
+            14,
+            1
+          ],
+          "origin": [
+            0,
+            35.95,
+            1
+          ]
+        },
+        {
+          "name": "LLeg",
+          "parent": 0,
+          "offset": [
+            -4.1,
+            0,
+            0
+          ],
+          "origin": [
+            -4.1,
+            18.15,
+            0
+          ]
+        },
+        {
+          "name": "LKnee",
+          "parent": 3,
+          "offset": [
+            0,
+            -8.5,
+            0
+          ],
+          "origin": [
+            -4.1,
+            9.649999999999999,
+            0
+          ]
+        },
+        {
+          "name": "LFoot",
+          "parent": 4,
+          "offset": [
+            0,
+            -8,
+            0
+          ],
+          "origin": [
+            -4.1,
+            1.6499999999999986,
+            0
+          ]
+        },
+        {
+          "name": "LArm",
+          "parent": 1,
+          "offset": [
+            -5.4,
+            9.5,
+            0
+          ],
+          "origin": [
+            -5.4,
+            31.45,
+            0
+          ]
+        },
+        {
+          "name": "LElbow",
+          "parent": 6,
+          "offset": [
+            0,
+            -7.6,
+            0
+          ],
+          "origin": [
+            -5.4,
+            23.85,
+            0
+          ]
+        },
+        {
+          "name": "LHand",
+          "parent": 7,
+          "offset": [
+            0,
+            -6.5,
+            0
+          ],
+          "origin": [
+            -5.4,
+            17.35,
+            0
+          ]
+        },
+        {
+          "name": "RLeg",
+          "parent": 0,
+          "offset": [
+            4.1,
+            0,
+            0
+          ],
+          "origin": [
+            4.1,
+            18.15,
+            0
+          ]
+        },
+        {
+          "name": "RKnee",
+          "parent": 9,
+          "offset": [
+            0,
+            -8.5,
+            0
+          ],
+          "origin": [
+            4.1,
+            9.649999999999999,
+            0
+          ]
+        },
+        {
+          "name": "RFoot",
+          "parent": 10,
+          "offset": [
+            0,
+            -8,
+            0
+          ],
+          "origin": [
+            4.1,
+            1.6499999999999986,
+            0
+          ]
+        },
+        {
+          "name": "RArm",
+          "parent": 1,
+          "offset": [
+            5.4,
+            9.5,
+            0
+          ],
+          "origin": [
+            5.4,
+            31.45,
+            0
+          ]
+        },
+        {
+          "name": "RElbow",
+          "parent": 12,
+          "offset": [
+            0,
+            -7.6,
+            0
+          ],
+          "origin": [
+            5.4,
+            23.85,
+            0
+          ]
+        },
+        {
+          "name": "RHand",
+          "parent": 13,
+          "offset": [
+            0,
+            -6.5,
+            0
+          ],
+          "origin": [
+            5.4,
+            17.35,
+            0
+          ]
+        },
+        {
+          "name": "rifle",
+          "parent": 1,
+          "offset": [
+            5.4,
+            -4.6,
+            0
+          ],
+          "origin": [
+            5.4,
+            17.35,
+            0
+          ]
+        },
+        {
+          "name": "LCape0",
+          "parent": 1,
+          "offset": [
+            -2.9,
+            10.4,
+            -4.9
+          ],
+          "origin": [
+            -2.9,
+            32.35,
+            -4.9
+          ]
+        },
+        {
+          "name": "LCape1",
+          "parent": 16,
+          "offset": [
+            -0.3,
+            -7,
+            -0.5
+          ],
+          "origin": [
+            -3.1999999999999997,
+            25.35,
+            -5.4
+          ]
+        },
+        {
+          "name": "LCape2",
+          "parent": 17,
+          "offset": [
+            -0.3,
+            -7,
+            -0.5
+          ],
+          "origin": [
+            -3.4999999999999996,
+            18.35,
+            -5.9
+          ]
+        },
+        {
+          "name": "LCape3",
+          "parent": 18,
+          "offset": [
+            -0.3,
+            -7,
+            -0.5
+          ],
+          "origin": [
+            -3.7999999999999994,
+            11.350000000000001,
+            -6.4
+          ]
+        },
+        {
+          "name": "RCape0",
+          "parent": 1,
+          "offset": [
+            2.9,
+            10.4,
+            -4.9
+          ],
+          "origin": [
+            2.9,
+            32.35,
+            -4.9
+          ]
+        },
+        {
+          "name": "RCape1",
+          "parent": 20,
+          "offset": [
+            0.3,
+            -7,
+            -0.5
+          ],
+          "origin": [
+            3.1999999999999997,
+            25.35,
+            -5.4
+          ]
+        },
+        {
+          "name": "RCape2",
+          "parent": 21,
+          "offset": [
+            0.3,
+            -7,
+            -0.5
+          ],
+          "origin": [
+            3.4999999999999996,
+            18.35,
+            -5.9
+          ]
+        },
+        {
+          "name": "RCape3",
+          "parent": 22,
+          "offset": [
+            0.3,
+            -7,
+            -0.5
+          ],
+          "origin": [
+            3.7999999999999994,
+            11.350000000000001,
+            -6.4
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "sniper"
+    },
+    "industrial:tank": {
+      "bounds": [
+        [
+          -26.6015625,
+          0.3999999761581421,
+          -28
+        ],
+        [
+          26.6015625,
+          43.999996185302734,
+          33.95000076293945
+        ]
+      ],
+      "rig": [
+        {
+          "name": "chassis",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "LWheel0",
+          "parent": 0,
+          "offset": [
+            -21,
+            7,
+            -17
+          ],
+          "origin": [
+            -21,
+            7,
+            -17
+          ]
+        },
+        {
+          "name": "LWheel1",
+          "parent": 0,
+          "offset": [
+            -21,
+            7,
+            -6
+          ],
+          "origin": [
+            -21,
+            7,
+            -6
+          ]
+        },
+        {
+          "name": "LWheel2",
+          "parent": 0,
+          "offset": [
+            -21,
+            7,
+            6
+          ],
+          "origin": [
+            -21,
+            7,
+            6
+          ]
+        },
+        {
+          "name": "LWheel3",
+          "parent": 0,
+          "offset": [
+            -21,
+            7,
+            17
+          ],
+          "origin": [
+            -21,
+            7,
+            17
+          ]
+        },
+        {
+          "name": "RWheel0",
+          "parent": 0,
+          "offset": [
+            21,
+            7,
+            -17
+          ],
+          "origin": [
+            21,
+            7,
+            -17
+          ]
+        },
+        {
+          "name": "RWheel1",
+          "parent": 0,
+          "offset": [
+            21,
+            7,
+            -6
+          ],
+          "origin": [
+            21,
+            7,
+            -6
+          ]
+        },
+        {
+          "name": "RWheel2",
+          "parent": 0,
+          "offset": [
+            21,
+            7,
+            6
+          ],
+          "origin": [
+            21,
+            7,
+            6
+          ]
+        },
+        {
+          "name": "RWheel3",
+          "parent": 0,
+          "offset": [
+            21,
+            7,
+            17
+          ],
+          "origin": [
+            21,
+            7,
+            17
+          ]
+        },
+        {
+          "name": "body",
+          "parent": 0,
+          "offset": [
+            0,
+            12,
+            0
+          ],
+          "origin": [
+            0,
+            12,
+            0
+          ]
+        },
+        {
+          "name": "turret",
+          "parent": 9,
+          "offset": [
+            0,
+            10,
+            -2
+          ],
+          "origin": [
+            0,
+            22,
+            -2
+          ]
+        },
+        {
+          "name": "barrel",
+          "parent": 10,
+          "offset": [
+            0,
+            5,
+            3
+          ],
+          "origin": [
+            0,
+            27,
+            1
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "industrial"
+    },
+    "industrial:artillery": {
+      "bounds": [
+        [
+          -20.5,
+          0.3999999761581421,
+          -36
+        ],
+        [
+          20.5,
+          28.000003814697266,
+          44.95000076293945
+        ]
+      ],
+      "rig": [
+        {
+          "name": "chassis",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "LWheel0",
+          "parent": 0,
+          "offset": [
+            -15,
+            7,
+            -25
+          ],
+          "origin": [
+            -15,
+            7,
+            -25
+          ]
+        },
+        {
+          "name": "LWheel1",
+          "parent": 0,
+          "offset": [
+            -15,
+            7,
+            -13
+          ],
+          "origin": [
+            -15,
+            7,
+            -13
+          ]
+        },
+        {
+          "name": "LWheel2",
+          "parent": 0,
+          "offset": [
+            -15,
+            7,
+            0
+          ],
+          "origin": [
+            -15,
+            7,
+            0
+          ]
+        },
+        {
+          "name": "LWheel3",
+          "parent": 0,
+          "offset": [
+            -15,
+            7,
+            13
+          ],
+          "origin": [
+            -15,
+            7,
+            13
+          ]
+        },
+        {
+          "name": "LWheel4",
+          "parent": 0,
+          "offset": [
+            -15,
+            7,
+            25
+          ],
+          "origin": [
+            -15,
+            7,
+            25
+          ]
+        },
+        {
+          "name": "RWheel0",
+          "parent": 0,
+          "offset": [
+            15,
+            7,
+            -25
+          ],
+          "origin": [
+            15,
+            7,
+            -25
+          ]
+        },
+        {
+          "name": "RWheel1",
+          "parent": 0,
+          "offset": [
+            15,
+            7,
+            -13
+          ],
+          "origin": [
+            15,
+            7,
+            -13
+          ]
+        },
+        {
+          "name": "RWheel2",
+          "parent": 0,
+          "offset": [
+            15,
+            7,
+            0
+          ],
+          "origin": [
+            15,
+            7,
+            0
+          ]
+        },
+        {
+          "name": "RWheel3",
+          "parent": 0,
+          "offset": [
+            15,
+            7,
+            13
+          ],
+          "origin": [
+            15,
+            7,
+            13
+          ]
+        },
+        {
+          "name": "RWheel4",
+          "parent": 0,
+          "offset": [
+            15,
+            7,
+            25
+          ],
+          "origin": [
+            15,
+            7,
+            25
+          ]
+        },
+        {
+          "name": "body",
+          "parent": 0,
+          "offset": [
+            0,
+            12,
+            0
+          ],
+          "origin": [
+            0,
+            12,
+            0
+          ]
+        },
+        {
+          "name": "turret",
+          "parent": 11,
+          "offset": [
+            0,
+            6,
+            -8
+          ],
+          "origin": [
+            0,
+            18,
+            -8
+          ]
+        },
+        {
+          "name": "barrel",
+          "parent": 12,
+          "offset": [
+            0,
+            5,
+            3
+          ],
+          "origin": [
+            0,
+            23,
+            -5
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "industrial"
+    },
+    "industrial:fighter": {
+      "bounds": [
+        [
+          -39.5,
+          -1.0797672271728516,
+          -27.799999237060547
+        ],
+        [
+          39.5,
+          21.20181655883789,
+          37.875
+        ]
+      ],
+      "rig": [
+        {
+          "name": "body",
+          "parent": -1,
+          "offset": [
+            0,
+            4,
+            0
+          ],
+          "origin": [
+            0,
+            4,
+            0
+          ]
+        },
+        {
+          "name": "LFlap",
+          "parent": 0,
+          "offset": [
+            -26,
+            2,
+            -12
+          ],
+          "origin": [
+            -26,
+            6,
+            -12
+          ]
+        },
+        {
+          "name": "LNozzle",
+          "parent": 0,
+          "offset": [
+            -32,
+            3,
+            -23
+          ],
+          "origin": [
+            -32,
+            7,
+            -23
+          ]
+        },
+        {
+          "name": "RFlap",
+          "parent": 0,
+          "offset": [
+            26,
+            2,
+            -12
+          ],
+          "origin": [
+            26,
+            6,
+            -12
+          ]
+        },
+        {
+          "name": "RNozzle",
+          "parent": 0,
+          "offset": [
+            32,
+            3,
+            -23
+          ],
+          "origin": [
+            32,
+            7,
+            -23
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "industrial"
+    },
+    "industrial:mech": {
+      "bounds": [
+        [
+          -28.099609375,
+          0,
+          -15.97499942779541
+        ],
+        [
+          28.69921875,
+          66.84662628173828,
+          29.75
+        ]
+      ],
+      "rig": [
+        {
+          "name": "hips",
+          "parent": -1,
+          "offset": [
+            0,
+            29.8,
+            0
+          ],
+          "origin": [
+            0,
+            29.8,
+            0
+          ]
+        },
+        {
+          "name": "torso",
+          "parent": 0,
+          "offset": [
+            0,
+            6.2,
+            0
+          ],
+          "origin": [
+            0,
+            36,
+            0
+          ]
+        },
+        {
+          "name": "head",
+          "parent": 1,
+          "offset": [
+            0,
+            18.2,
+            4.6
+          ],
+          "origin": [
+            0,
+            54.2,
+            4.6
+          ]
+        },
+        {
+          "name": "LLeg",
+          "parent": 0,
+          "offset": [
+            -9.6,
+            0,
+            0
+          ],
+          "origin": [
+            -9.6,
+            29.8,
+            0
+          ]
+        },
+        {
+          "name": "LKnee",
+          "parent": 3,
+          "offset": [
+            0,
+            -14,
+            0
+          ],
+          "origin": [
+            -9.6,
+            15.8,
+            0
+          ]
+        },
+        {
+          "name": "LFoot",
+          "parent": 4,
+          "offset": [
+            0,
+            -12.8,
+            0
+          ],
+          "origin": [
+            -9.6,
+            3,
+            0
+          ]
+        },
+        {
+          "name": "LArm",
+          "parent": 1,
+          "offset": [
+            -17.5,
+            12.4,
+            0
+          ],
+          "origin": [
+            -17.5,
+            48.4,
+            0
+          ]
+        },
+        {
+          "name": "LElbow",
+          "parent": 6,
+          "offset": [
+            0,
+            -10.2,
+            0
+          ],
+          "origin": [
+            -17.5,
+            38.2,
+            0
+          ]
+        },
+        {
+          "name": "LHand",
+          "parent": 7,
+          "offset": [
+            0,
+            -8.5,
+            0
+          ],
+          "origin": [
+            -17.5,
+            29.700000000000003,
+            0
+          ]
+        },
+        {
+          "name": "RLeg",
+          "parent": 0,
+          "offset": [
+            9.6,
+            0,
+            0
+          ],
+          "origin": [
+            9.6,
+            29.8,
+            0
+          ]
+        },
+        {
+          "name": "RKnee",
+          "parent": 9,
+          "offset": [
+            0,
+            -14,
+            0
+          ],
+          "origin": [
+            9.6,
+            15.8,
+            0
+          ]
+        },
+        {
+          "name": "RFoot",
+          "parent": 10,
+          "offset": [
+            0,
+            -12.8,
+            0
+          ],
+          "origin": [
+            9.6,
+            3,
+            0
+          ]
+        },
+        {
+          "name": "RArm",
+          "parent": 1,
+          "offset": [
+            17.5,
+            12.4,
+            0
+          ],
+          "origin": [
+            17.5,
+            48.4,
+            0
+          ]
+        },
+        {
+          "name": "RElbow",
+          "parent": 12,
+          "offset": [
+            0,
+            -10.2,
+            0
+          ],
+          "origin": [
+            17.5,
+            38.2,
+            0
+          ]
+        },
+        {
+          "name": "RHand",
+          "parent": 13,
+          "offset": [
+            0,
+            -8.5,
+            0
+          ],
+          "origin": [
+            17.5,
+            29.700000000000003,
+            0
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "mech"
+    },
+    "industrial:commander": {
+      "bounds": [
+        [
+          -9.2900390625,
+          0,
+          -7.00841760635376
+        ],
+        [
+          8.3837890625,
+          42.22800064086914,
+          8.283279418945312
+        ]
+      ],
+      "rig": [
+        {
+          "name": "hips",
+          "parent": -1,
+          "offset": [
+            0,
+            18.15,
+            0
+          ],
+          "origin": [
+            0,
+            18.15,
+            0
+          ]
+        },
+        {
+          "name": "torso",
+          "parent": 0,
+          "offset": [
+            0,
+            3.8,
+            0
+          ],
+          "origin": [
+            0,
+            21.95,
+            0
+          ]
+        },
+        {
+          "name": "head",
+          "parent": 1,
+          "offset": [
+            0,
+            14,
+            1
+          ],
+          "origin": [
+            0,
+            35.95,
+            1
+          ]
+        },
+        {
+          "name": "LLeg",
+          "parent": 0,
+          "offset": [
+            -4.1,
+            0,
+            0
+          ],
+          "origin": [
+            -4.1,
+            18.15,
+            0
+          ]
+        },
+        {
+          "name": "LKnee",
+          "parent": 3,
+          "offset": [
+            0,
+            -8.5,
+            0
+          ],
+          "origin": [
+            -4.1,
+            9.649999999999999,
+            0
+          ]
+        },
+        {
+          "name": "LFoot",
+          "parent": 4,
+          "offset": [
+            0,
+            -8,
+            0
+          ],
+          "origin": [
+            -4.1,
+            1.6499999999999986,
+            0
+          ]
+        },
+        {
+          "name": "LArm",
+          "parent": 1,
+          "offset": [
+            -6.4,
+            9.5,
+            0
+          ],
+          "origin": [
+            -6.4,
+            31.45,
+            0
+          ]
+        },
+        {
+          "name": "LElbow",
+          "parent": 6,
+          "offset": [
+            0,
+            -7,
+            0
+          ],
+          "origin": [
+            -6.4,
+            24.45,
+            0
+          ]
+        },
+        {
+          "name": "LHand",
+          "parent": 7,
+          "offset": [
+            0,
+            -5.9,
+            0
+          ],
+          "origin": [
+            -6.4,
+            18.549999999999997,
+            0
+          ]
+        },
+        {
+          "name": "RLeg",
+          "parent": 0,
+          "offset": [
+            4.1,
+            0,
+            0
+          ],
+          "origin": [
+            4.1,
+            18.15,
+            0
+          ]
+        },
+        {
+          "name": "RKnee",
+          "parent": 9,
+          "offset": [
+            0,
+            -8.5,
+            0
+          ],
+          "origin": [
+            4.1,
+            9.649999999999999,
+            0
+          ]
+        },
+        {
+          "name": "RFoot",
+          "parent": 10,
+          "offset": [
+            0,
+            -8,
+            0
+          ],
+          "origin": [
+            4.1,
+            1.6499999999999986,
+            0
+          ]
+        },
+        {
+          "name": "RArm",
+          "parent": 1,
+          "offset": [
+            6.4,
+            9.5,
+            0
+          ],
+          "origin": [
+            6.4,
+            31.45,
+            0
+          ]
+        },
+        {
+          "name": "RElbow",
+          "parent": 12,
+          "offset": [
+            0,
+            -7,
+            0
+          ],
+          "origin": [
+            6.4,
+            24.45,
+            0
+          ]
+        },
+        {
+          "name": "RHand",
+          "parent": 13,
+          "offset": [
+            0,
+            -5.9,
+            0
+          ],
+          "origin": [
+            6.4,
+            18.549999999999997,
+            0
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "commander"
+    },
+    "industrial:disruptor": {
+      "bounds": [
+        [
+          -22.5,
+          0.3999999761581421,
+          -26
+        ],
+        [
+          22.5,
+          60,
+          26
+        ]
+      ],
+      "rig": [
+        {
+          "name": "chassis",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "LWheel0",
+          "parent": 0,
+          "offset": [
+            -17,
+            7,
+            -17
+          ],
+          "origin": [
+            -17,
+            7,
+            -17
+          ]
+        },
+        {
+          "name": "LWheel1",
+          "parent": 0,
+          "offset": [
+            -17,
+            7,
+            -6
+          ],
+          "origin": [
+            -17,
+            7,
+            -6
+          ]
+        },
+        {
+          "name": "LWheel2",
+          "parent": 0,
+          "offset": [
+            -17,
+            7,
+            6
+          ],
+          "origin": [
+            -17,
+            7,
+            6
+          ]
+        },
+        {
+          "name": "LWheel3",
+          "parent": 0,
+          "offset": [
+            -17,
+            7,
+            17
+          ],
+          "origin": [
+            -17,
+            7,
+            17
+          ]
+        },
+        {
+          "name": "RWheel0",
+          "parent": 0,
+          "offset": [
+            17,
+            7,
+            -17
+          ],
+          "origin": [
+            17,
+            7,
+            -17
+          ]
+        },
+        {
+          "name": "RWheel1",
+          "parent": 0,
+          "offset": [
+            17,
+            7,
+            -6
+          ],
+          "origin": [
+            17,
+            7,
+            -6
+          ]
+        },
+        {
+          "name": "RWheel2",
+          "parent": 0,
+          "offset": [
+            17,
+            7,
+            6
+          ],
+          "origin": [
+            17,
+            7,
+            6
+          ]
+        },
+        {
+          "name": "RWheel3",
+          "parent": 0,
+          "offset": [
+            17,
+            7,
+            17
+          ],
+          "origin": [
+            17,
+            7,
+            17
+          ]
+        },
+        {
+          "name": "body",
+          "parent": 0,
+          "offset": [
+            0,
+            12,
+            0
+          ],
+          "origin": [
+            0,
+            12,
+            0
+          ]
+        },
+        {
+          "name": "turret",
+          "parent": 9,
+          "offset": [
+            0,
+            20,
+            -2
+          ],
+          "origin": [
+            0,
+            32,
+            -2
+          ]
+        },
+        {
+          "name": "barrel",
+          "parent": 10,
+          "offset": [
+            0,
+            8,
+            3
+          ],
+          "origin": [
+            0,
+            40,
+            1
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "industrial"
+    },
+    "industrial:refinery": {
+      "bounds": [
+        [
+          -45.5,
+          0,
+          -37.5
+        ],
+        [
+          43.2080078125,
+          64,
+          41.5
+        ]
+      ],
+      "rig": [],
+      "moving": [],
+      "surface": "industrial"
+    },
+    "industrial:lumbermill": {
+      "bounds": [
+        [
+          -49.5,
+          0,
+          -46
+        ],
+        [
+          49.5,
+          66.5,
+          55
+        ]
+      ],
+      "rig": [],
+      "moving": [],
+      "surface": "industrial"
+    },
+    "industrial:tower": {
+      "bounds": [
+        [
+          -30.458223342895508,
+          -1.4999961853027344,
+          -30.852392196655273
+        ],
+        [
+          30.458223342895508,
+          97.5,
+          32.95000076293945
+        ]
+      ],
+      "rig": [],
+      "moving": [
+        [
+          0,
+          40,
+          0
+        ]
+      ],
+      "surface": "industrial"
+    },
+    "industrial:oilwell": {
+      "bounds": [
+        [
+          -46.5,
+          0,
+          -30.5
+        ],
+        [
+          34.5,
+          103.16633224487305,
+          30.5
+        ]
+      ],
+      "rig": [],
+      "moving": [
+        [
+          -5,
+          48,
+          0
+        ]
+      ],
+      "surface": "industrial"
+    },
+    "industrial:powerplant": {
+      "bounds": [
+        [
+          -45.5,
+          0,
+          -37.5
+        ],
+        [
+          43.1796875,
+          64,
+          51.12000274658203
+        ]
+      ],
+      "rig": [],
+      "moving": [],
+      "surface": "industrial"
+    },
+    "industrial:barracks": {
+      "bounds": [
+        [
+          -46,
+          0,
+          -48
+        ],
+        [
+          46,
+          72,
+          57.08000183105469
+        ]
+      ],
+      "rig": [],
+      "moving": [],
+      "surface": "industrial"
+    },
+    "industrial:factory": {
+      "bounds": [
+        [
+          -49.5,
+          0,
+          -46.34489822387695
+        ],
+        [
+          49.5,
+          95,
+          54.959999084472656
+        ]
+      ],
+      "rig": [],
+      "moving": [],
+      "surface": "industrial"
+    },
+    "industrial:airfield": {
+      "bounds": [
+        [
+          -49.5,
+          0,
+          -46.34489822387695
+        ],
+        [
+          49.5,
+          57.79999923706055,
+          73
+        ]
+      ],
+      "rig": [],
+      "moving": [],
+      "surface": "industrial"
+    },
+    "industrial:research": {
+      "bounds": [
+        [
+          -37.4873046875,
+          -1,
+          -37.74597930908203
+        ],
+        [
+          37.4873046875,
+          116.5,
+          37.454864501953125
+        ]
+      ],
+      "rig": [],
+      "moving": [
+        [
+          0,
+          55,
+          0
+        ]
+      ],
+      "surface": "industrial"
+    },
+    "industrial:supplyDepot": {
+      "bounds": [
+        [
+          -38.5,
+          0,
+          -36
+        ],
+        [
+          38.5,
+          37.20000076293945,
+          36
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "industrial"
+    },
+    "industrial:infirmary": {
+      "bounds": [
+        [
+          -38.5,
+          0,
+          -36
+        ],
+        [
+          38.5,
+          39,
+          36
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "industrial"
+    },
+    "industrial:commandPost": {
+      "bounds": [
+        [
+          -38.5,
+          0,
+          -36
+        ],
+        [
+          38.5,
+          71.5,
+          36
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "array",
+          "parent": 0,
+          "offset": [
+            0,
+            47,
+            -7
+          ],
+          "origin": [
+            0,
+            47,
+            -7
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "industrial"
+    },
+    "brood:base": {
+      "bounds": [
+        [
+          -54.259765625,
+          -1.1230711936950684,
+          -51.10722351074219
+        ],
+        [
+          51.007991790771484,
+          56.13660430908203,
+          52.09388732910156
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "shell",
+          "parent": 0,
+          "offset": [
+            0,
+            5,
+            0
+          ],
+          "origin": [
+            0,
+            5,
+            0
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "brood"
+    },
+    "brood:worker": {
+      "bounds": [
+        [
+          -28.33984375,
+          -0.07374632358551025,
+          -32.00831985473633
+        ],
+        [
+          28.33984375,
+          17.47700309753418,
+          30.280765533447266
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            9,
+            0
+          ],
+          "origin": [
+            0,
+            9,
+            0
+          ]
+        },
+        {
+          "name": "abdomen",
+          "parent": 0,
+          "offset": [
+            0,
+            -1,
+            -17
+          ],
+          "origin": [
+            0,
+            8,
+            -17
+          ]
+        },
+        {
+          "name": "head",
+          "parent": 0,
+          "offset": [
+            0,
+            1,
+            16
+          ],
+          "origin": [
+            0,
+            10,
+            16
+          ]
+        },
+        {
+          "name": "leg-1:0",
+          "parent": 0,
+          "offset": [
+            -7,
+            -1,
+            10
+          ],
+          "origin": [
+            -7,
+            8,
+            10
+          ]
+        },
+        {
+          "name": "leg-1:0tip",
+          "parent": 3,
+          "offset": [
+            -13,
+            -3,
+            5
+          ],
+          "origin": [
+            -20,
+            5,
+            15
+          ]
+        },
+        {
+          "name": "leg-1:1",
+          "parent": 0,
+          "offset": [
+            -7,
+            -1,
+            -1
+          ],
+          "origin": [
+            -7,
+            8,
+            -1
+          ]
+        },
+        {
+          "name": "leg-1:1tip",
+          "parent": 5,
+          "offset": [
+            -13,
+            -3,
+            -4
+          ],
+          "origin": [
+            -20,
+            5,
+            -5
+          ]
+        },
+        {
+          "name": "leg-1:2",
+          "parent": 0,
+          "offset": [
+            -7,
+            -1,
+            -12
+          ],
+          "origin": [
+            -7,
+            8,
+            -12
+          ]
+        },
+        {
+          "name": "leg-1:2tip",
+          "parent": 7,
+          "offset": [
+            -13,
+            -3,
+            -4
+          ],
+          "origin": [
+            -20,
+            5,
+            -16
+          ]
+        },
+        {
+          "name": "leg1:0",
+          "parent": 0,
+          "offset": [
+            7,
+            -1,
+            10
+          ],
+          "origin": [
+            7,
+            8,
+            10
+          ]
+        },
+        {
+          "name": "leg1:0tip",
+          "parent": 9,
+          "offset": [
+            13,
+            -3,
+            5
+          ],
+          "origin": [
+            20,
+            5,
+            15
+          ]
+        },
+        {
+          "name": "leg1:1",
+          "parent": 0,
+          "offset": [
+            7,
+            -1,
+            -1
+          ],
+          "origin": [
+            7,
+            8,
+            -1
+          ]
+        },
+        {
+          "name": "leg1:1tip",
+          "parent": 11,
+          "offset": [
+            13,
+            -3,
+            -4
+          ],
+          "origin": [
+            20,
+            5,
+            -5
+          ]
+        },
+        {
+          "name": "leg1:2",
+          "parent": 0,
+          "offset": [
+            7,
+            -1,
+            -12
+          ],
+          "origin": [
+            7,
+            8,
+            -12
+          ]
+        },
+        {
+          "name": "leg1:2tip",
+          "parent": 13,
+          "offset": [
+            13,
+            -3,
+            -4
+          ],
+          "origin": [
+            20,
+            5,
+            -16
+          ]
+        },
+        {
+          "name": "claw-1",
+          "parent": 0,
+          "offset": [
+            -8,
+            -1,
+            10
+          ],
+          "origin": [
+            -8,
+            8,
+            10
+          ]
+        },
+        {
+          "name": "claw1",
+          "parent": 0,
+          "offset": [
+            8,
+            -1,
+            10
+          ],
+          "origin": [
+            8,
+            8,
+            10
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "brood"
+    },
+    "brood:broodling": {
+      "bounds": [
+        [
+          -27.2890625,
+          -0.07374627888202667,
+          -32.00357437133789
+        ],
+        [
+          27.2890625,
+          22.174034118652344,
+          36.43889617919922
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            10,
+            0
+          ],
+          "origin": [
+            0,
+            10,
+            0
+          ]
+        },
+        {
+          "name": "abdomen",
+          "parent": 0,
+          "offset": [
+            0,
+            -1,
+            -17
+          ],
+          "origin": [
+            0,
+            9,
+            -17
+          ]
+        },
+        {
+          "name": "head",
+          "parent": 0,
+          "offset": [
+            0,
+            1,
+            16
+          ],
+          "origin": [
+            0,
+            11,
+            16
+          ]
+        },
+        {
+          "name": "leg-1:0",
+          "parent": 0,
+          "offset": [
+            -5.949999999999999,
+            -1,
+            10
+          ],
+          "origin": [
+            -5.949999999999999,
+            9,
+            10
+          ]
+        },
+        {
+          "name": "leg-1:0tip",
+          "parent": 3,
+          "offset": [
+            -13,
+            -3,
+            5
+          ],
+          "origin": [
+            -18.95,
+            6,
+            15
+          ]
+        },
+        {
+          "name": "leg-1:1",
+          "parent": 0,
+          "offset": [
+            -5.949999999999999,
+            -1,
+            -1
+          ],
+          "origin": [
+            -5.949999999999999,
+            9,
+            -1
+          ]
+        },
+        {
+          "name": "leg-1:1tip",
+          "parent": 5,
+          "offset": [
+            -13,
+            -3,
+            -4
+          ],
+          "origin": [
+            -18.95,
+            6,
+            -5
+          ]
+        },
+        {
+          "name": "leg-1:2",
+          "parent": 0,
+          "offset": [
+            -5.949999999999999,
+            -1,
+            -12
+          ],
+          "origin": [
+            -5.949999999999999,
+            9,
+            -12
+          ]
+        },
+        {
+          "name": "leg-1:2tip",
+          "parent": 7,
+          "offset": [
+            -13,
+            -3,
+            -4
+          ],
+          "origin": [
+            -18.95,
+            6,
+            -16
+          ]
+        },
+        {
+          "name": "leg1:0",
+          "parent": 0,
+          "offset": [
+            5.949999999999999,
+            -1,
+            10
+          ],
+          "origin": [
+            5.949999999999999,
+            9,
+            10
+          ]
+        },
+        {
+          "name": "leg1:0tip",
+          "parent": 9,
+          "offset": [
+            13,
+            -3,
+            5
+          ],
+          "origin": [
+            18.95,
+            6,
+            15
+          ]
+        },
+        {
+          "name": "leg1:1",
+          "parent": 0,
+          "offset": [
+            5.949999999999999,
+            -1,
+            -1
+          ],
+          "origin": [
+            5.949999999999999,
+            9,
+            -1
+          ]
+        },
+        {
+          "name": "leg1:1tip",
+          "parent": 11,
+          "offset": [
+            13,
+            -3,
+            -4
+          ],
+          "origin": [
+            18.95,
+            6,
+            -5
+          ]
+        },
+        {
+          "name": "leg1:2",
+          "parent": 0,
+          "offset": [
+            5.949999999999999,
+            -1,
+            -12
+          ],
+          "origin": [
+            5.949999999999999,
+            9,
+            -12
+          ]
+        },
+        {
+          "name": "leg1:2tip",
+          "parent": 13,
+          "offset": [
+            13,
+            -3,
+            -4
+          ],
+          "origin": [
+            18.95,
+            6,
+            -16
+          ]
+        },
+        {
+          "name": "claw-1",
+          "parent": 0,
+          "offset": [
+            -8,
+            -1,
+            10
+          ],
+          "origin": [
+            -8,
+            9,
+            10
+          ]
+        },
+        {
+          "name": "claw1",
+          "parent": 0,
+          "offset": [
+            8,
+            -1,
+            10
+          ],
+          "origin": [
+            8,
+            9,
+            10
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "brood"
+    },
+    "brood:spitter": {
+      "bounds": [
+        [
+          -27.2890625,
+          -0.07374627888202667,
+          -32.0130615234375
+        ],
+        [
+          27.2890625,
+          33.62086486816406,
+          40.25971603393555
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            15,
+            0
+          ],
+          "origin": [
+            0,
+            15,
+            0
+          ]
+        },
+        {
+          "name": "abdomen",
+          "parent": 0,
+          "offset": [
+            0,
+            -1,
+            -17
+          ],
+          "origin": [
+            0,
+            14,
+            -17
+          ]
+        },
+        {
+          "name": "head",
+          "parent": 0,
+          "offset": [
+            0,
+            12,
+            21
+          ],
+          "origin": [
+            0,
+            27,
+            21
+          ]
+        },
+        {
+          "name": "leg-1:0",
+          "parent": 0,
+          "offset": [
+            -5.949999999999999,
+            -1,
+            10
+          ],
+          "origin": [
+            -5.949999999999999,
+            14,
+            10
+          ]
+        },
+        {
+          "name": "leg-1:0tip",
+          "parent": 3,
+          "offset": [
+            -13,
+            -3,
+            5
+          ],
+          "origin": [
+            -18.95,
+            11,
+            15
+          ]
+        },
+        {
+          "name": "leg-1:1",
+          "parent": 0,
+          "offset": [
+            -5.949999999999999,
+            -1,
+            -1
+          ],
+          "origin": [
+            -5.949999999999999,
+            14,
+            -1
+          ]
+        },
+        {
+          "name": "leg-1:1tip",
+          "parent": 5,
+          "offset": [
+            -13,
+            -3,
+            -4
+          ],
+          "origin": [
+            -18.95,
+            11,
+            -5
+          ]
+        },
+        {
+          "name": "leg-1:2",
+          "parent": 0,
+          "offset": [
+            -5.949999999999999,
+            -1,
+            -12
+          ],
+          "origin": [
+            -5.949999999999999,
+            14,
+            -12
+          ]
+        },
+        {
+          "name": "leg-1:2tip",
+          "parent": 7,
+          "offset": [
+            -13,
+            -3,
+            -4
+          ],
+          "origin": [
+            -18.95,
+            11,
+            -16
+          ]
+        },
+        {
+          "name": "leg1:0",
+          "parent": 0,
+          "offset": [
+            5.949999999999999,
+            -1,
+            10
+          ],
+          "origin": [
+            5.949999999999999,
+            14,
+            10
+          ]
+        },
+        {
+          "name": "leg1:0tip",
+          "parent": 9,
+          "offset": [
+            13,
+            -3,
+            5
+          ],
+          "origin": [
+            18.95,
+            11,
+            15
+          ]
+        },
+        {
+          "name": "leg1:1",
+          "parent": 0,
+          "offset": [
+            5.949999999999999,
+            -1,
+            -1
+          ],
+          "origin": [
+            5.949999999999999,
+            14,
+            -1
+          ]
+        },
+        {
+          "name": "leg1:1tip",
+          "parent": 11,
+          "offset": [
+            13,
+            -3,
+            -4
+          ],
+          "origin": [
+            18.95,
+            11,
+            -5
+          ]
+        },
+        {
+          "name": "leg1:2",
+          "parent": 0,
+          "offset": [
+            5.949999999999999,
+            -1,
+            -12
+          ],
+          "origin": [
+            5.949999999999999,
+            14,
+            -12
+          ]
+        },
+        {
+          "name": "leg1:2tip",
+          "parent": 13,
+          "offset": [
+            13,
+            -3,
+            -4
+          ],
+          "origin": [
+            18.95,
+            11,
+            -16
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "brood"
+    },
+    "brood:behemoth": {
+      "bounds": [
+        [
+          -35.23828125,
+          -0.5,
+          -30.179279327392578
+        ],
+        [
+          35.23828125,
+          42.6796875,
+          47.88172149658203
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            21,
+            0
+          ],
+          "origin": [
+            0,
+            21,
+            0
+          ]
+        },
+        {
+          "name": "abdomen",
+          "parent": 0,
+          "offset": [
+            0,
+            -1,
+            -17
+          ],
+          "origin": [
+            0,
+            20,
+            -17
+          ]
+        },
+        {
+          "name": "head",
+          "parent": 0,
+          "offset": [
+            0,
+            0,
+            16
+          ],
+          "origin": [
+            0,
+            21,
+            16
+          ]
+        },
+        {
+          "name": "leg-1:0",
+          "parent": 0,
+          "offset": [
+            -10.5,
+            -1,
+            10
+          ],
+          "origin": [
+            -10.5,
+            20,
+            10
+          ]
+        },
+        {
+          "name": "leg-1:0tip",
+          "parent": 3,
+          "offset": [
+            -16,
+            -4,
+            5
+          ],
+          "origin": [
+            -26.5,
+            16,
+            15
+          ]
+        },
+        {
+          "name": "leg-1:1",
+          "parent": 0,
+          "offset": [
+            -10.5,
+            -1,
+            -15
+          ],
+          "origin": [
+            -10.5,
+            20,
+            -15
+          ]
+        },
+        {
+          "name": "leg-1:1tip",
+          "parent": 5,
+          "offset": [
+            -16,
+            -4,
+            -4
+          ],
+          "origin": [
+            -26.5,
+            16,
+            -19
+          ]
+        },
+        {
+          "name": "leg1:0",
+          "parent": 0,
+          "offset": [
+            10.5,
+            -1,
+            10
+          ],
+          "origin": [
+            10.5,
+            20,
+            10
+          ]
+        },
+        {
+          "name": "leg1:0tip",
+          "parent": 7,
+          "offset": [
+            16,
+            -4,
+            5
+          ],
+          "origin": [
+            26.5,
+            16,
+            15
+          ]
+        },
+        {
+          "name": "leg1:1",
+          "parent": 0,
+          "offset": [
+            10.5,
+            -1,
+            -15
+          ],
+          "origin": [
+            10.5,
+            20,
+            -15
+          ]
+        },
+        {
+          "name": "leg1:1tip",
+          "parent": 9,
+          "offset": [
+            16,
+            -4,
+            -4
+          ],
+          "origin": [
+            26.5,
+            16,
+            -19
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "brood"
+    },
+    "brood:bioWing": {
+      "bounds": [
+        [
+          -49.8701171875,
+          8.660831451416016,
+          -45.628211975097656
+        ],
+        [
+          49.8701171875,
+          24.518770217895508,
+          30.565658569335938
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            15,
+            0
+          ],
+          "origin": [
+            0,
+            15,
+            0
+          ]
+        },
+        {
+          "name": "abdomen",
+          "parent": 0,
+          "offset": [
+            0,
+            -1,
+            -17
+          ],
+          "origin": [
+            0,
+            14,
+            -17
+          ]
+        },
+        {
+          "name": "head",
+          "parent": 0,
+          "offset": [
+            0,
+            1,
+            16
+          ],
+          "origin": [
+            0,
+            16,
+            16
+          ]
+        },
+        {
+          "name": "wing-1",
+          "parent": 0,
+          "offset": [
+            -7,
+            5,
+            0
+          ],
+          "origin": [
+            -7,
+            20,
+            0
+          ]
+        },
+        {
+          "name": "wing1",
+          "parent": 0,
+          "offset": [
+            7,
+            5,
+            0
+          ],
+          "origin": [
+            7,
+            20,
+            0
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "brood"
+    },
+    "brood:sac": {
+      "bounds": [
+        [
+          -25.58984375,
+          -3.3231520652770996,
+          -41.94929885864258
+        ],
+        [
+          25.58984375,
+          24.657596588134766,
+          30.280765533447266
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            10,
+            0
+          ],
+          "origin": [
+            0,
+            10,
+            0
+          ]
+        },
+        {
+          "name": "abdomen",
+          "parent": 0,
+          "offset": [
+            0,
+            -1,
+            -17
+          ],
+          "origin": [
+            0,
+            9,
+            -17
+          ]
+        },
+        {
+          "name": "head",
+          "parent": 0,
+          "offset": [
+            0,
+            1,
+            16
+          ],
+          "origin": [
+            0,
+            11,
+            16
+          ]
+        },
+        {
+          "name": "leg-1:0",
+          "parent": 0,
+          "offset": [
+            -5.25,
+            -1,
+            10
+          ],
+          "origin": [
+            -5.25,
+            9,
+            10
+          ]
+        },
+        {
+          "name": "leg-1:0tip",
+          "parent": 3,
+          "offset": [
+            -12,
+            -3,
+            5
+          ],
+          "origin": [
+            -17.25,
+            6,
+            15
+          ]
+        },
+        {
+          "name": "leg-1:1",
+          "parent": 0,
+          "offset": [
+            -5.25,
+            -1,
+            -1
+          ],
+          "origin": [
+            -5.25,
+            9,
+            -1
+          ]
+        },
+        {
+          "name": "leg-1:1tip",
+          "parent": 5,
+          "offset": [
+            -12,
+            -3,
+            -4
+          ],
+          "origin": [
+            -17.25,
+            6,
+            -5
+          ]
+        },
+        {
+          "name": "leg-1:2",
+          "parent": 0,
+          "offset": [
+            -5.25,
+            -1,
+            -12
+          ],
+          "origin": [
+            -5.25,
+            9,
+            -12
+          ]
+        },
+        {
+          "name": "leg-1:2tip",
+          "parent": 7,
+          "offset": [
+            -12,
+            -3,
+            -4
+          ],
+          "origin": [
+            -17.25,
+            6,
+            -16
+          ]
+        },
+        {
+          "name": "leg1:0",
+          "parent": 0,
+          "offset": [
+            5.25,
+            -1,
+            10
+          ],
+          "origin": [
+            5.25,
+            9,
+            10
+          ]
+        },
+        {
+          "name": "leg1:0tip",
+          "parent": 9,
+          "offset": [
+            12,
+            -3,
+            5
+          ],
+          "origin": [
+            17.25,
+            6,
+            15
+          ]
+        },
+        {
+          "name": "leg1:1",
+          "parent": 0,
+          "offset": [
+            5.25,
+            -1,
+            -1
+          ],
+          "origin": [
+            5.25,
+            9,
+            -1
+          ]
+        },
+        {
+          "name": "leg1:1tip",
+          "parent": 11,
+          "offset": [
+            12,
+            -3,
+            -4
+          ],
+          "origin": [
+            17.25,
+            6,
+            -5
+          ]
+        },
+        {
+          "name": "leg1:2",
+          "parent": 0,
+          "offset": [
+            5.25,
+            -1,
+            -12
+          ],
+          "origin": [
+            5.25,
+            9,
+            -12
+          ]
+        },
+        {
+          "name": "leg1:2tip",
+          "parent": 13,
+          "offset": [
+            12,
+            -3,
+            -4
+          ],
+          "origin": [
+            17.25,
+            6,
+            -16
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "brood"
+    },
+    "brood:nurturer": {
+      "bounds": [
+        [
+          -27.2890625,
+          -0.07374627888202667,
+          -36.51500701904297
+        ],
+        [
+          27.2890625,
+          26.36665916442871,
+          30.280765533447266
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            10,
+            0
+          ],
+          "origin": [
+            0,
+            10,
+            0
+          ]
+        },
+        {
+          "name": "abdomen",
+          "parent": 0,
+          "offset": [
+            0,
+            -1,
+            -17
+          ],
+          "origin": [
+            0,
+            9,
+            -17
+          ]
+        },
+        {
+          "name": "head",
+          "parent": 0,
+          "offset": [
+            0,
+            1,
+            16
+          ],
+          "origin": [
+            0,
+            11,
+            16
+          ]
+        },
+        {
+          "name": "leg-1:0",
+          "parent": 0,
+          "offset": [
+            -5.949999999999999,
+            -1,
+            10
+          ],
+          "origin": [
+            -5.949999999999999,
+            9,
+            10
+          ]
+        },
+        {
+          "name": "leg-1:0tip",
+          "parent": 3,
+          "offset": [
+            -13,
+            -3,
+            5
+          ],
+          "origin": [
+            -18.95,
+            6,
+            15
+          ]
+        },
+        {
+          "name": "leg-1:1",
+          "parent": 0,
+          "offset": [
+            -5.949999999999999,
+            -1,
+            -1
+          ],
+          "origin": [
+            -5.949999999999999,
+            9,
+            -1
+          ]
+        },
+        {
+          "name": "leg-1:1tip",
+          "parent": 5,
+          "offset": [
+            -13,
+            -3,
+            -4
+          ],
+          "origin": [
+            -18.95,
+            6,
+            -5
+          ]
+        },
+        {
+          "name": "leg-1:2",
+          "parent": 0,
+          "offset": [
+            -5.949999999999999,
+            -1,
+            -12
+          ],
+          "origin": [
+            -5.949999999999999,
+            9,
+            -12
+          ]
+        },
+        {
+          "name": "leg-1:2tip",
+          "parent": 7,
+          "offset": [
+            -13,
+            -3,
+            -4
+          ],
+          "origin": [
+            -18.95,
+            6,
+            -16
+          ]
+        },
+        {
+          "name": "leg1:0",
+          "parent": 0,
+          "offset": [
+            5.949999999999999,
+            -1,
+            10
+          ],
+          "origin": [
+            5.949999999999999,
+            9,
+            10
+          ]
+        },
+        {
+          "name": "leg1:0tip",
+          "parent": 9,
+          "offset": [
+            13,
+            -3,
+            5
+          ],
+          "origin": [
+            18.95,
+            6,
+            15
+          ]
+        },
+        {
+          "name": "leg1:1",
+          "parent": 0,
+          "offset": [
+            5.949999999999999,
+            -1,
+            -1
+          ],
+          "origin": [
+            5.949999999999999,
+            9,
+            -1
+          ]
+        },
+        {
+          "name": "leg1:1tip",
+          "parent": 11,
+          "offset": [
+            13,
+            -3,
+            -4
+          ],
+          "origin": [
+            18.95,
+            6,
+            -5
+          ]
+        },
+        {
+          "name": "leg1:2",
+          "parent": 0,
+          "offset": [
+            5.949999999999999,
+            -1,
+            -12
+          ],
+          "origin": [
+            5.949999999999999,
+            9,
+            -12
+          ]
+        },
+        {
+          "name": "leg1:2tip",
+          "parent": 13,
+          "offset": [
+            13,
+            -3,
+            -4
+          ],
+          "origin": [
+            18.95,
+            6,
+            -16
+          ]
+        },
+        {
+          "name": "gland-1",
+          "parent": 0,
+          "offset": [
+            -6,
+            4,
+            -8
+          ],
+          "origin": [
+            -6,
+            14,
+            -8
+          ]
+        },
+        {
+          "name": "gland1",
+          "parent": 0,
+          "offset": [
+            6,
+            4,
+            -8
+          ],
+          "origin": [
+            6,
+            14,
+            -8
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "brood"
+    },
+    "brood:infector": {
+      "bounds": [
+        [
+          -27.2890625,
+          -0.07374627888202667,
+          -33.454097747802734
+        ],
+        [
+          27.2890625,
+          30.64173126220703,
+          30.280765533447266
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            10,
+            0
+          ],
+          "origin": [
+            0,
+            10,
+            0
+          ]
+        },
+        {
+          "name": "abdomen",
+          "parent": 0,
+          "offset": [
+            0,
+            -1,
+            -17
+          ],
+          "origin": [
+            0,
+            9,
+            -17
+          ]
+        },
+        {
+          "name": "head",
+          "parent": 0,
+          "offset": [
+            0,
+            1,
+            16
+          ],
+          "origin": [
+            0,
+            11,
+            16
+          ]
+        },
+        {
+          "name": "leg-1:0",
+          "parent": 0,
+          "offset": [
+            -5.949999999999999,
+            -1,
+            10
+          ],
+          "origin": [
+            -5.949999999999999,
+            9,
+            10
+          ]
+        },
+        {
+          "name": "leg-1:0tip",
+          "parent": 3,
+          "offset": [
+            -13,
+            -3,
+            5
+          ],
+          "origin": [
+            -18.95,
+            6,
+            15
+          ]
+        },
+        {
+          "name": "leg-1:1",
+          "parent": 0,
+          "offset": [
+            -5.949999999999999,
+            -1,
+            -1
+          ],
+          "origin": [
+            -5.949999999999999,
+            9,
+            -1
+          ]
+        },
+        {
+          "name": "leg-1:1tip",
+          "parent": 5,
+          "offset": [
+            -13,
+            -3,
+            -4
+          ],
+          "origin": [
+            -18.95,
+            6,
+            -5
+          ]
+        },
+        {
+          "name": "leg-1:2",
+          "parent": 0,
+          "offset": [
+            -5.949999999999999,
+            -1,
+            -12
+          ],
+          "origin": [
+            -5.949999999999999,
+            9,
+            -12
+          ]
+        },
+        {
+          "name": "leg-1:2tip",
+          "parent": 7,
+          "offset": [
+            -13,
+            -3,
+            -4
+          ],
+          "origin": [
+            -18.95,
+            6,
+            -16
+          ]
+        },
+        {
+          "name": "leg1:0",
+          "parent": 0,
+          "offset": [
+            5.949999999999999,
+            -1,
+            10
+          ],
+          "origin": [
+            5.949999999999999,
+            9,
+            10
+          ]
+        },
+        {
+          "name": "leg1:0tip",
+          "parent": 9,
+          "offset": [
+            13,
+            -3,
+            5
+          ],
+          "origin": [
+            18.95,
+            6,
+            15
+          ]
+        },
+        {
+          "name": "leg1:1",
+          "parent": 0,
+          "offset": [
+            5.949999999999999,
+            -1,
+            -1
+          ],
+          "origin": [
+            5.949999999999999,
+            9,
+            -1
+          ]
+        },
+        {
+          "name": "leg1:1tip",
+          "parent": 11,
+          "offset": [
+            13,
+            -3,
+            -4
+          ],
+          "origin": [
+            18.95,
+            6,
+            -5
+          ]
+        },
+        {
+          "name": "leg1:2",
+          "parent": 0,
+          "offset": [
+            5.949999999999999,
+            -1,
+            -12
+          ],
+          "origin": [
+            5.949999999999999,
+            9,
+            -12
+          ]
+        },
+        {
+          "name": "leg1:2tip",
+          "parent": 13,
+          "offset": [
+            13,
+            -3,
+            -4
+          ],
+          "origin": [
+            18.95,
+            6,
+            -16
+          ]
+        },
+        {
+          "name": "gland-1",
+          "parent": 0,
+          "offset": [
+            -6,
+            4,
+            -8
+          ],
+          "origin": [
+            -6,
+            14,
+            -8
+          ]
+        },
+        {
+          "name": "gland1",
+          "parent": 0,
+          "offset": [
+            6,
+            4,
+            -8
+          ],
+          "origin": [
+            6,
+            14,
+            -8
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "brood"
+    },
+    "brood:binder": {
+      "bounds": [
+        [
+          -32.5390625,
+          -0.07374648004770279,
+          -32.0130615234375
+        ],
+        [
+          32.5390625,
+          32.03379821777344,
+          38.42878341674805
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            18,
+            0
+          ],
+          "origin": [
+            0,
+            18,
+            0
+          ]
+        },
+        {
+          "name": "abdomen",
+          "parent": 0,
+          "offset": [
+            0,
+            -1,
+            -17
+          ],
+          "origin": [
+            0,
+            17,
+            -17
+          ]
+        },
+        {
+          "name": "head",
+          "parent": 0,
+          "offset": [
+            0,
+            1,
+            16
+          ],
+          "origin": [
+            0,
+            19,
+            16
+          ]
+        },
+        {
+          "name": "leg-1:0",
+          "parent": 0,
+          "offset": [
+            -4.199999999999999,
+            -1,
+            10
+          ],
+          "origin": [
+            -4.199999999999999,
+            17,
+            10
+          ]
+        },
+        {
+          "name": "leg-1:0tip",
+          "parent": 3,
+          "offset": [
+            -20,
+            -3,
+            5
+          ],
+          "origin": [
+            -24.2,
+            14,
+            15
+          ]
+        },
+        {
+          "name": "leg-1:1",
+          "parent": 0,
+          "offset": [
+            -4.199999999999999,
+            -1,
+            -1
+          ],
+          "origin": [
+            -4.199999999999999,
+            17,
+            -1
+          ]
+        },
+        {
+          "name": "leg-1:1tip",
+          "parent": 5,
+          "offset": [
+            -20,
+            -3,
+            -4
+          ],
+          "origin": [
+            -24.2,
+            14,
+            -5
+          ]
+        },
+        {
+          "name": "leg-1:2",
+          "parent": 0,
+          "offset": [
+            -4.199999999999999,
+            -1,
+            -12
+          ],
+          "origin": [
+            -4.199999999999999,
+            17,
+            -12
+          ]
+        },
+        {
+          "name": "leg-1:2tip",
+          "parent": 7,
+          "offset": [
+            -20,
+            -3,
+            -4
+          ],
+          "origin": [
+            -24.2,
+            14,
+            -16
+          ]
+        },
+        {
+          "name": "leg1:0",
+          "parent": 0,
+          "offset": [
+            4.199999999999999,
+            -1,
+            10
+          ],
+          "origin": [
+            4.199999999999999,
+            17,
+            10
+          ]
+        },
+        {
+          "name": "leg1:0tip",
+          "parent": 9,
+          "offset": [
+            20,
+            -3,
+            5
+          ],
+          "origin": [
+            24.2,
+            14,
+            15
+          ]
+        },
+        {
+          "name": "leg1:1",
+          "parent": 0,
+          "offset": [
+            4.199999999999999,
+            -1,
+            -1
+          ],
+          "origin": [
+            4.199999999999999,
+            17,
+            -1
+          ]
+        },
+        {
+          "name": "leg1:1tip",
+          "parent": 11,
+          "offset": [
+            20,
+            -3,
+            -4
+          ],
+          "origin": [
+            24.2,
+            14,
+            -5
+          ]
+        },
+        {
+          "name": "leg1:2",
+          "parent": 0,
+          "offset": [
+            4.199999999999999,
+            -1,
+            -12
+          ],
+          "origin": [
+            4.199999999999999,
+            17,
+            -12
+          ]
+        },
+        {
+          "name": "leg1:2tip",
+          "parent": 13,
+          "offset": [
+            20,
+            -3,
+            -4
+          ],
+          "origin": [
+            24.2,
+            14,
+            -16
+          ]
+        },
+        {
+          "name": "claw-1",
+          "parent": 0,
+          "offset": [
+            -8,
+            -1,
+            10
+          ],
+          "origin": [
+            -8,
+            17,
+            10
+          ]
+        },
+        {
+          "name": "claw1",
+          "parent": 0,
+          "offset": [
+            8,
+            -1,
+            10
+          ],
+          "origin": [
+            8,
+            17,
+            10
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "brood"
+    },
+    "brood:refinery": {
+      "bounds": [
+        [
+          -35.792510986328125,
+          -0.6310306191444397,
+          -44.03392791748047
+        ],
+        [
+          35.07400131225586,
+          58.59000015258789,
+          38.36433029174805
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "shell",
+          "parent": 0,
+          "offset": [
+            0,
+            5,
+            0
+          ],
+          "origin": [
+            0,
+            5,
+            0
+          ]
+        },
+        {
+          "name": "gland0",
+          "parent": 0,
+          "offset": [
+            -18,
+            18,
+            -10
+          ],
+          "origin": [
+            -18,
+            18,
+            -10
+          ]
+        },
+        {
+          "name": "gland1",
+          "parent": 0,
+          "offset": [
+            1,
+            18,
+            3
+          ],
+          "origin": [
+            1,
+            18,
+            3
+          ]
+        },
+        {
+          "name": "gland2",
+          "parent": 0,
+          "offset": [
+            19,
+            18,
+            -10
+          ],
+          "origin": [
+            19,
+            18,
+            -10
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "brood"
+    },
+    "brood:lumbermill": {
+      "bounds": [
+        [
+          -35.792510986328125,
+          -0.6310306191444397,
+          -44.03392791748047
+        ],
+        [
+          35.07400131225586,
+          38.5763053894043,
+          47.663177490234375
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "shell",
+          "parent": 0,
+          "offset": [
+            0,
+            5,
+            0
+          ],
+          "origin": [
+            0,
+            5,
+            0
+          ]
+        },
+        {
+          "name": "jaw-1",
+          "parent": 0,
+          "offset": [
+            -12,
+            11,
+            24
+          ],
+          "origin": [
+            -12,
+            11,
+            24
+          ]
+        },
+        {
+          "name": "jaw1",
+          "parent": 0,
+          "offset": [
+            12,
+            11,
+            24
+          ],
+          "origin": [
+            12,
+            11,
+            24
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "brood"
+    },
+    "brood:tower": {
+      "bounds": [
+        [
+          -21.376083374023438,
+          -0.00778353214263916,
+          -26.359033584594727
+        ],
+        [
+          20.946971893310547,
+          45.886436462402344,
+          22.942354202270508
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "crown",
+          "parent": 0,
+          "offset": [
+            0,
+            36,
+            -2
+          ],
+          "origin": [
+            0,
+            36,
+            -2
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "brood"
+    },
+    "brood:oilwell": {
+      "bounds": [
+        [
+          -21.376083374023438,
+          -0.00778353214263916,
+          -26.359033584594727
+        ],
+        [
+          20.946971893310547,
+          63.64963912963867,
+          22.942354202270508
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "crown",
+          "parent": 0,
+          "offset": [
+            0,
+            36,
+            -2
+          ],
+          "origin": [
+            0,
+            36,
+            -2
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "brood"
+    },
+    "brood:hatchery": {
+      "bounds": [
+        [
+          -35.792510986328125,
+          -0.6310306191444397,
+          -44.03392791748047
+        ],
+        [
+          35.26171875,
+          38.5763053894043,
+          38.36433029174805
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "shell",
+          "parent": 0,
+          "offset": [
+            0,
+            5,
+            0
+          ],
+          "origin": [
+            0,
+            5,
+            0
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "brood"
+    },
+    "brood:nursery": {
+      "bounds": [
+        [
+          -41.9794921875,
+          -0.6432009339332581,
+          -41.872520446777344
+        ],
+        [
+          36.78066635131836,
+          22.302427291870117,
+          38.305450439453125
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "eggs",
+          "parent": 0,
+          "offset": [
+            0,
+            8,
+            0
+          ],
+          "origin": [
+            0,
+            8,
+            0
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "brood"
+    },
+    "brood:gland": {
+      "bounds": [
+        [
+          -35.792510986328125,
+          -0.6310306191444397,
+          -44.03392791748047
+        ],
+        [
+          35.07400131225586,
+          61.619998931884766,
+          38.36433029174805
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "shell",
+          "parent": 0,
+          "offset": [
+            0,
+            5,
+            0
+          ],
+          "origin": [
+            0,
+            5,
+            0
+          ]
+        },
+        {
+          "name": "gland0",
+          "parent": 0,
+          "offset": [
+            -18,
+            18,
+            -10
+          ],
+          "origin": [
+            -18,
+            18,
+            -10
+          ]
+        },
+        {
+          "name": "gland1",
+          "parent": 0,
+          "offset": [
+            1,
+            18,
+            3
+          ],
+          "origin": [
+            1,
+            18,
+            3
+          ]
+        },
+        {
+          "name": "gland2",
+          "parent": 0,
+          "offset": [
+            19,
+            18,
+            -10
+          ],
+          "origin": [
+            19,
+            18,
+            -10
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "brood"
+    },
+    "brood:burrow": {
+      "bounds": [
+        [
+          -35.792510986328125,
+          -1.0144686698913574,
+          -44.03392791748047
+        ],
+        [
+          35.07400131225586,
+          25.51911735534668,
+          38.36433029174805
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "shell",
+          "parent": 0,
+          "offset": [
+            0,
+            5,
+            0
+          ],
+          "origin": [
+            0,
+            5,
+            0
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "brood"
+    },
+    "stellar:base": {
+      "bounds": [
+        [
+          -39.5048828125,
+          0,
+          -39.504764556884766
+        ],
+        [
+          39.5048828125,
+          68.5,
+          45.999576568603516
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "core",
+          "parent": 0,
+          "offset": [
+            0,
+            51,
+            -3
+          ],
+          "origin": [
+            0,
+            51,
+            -3
+          ]
+        },
+        {
+          "name": "halo",
+          "parent": 0,
+          "offset": [
+            0,
+            44,
+            -3
+          ],
+          "origin": [
+            0,
+            44,
+            -3
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "stellar"
+    },
+    "stellar:worker": {
+      "bounds": [
+        [
+          -16,
+          5.097512245178223,
+          -14.903875350952148
+        ],
+        [
+          16,
+          21,
+          27.079471588134766
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            13,
+            0
+          ],
+          "origin": [
+            0,
+            13,
+            0
+          ]
+        },
+        {
+          "name": "tool-1",
+          "parent": 0,
+          "offset": [
+            -8,
+            -2,
+            8
+          ],
+          "origin": [
+            -8,
+            11,
+            8
+          ]
+        },
+        {
+          "name": "tool1",
+          "parent": 0,
+          "offset": [
+            8,
+            -2,
+            8
+          ],
+          "origin": [
+            8,
+            11,
+            8
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "stellar"
+    },
+    "stellar:lancer": {
+      "bounds": [
+        [
+          -15.4970703125,
+          10.5,
+          -18.564102172851562
+        ],
+        [
+          15.4970703125,
+          33.000003814697266,
+          38
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            18,
+            0
+          ],
+          "origin": [
+            0,
+            18,
+            0
+          ]
+        },
+        {
+          "name": "outrigger-1",
+          "parent": 0,
+          "offset": [
+            -11,
+            0,
+            -3
+          ],
+          "origin": [
+            -11,
+            18,
+            -3
+          ]
+        },
+        {
+          "name": "outrigger1",
+          "parent": 0,
+          "offset": [
+            11,
+            0,
+            -3
+          ],
+          "origin": [
+            11,
+            18,
+            -3
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "stellar"
+    },
+    "stellar:prism": {
+      "bounds": [
+        [
+          -15.4970703125,
+          10.5,
+          -18.564102172851562
+        ],
+        [
+          15.4970703125,
+          33.000003814697266,
+          38.118221282958984
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            18,
+            0
+          ],
+          "origin": [
+            0,
+            18,
+            0
+          ]
+        },
+        {
+          "name": "outrigger-1",
+          "parent": 0,
+          "offset": [
+            -11,
+            0,
+            -3
+          ],
+          "origin": [
+            -11,
+            18,
+            -3
+          ]
+        },
+        {
+          "name": "outrigger1",
+          "parent": 0,
+          "offset": [
+            11,
+            0,
+            -3
+          ],
+          "origin": [
+            11,
+            18,
+            -3
+          ]
+        },
+        {
+          "name": "emitter",
+          "parent": 0,
+          "offset": [
+            0,
+            5,
+            5
+          ],
+          "origin": [
+            0,
+            23,
+            5
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "stellar"
+    },
+    "stellar:colossus": {
+      "bounds": [
+        [
+          -33.380859375,
+          0.998202919960022,
+          -29.49756622314453
+        ],
+        [
+          33.380859375,
+          45.50000762939453,
+          36.185604095458984
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            28,
+            0
+          ],
+          "origin": [
+            0,
+            28,
+            0
+          ]
+        },
+        {
+          "name": "leg-1:-1",
+          "parent": 0,
+          "offset": [
+            -12,
+            -3,
+            -11
+          ],
+          "origin": [
+            -12,
+            25,
+            -11
+          ]
+        },
+        {
+          "name": "leg-1:-1foot",
+          "parent": 1,
+          "offset": [
+            -12,
+            -7,
+            -7
+          ],
+          "origin": [
+            -24,
+            18,
+            -18
+          ]
+        },
+        {
+          "name": "leg-1:1",
+          "parent": 0,
+          "offset": [
+            -12,
+            -3,
+            11
+          ],
+          "origin": [
+            -12,
+            25,
+            11
+          ]
+        },
+        {
+          "name": "leg-1:1foot",
+          "parent": 3,
+          "offset": [
+            -12,
+            -7,
+            7
+          ],
+          "origin": [
+            -24,
+            18,
+            18
+          ]
+        },
+        {
+          "name": "leg1:-1",
+          "parent": 0,
+          "offset": [
+            12,
+            -3,
+            -11
+          ],
+          "origin": [
+            12,
+            25,
+            -11
+          ]
+        },
+        {
+          "name": "leg1:-1foot",
+          "parent": 5,
+          "offset": [
+            12,
+            -7,
+            -7
+          ],
+          "origin": [
+            24,
+            18,
+            -18
+          ]
+        },
+        {
+          "name": "leg1:1",
+          "parent": 0,
+          "offset": [
+            12,
+            -3,
+            11
+          ],
+          "origin": [
+            12,
+            25,
+            11
+          ]
+        },
+        {
+          "name": "leg1:1foot",
+          "parent": 7,
+          "offset": [
+            12,
+            -7,
+            7
+          ],
+          "origin": [
+            24,
+            18,
+            18
+          ]
+        },
+        {
+          "name": "emitter",
+          "parent": 0,
+          "offset": [
+            0,
+            10,
+            5
+          ],
+          "origin": [
+            0,
+            38,
+            5
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "stellar"
+    },
+    "stellar:starWing": {
+      "bounds": [
+        [
+          -45.5,
+          10.5,
+          -28.951587677001953
+        ],
+        [
+          45.5,
+          29.000001907348633,
+          32.993202209472656
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            18,
+            0
+          ],
+          "origin": [
+            0,
+            18,
+            0
+          ]
+        },
+        {
+          "name": "wing-1",
+          "parent": 0,
+          "offset": [
+            -9,
+            0,
+            -4
+          ],
+          "origin": [
+            -9,
+            18,
+            -4
+          ]
+        },
+        {
+          "name": "wing1",
+          "parent": 0,
+          "offset": [
+            9,
+            0,
+            -4
+          ],
+          "origin": [
+            9,
+            18,
+            -4
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "stellar"
+    },
+    "stellar:weaver": {
+      "bounds": [
+        [
+          -20.599609375,
+          4.462152481079102,
+          -13.97809886932373
+        ],
+        [
+          20.599609375,
+          37.57764434814453,
+          13.41018009185791
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            18,
+            0
+          ],
+          "origin": [
+            0,
+            18,
+            0
+          ]
+        },
+        {
+          "name": "vane0",
+          "parent": 0,
+          "offset": [
+            -15,
+            0,
+            9.18485099360515e-16
+          ],
+          "origin": [
+            -15,
+            18,
+            9.18485099360515e-16
+          ]
+        },
+        {
+          "name": "vane1",
+          "parent": 0,
+          "offset": [
+            15,
+            0,
+            9.18485099360515e-16
+          ],
+          "origin": [
+            15,
+            18,
+            9.18485099360515e-16
+          ]
+        },
+        {
+          "name": "halo",
+          "parent": 0,
+          "offset": [
+            0,
+            4,
+            -3
+          ],
+          "origin": [
+            0,
+            22,
+            -3
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "stellar"
+    },
+    "stellar:guide": {
+      "bounds": [
+        [
+          -16.599609375,
+          8.283061027526855,
+          -13.97809886932373
+        ],
+        [
+          16.599609375,
+          51.000003814697266,
+          13.41018009185791
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            18,
+            0
+          ],
+          "origin": [
+            0,
+            18,
+            0
+          ]
+        },
+        {
+          "name": "vane0",
+          "parent": 0,
+          "offset": [
+            -11,
+            0,
+            6.735557395310443e-16
+          ],
+          "origin": [
+            -11,
+            18,
+            6.735557395310443e-16
+          ]
+        },
+        {
+          "name": "vane1",
+          "parent": 0,
+          "offset": [
+            11,
+            0,
+            6.735557395310443e-16
+          ],
+          "origin": [
+            11,
+            18,
+            6.735557395310443e-16
+          ]
+        },
+        {
+          "name": "halo",
+          "parent": 0,
+          "offset": [
+            0,
+            19,
+            -5
+          ],
+          "origin": [
+            0,
+            37,
+            -5
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "stellar"
+    },
+    "stellar:arbiter": {
+      "bounds": [
+        [
+          -18.982421875,
+          9.497007369995117,
+          -18.885211944580078
+        ],
+        [
+          18.982421875,
+          52.5,
+          18.98223304748535
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            18,
+            0
+          ],
+          "origin": [
+            0,
+            18,
+            0
+          ]
+        },
+        {
+          "name": "vane0",
+          "parent": 0,
+          "offset": [
+            12.727922061357855,
+            0,
+            12.727922061357857
+          ],
+          "origin": [
+            12.727922061357855,
+            18,
+            12.727922061357857
+          ]
+        },
+        {
+          "name": "vane1",
+          "parent": 0,
+          "offset": [
+            12.727922061357857,
+            0,
+            -12.727922061357855
+          ],
+          "origin": [
+            12.727922061357857,
+            18,
+            -12.727922061357855
+          ]
+        },
+        {
+          "name": "vane2",
+          "parent": 0,
+          "offset": [
+            -12.727922061357855,
+            0,
+            -12.727922061357859
+          ],
+          "origin": [
+            -12.727922061357855,
+            18,
+            -12.727922061357859
+          ]
+        },
+        {
+          "name": "vane3",
+          "parent": 0,
+          "offset": [
+            -12.727922061357859,
+            0,
+            12.727922061357852
+          ],
+          "origin": [
+            -12.727922061357859,
+            18,
+            12.727922061357852
+          ]
+        },
+        {
+          "name": "halo",
+          "parent": 0,
+          "offset": [
+            0,
+            17,
+            -3
+          ],
+          "origin": [
+            0,
+            35,
+            -3
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "stellar"
+    },
+    "stellar:refinery": {
+      "bounds": [
+        [
+          -30.5087890625,
+          0,
+          -30.508617401123047
+        ],
+        [
+          30.5087890625,
+          50.5,
+          30.50861930847168
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "core",
+          "parent": 0,
+          "offset": [
+            0,
+            19,
+            13
+          ],
+          "origin": [
+            0,
+            19,
+            13
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "stellar"
+    },
+    "stellar:lumbermill": {
+      "bounds": [
+        [
+          -31.98828125,
+          0,
+          -30.508617401123047
+        ],
+        [
+          31.990234375,
+          31.281997680664062,
+          31.920808792114258
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "cutter",
+          "parent": 0,
+          "offset": [
+            0,
+            27,
+            10
+          ],
+          "origin": [
+            0,
+            27,
+            10
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "stellar"
+    },
+    "stellar:tower": {
+      "bounds": [
+        [
+          -16.1259765625,
+          0,
+          -16.128700256347656
+        ],
+        [
+          16.126953125,
+          44.5,
+          26.316246032714844
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "emitter",
+          "parent": 0,
+          "offset": [
+            0,
+            35,
+            0
+          ],
+          "origin": [
+            0,
+            35,
+            0
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "stellar"
+    },
+    "stellar:oilwell": {
+      "bounds": [
+        [
+          -16.490234375,
+          0,
+          -16.128700256347656
+        ],
+        [
+          16.4921875,
+          46,
+          16.127166748046875
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "core",
+          "parent": 0,
+          "offset": [
+            0,
+            32,
+            0
+          ],
+          "origin": [
+            0,
+            32,
+            0
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "stellar"
+    },
+    "stellar:node": {
+      "bounds": [
+        [
+          -17.23046875,
+          0,
+          -16.128700256347656
+        ],
+        [
+          17.23046875,
+          48.000003814697266,
+          18.700002670288086
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "core",
+          "parent": 0,
+          "offset": [
+            0,
+            34,
+            0
+          ],
+          "origin": [
+            0,
+            34,
+            0
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "stellar"
+    },
+    "stellar:resonator": {
+      "bounds": [
+        [
+          -32.6865234375,
+          0,
+          -30.508617401123047
+        ],
+        [
+          32.658203125,
+          48.109535217285156,
+          34.5
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "assembly",
+          "parent": 0,
+          "offset": [
+            0,
+            28,
+            8
+          ],
+          "origin": [
+            0,
+            28,
+            8
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "stellar"
+    },
+    "stellar:warpHub": {
+      "bounds": [
+        [
+          -36.44921875,
+          0,
+          -30.508617401123047
+        ],
+        [
+          36.44921875,
+          80.71600341796875,
+          33.98219680786133
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "gate",
+          "parent": 0,
+          "offset": [
+            0,
+            42,
+            -6
+          ],
+          "origin": [
+            0,
+            42,
+            -6
+          ]
+        },
+        {
+          "name": "seed",
+          "parent": 0,
+          "offset": [
+            0,
+            42,
+            -6
+          ],
+          "origin": [
+            0,
+            42,
+            -6
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "stellar"
+    },
+    "stellar:phaseSanctum": {
+      "bounds": [
+        [
+          -33.931640625,
+          0,
+          -36.20000457763672
+        ],
+        [
+          33.9375,
+          66.72000122070312,
+          30.50861930847168
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "core",
+          "parent": 0,
+          "offset": [
+            0,
+            43,
+            0
+          ],
+          "origin": [
+            0,
+            43,
+            0
+          ]
+        },
+        {
+          "name": "halo",
+          "parent": 0,
+          "offset": [
+            0,
+            44,
+            0
+          ],
+          "origin": [
+            0,
+            44,
+            0
+          ]
+        },
+        {
+          "name": "orbit",
+          "parent": 0,
+          "offset": [
+            0,
+            44,
+            0
+          ],
+          "origin": [
+            0,
+            44,
+            0
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "stellar"
+    },
+    "relay:base": {
+      "bounds": [
+        [
+          -50.56005859375,
+          -0.16102218627929688,
+          -40.68994903564453
+        ],
+        [
+          50.56005859375,
+          63,
+          42.48500061035156
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "dish",
+          "parent": 0,
+          "offset": [
+            26,
+            55,
+            -17
+          ],
+          "origin": [
+            26,
+            55,
+            -17
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "relay"
+    },
+    "relay:worker": {
+      "bounds": [
+        [
+          -18.0400390625,
+          -0.15500009059906006,
+          -20.479999542236328
+        ],
+        [
+          18.0390625,
+          28.79671287536621,
+          35
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "body",
+          "parent": 0,
+          "offset": [
+            0,
+            11,
+            0
+          ],
+          "origin": [
+            0,
+            11,
+            0
+          ]
+        },
+        {
+          "name": "wheel-10",
+          "parent": 0,
+          "offset": [
+            -13.440000000000001,
+            6.5,
+            -12.48
+          ],
+          "origin": [
+            -13.440000000000001,
+            6.5,
+            -12.48
+          ]
+        },
+        {
+          "name": "wheel-11",
+          "parent": 0,
+          "offset": [
+            -13.440000000000001,
+            6.5,
+            12.48
+          ],
+          "origin": [
+            -13.440000000000001,
+            6.5,
+            12.48
+          ]
+        },
+        {
+          "name": "wheel10",
+          "parent": 0,
+          "offset": [
+            13.440000000000001,
+            6.5,
+            -12.48
+          ],
+          "origin": [
+            13.440000000000001,
+            6.5,
+            -12.48
+          ]
+        },
+        {
+          "name": "wheel11",
+          "parent": 0,
+          "offset": [
+            13.440000000000001,
+            6.5,
+            12.48
+          ],
+          "origin": [
+            13.440000000000001,
+            6.5,
+            12.48
+          ]
+        },
+        {
+          "name": "loader",
+          "parent": 1,
+          "offset": [
+            0,
+            4,
+            9
+          ],
+          "origin": [
+            0,
+            15,
+            9
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "relay"
+    },
+    "relay:ranger": {
+      "bounds": [
+        [
+          -9.4560546875,
+          0,
+          -8.125
+        ],
+        [
+          9.4560546875,
+          41.933982849121094,
+          16.529998779296875
+        ]
+      ],
+      "rig": [
+        {
+          "name": "hips",
+          "parent": -1,
+          "offset": [
+            0,
+            18.15,
+            0
+          ],
+          "origin": [
+            0,
+            18.15,
+            0
+          ]
+        },
+        {
+          "name": "torso",
+          "parent": 0,
+          "offset": [
+            0,
+            3.8,
+            0
+          ],
+          "origin": [
+            0,
+            21.95,
+            0
+          ]
+        },
+        {
+          "name": "head",
+          "parent": 1,
+          "offset": [
+            0,
+            14,
+            1
+          ],
+          "origin": [
+            0,
+            35.95,
+            1
+          ]
+        },
+        {
+          "name": "LLeg",
+          "parent": 0,
+          "offset": [
+            -4.1,
+            0,
+            0
+          ],
+          "origin": [
+            -4.1,
+            18.15,
+            0
+          ]
+        },
+        {
+          "name": "LKnee",
+          "parent": 3,
+          "offset": [
+            0,
+            -8.5,
+            0
+          ],
+          "origin": [
+            -4.1,
+            9.649999999999999,
+            0
+          ]
+        },
+        {
+          "name": "LFoot",
+          "parent": 4,
+          "offset": [
+            0,
+            -8,
+            0
+          ],
+          "origin": [
+            -4.1,
+            1.6499999999999986,
+            0
+          ]
+        },
+        {
+          "name": "LArm",
+          "parent": 1,
+          "offset": [
+            -6.3,
+            9.5,
+            0
+          ],
+          "origin": [
+            -6.3,
+            31.45,
+            0
+          ]
+        },
+        {
+          "name": "LElbow",
+          "parent": 6,
+          "offset": [
+            0,
+            -7,
+            0
+          ],
+          "origin": [
+            -6.3,
+            24.45,
+            0
+          ]
+        },
+        {
+          "name": "LHand",
+          "parent": 7,
+          "offset": [
+            0,
+            -6,
+            0
+          ],
+          "origin": [
+            -6.3,
+            18.45,
+            0
+          ]
+        },
+        {
+          "name": "RLeg",
+          "parent": 0,
+          "offset": [
+            4.1,
+            0,
+            0
+          ],
+          "origin": [
+            4.1,
+            18.15,
+            0
+          ]
+        },
+        {
+          "name": "RKnee",
+          "parent": 9,
+          "offset": [
+            0,
+            -8.5,
+            0
+          ],
+          "origin": [
+            4.1,
+            9.649999999999999,
+            0
+          ]
+        },
+        {
+          "name": "RFoot",
+          "parent": 10,
+          "offset": [
+            0,
+            -8,
+            0
+          ],
+          "origin": [
+            4.1,
+            1.6499999999999986,
+            0
+          ]
+        },
+        {
+          "name": "RArm",
+          "parent": 1,
+          "offset": [
+            6.3,
+            9.5,
+            0
+          ],
+          "origin": [
+            6.3,
+            31.45,
+            0
+          ]
+        },
+        {
+          "name": "RElbow",
+          "parent": 12,
+          "offset": [
+            0,
+            -7,
+            0
+          ],
+          "origin": [
+            6.3,
+            24.45,
+            0
+          ]
+        },
+        {
+          "name": "RHand",
+          "parent": 13,
+          "offset": [
+            0,
+            -6,
+            0
+          ],
+          "origin": [
+            6.3,
+            18.45,
+            0
+          ]
+        },
+        {
+          "name": "rifle",
+          "parent": 1,
+          "offset": [
+            6.3,
+            -3.5,
+            0
+          ],
+          "origin": [
+            6.3,
+            18.45,
+            0
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "ranger"
+    },
+    "relay:runner": {
+      "bounds": [
+        [
+          -18.0400390625,
+          -0.15500009059906006,
+          -23.799999237060547
+        ],
+        [
+          18.0390625,
+          36,
+          21.760000228881836
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "body",
+          "parent": 0,
+          "offset": [
+            0,
+            11,
+            0
+          ],
+          "origin": [
+            0,
+            11,
+            0
+          ]
+        },
+        {
+          "name": "wheel-10",
+          "parent": 0,
+          "offset": [
+            -13.440000000000001,
+            6.5,
+            -13.76
+          ],
+          "origin": [
+            -13.440000000000001,
+            6.5,
+            -13.76
+          ]
+        },
+        {
+          "name": "wheel-11",
+          "parent": 0,
+          "offset": [
+            -13.440000000000001,
+            6.5,
+            13.76
+          ],
+          "origin": [
+            -13.440000000000001,
+            6.5,
+            13.76
+          ]
+        },
+        {
+          "name": "wheel10",
+          "parent": 0,
+          "offset": [
+            13.440000000000001,
+            6.5,
+            -13.76
+          ],
+          "origin": [
+            13.440000000000001,
+            6.5,
+            -13.76
+          ]
+        },
+        {
+          "name": "wheel11",
+          "parent": 0,
+          "offset": [
+            13.440000000000001,
+            6.5,
+            13.76
+          ],
+          "origin": [
+            13.440000000000001,
+            6.5,
+            13.76
+          ]
+        },
+        {
+          "name": "turret",
+          "parent": 1,
+          "offset": [
+            0,
+            18,
+            -6
+          ],
+          "origin": [
+            0,
+            29,
+            -6
+          ]
+        },
+        {
+          "name": "barrel",
+          "parent": 6,
+          "offset": [
+            0,
+            5,
+            3
+          ],
+          "origin": [
+            0,
+            34,
+            -3
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "relay"
+    },
+    "relay:flak": {
+      "bounds": [
+        [
+          -20.28125,
+          -0.15500009059906006,
+          -31.5
+        ],
+        [
+          20.28125,
+          30.34272575378418,
+          33.44999694824219
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "body",
+          "parent": 0,
+          "offset": [
+            0,
+            11,
+            0
+          ],
+          "origin": [
+            0,
+            11,
+            0
+          ]
+        },
+        {
+          "name": "wheel-10",
+          "parent": 0,
+          "offset": [
+            -15.680000000000001,
+            6.5,
+            -21.42
+          ],
+          "origin": [
+            -15.680000000000001,
+            6.5,
+            -21.42
+          ]
+        },
+        {
+          "name": "wheel-11",
+          "parent": 0,
+          "offset": [
+            -15.680000000000001,
+            6.5,
+            -3.1500000000000004
+          ],
+          "origin": [
+            -15.680000000000001,
+            6.5,
+            -3.1500000000000004
+          ]
+        },
+        {
+          "name": "wheel-12",
+          "parent": 0,
+          "offset": [
+            -15.680000000000001,
+            6.5,
+            21.42
+          ],
+          "origin": [
+            -15.680000000000001,
+            6.5,
+            21.42
+          ]
+        },
+        {
+          "name": "wheel10",
+          "parent": 0,
+          "offset": [
+            15.680000000000001,
+            6.5,
+            -21.42
+          ],
+          "origin": [
+            15.680000000000001,
+            6.5,
+            -21.42
+          ]
+        },
+        {
+          "name": "wheel11",
+          "parent": 0,
+          "offset": [
+            15.680000000000001,
+            6.5,
+            -3.1500000000000004
+          ],
+          "origin": [
+            15.680000000000001,
+            6.5,
+            -3.1500000000000004
+          ]
+        },
+        {
+          "name": "wheel12",
+          "parent": 0,
+          "offset": [
+            15.680000000000001,
+            6.5,
+            21.42
+          ],
+          "origin": [
+            15.680000000000001,
+            6.5,
+            21.42
+          ]
+        },
+        {
+          "name": "turret",
+          "parent": 1,
+          "offset": [
+            0,
+            6,
+            -15
+          ],
+          "origin": [
+            0,
+            17,
+            -15
+          ]
+        },
+        {
+          "name": "barrel",
+          "parent": 8,
+          "offset": [
+            0,
+            5,
+            3
+          ],
+          "origin": [
+            0,
+            22,
+            -12
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "relay"
+    },
+    "relay:relayWing": {
+      "bounds": [
+        [
+          -48,
+          6,
+          -31
+        ],
+        [
+          48,
+          29.031322479248047,
+          23.88421630859375
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "body",
+          "parent": 0,
+          "offset": [
+            0,
+            11,
+            0
+          ],
+          "origin": [
+            0,
+            11,
+            0
+          ]
+        },
+        {
+          "name": "wing-1",
+          "parent": 1,
+          "offset": [
+            -8,
+            4,
+            -1
+          ],
+          "origin": [
+            -8,
+            15,
+            -1
+          ]
+        },
+        {
+          "name": "wing1",
+          "parent": 1,
+          "offset": [
+            8,
+            4,
+            -1
+          ],
+          "origin": [
+            8,
+            15,
+            -1
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "relay"
+    },
+    "relay:pathfinder": {
+      "bounds": [
+        [
+          -10.61279296875,
+          0,
+          -9.130000114440918
+        ],
+        [
+          10.6123046875,
+          41.15074157714844,
+          13.87202262878418
+        ]
+      ],
+      "rig": [
+        {
+          "name": "hips",
+          "parent": -1,
+          "offset": [
+            0,
+            18.15,
+            0
+          ],
+          "origin": [
+            0,
+            18.15,
+            0
+          ]
+        },
+        {
+          "name": "torso",
+          "parent": 0,
+          "offset": [
+            0,
+            3.8,
+            0
+          ],
+          "origin": [
+            0,
+            21.95,
+            0
+          ]
+        },
+        {
+          "name": "head",
+          "parent": 1,
+          "offset": [
+            0,
+            14,
+            1
+          ],
+          "origin": [
+            0,
+            35.95,
+            1
+          ]
+        },
+        {
+          "name": "LLeg",
+          "parent": 0,
+          "offset": [
+            -4.1,
+            0,
+            0
+          ],
+          "origin": [
+            -4.1,
+            18.15,
+            0
+          ]
+        },
+        {
+          "name": "LKnee",
+          "parent": 3,
+          "offset": [
+            0,
+            -8.5,
+            0
+          ],
+          "origin": [
+            -4.1,
+            9.649999999999999,
+            0
+          ]
+        },
+        {
+          "name": "LFoot",
+          "parent": 4,
+          "offset": [
+            0,
+            -8,
+            0
+          ],
+          "origin": [
+            -4.1,
+            1.6499999999999986,
+            0
+          ]
+        },
+        {
+          "name": "LArm",
+          "parent": 1,
+          "offset": [
+            -6.8,
+            9.5,
+            0
+          ],
+          "origin": [
+            -6.8,
+            31.45,
+            0
+          ]
+        },
+        {
+          "name": "LElbow",
+          "parent": 6,
+          "offset": [
+            0,
+            -7,
+            0
+          ],
+          "origin": [
+            -6.8,
+            24.45,
+            0
+          ]
+        },
+        {
+          "name": "LHand",
+          "parent": 7,
+          "offset": [
+            0,
+            -6,
+            0
+          ],
+          "origin": [
+            -6.8,
+            18.45,
+            0
+          ]
+        },
+        {
+          "name": "RLeg",
+          "parent": 0,
+          "offset": [
+            4.1,
+            0,
+            0
+          ],
+          "origin": [
+            4.1,
+            18.15,
+            0
+          ]
+        },
+        {
+          "name": "RKnee",
+          "parent": 9,
+          "offset": [
+            0,
+            -8.5,
+            0
+          ],
+          "origin": [
+            4.1,
+            9.649999999999999,
+            0
+          ]
+        },
+        {
+          "name": "RFoot",
+          "parent": 10,
+          "offset": [
+            0,
+            -8,
+            0
+          ],
+          "origin": [
+            4.1,
+            1.6499999999999986,
+            0
+          ]
+        },
+        {
+          "name": "RArm",
+          "parent": 1,
+          "offset": [
+            6.8,
+            9.5,
+            0
+          ],
+          "origin": [
+            6.8,
+            31.45,
+            0
+          ]
+        },
+        {
+          "name": "RElbow",
+          "parent": 12,
+          "offset": [
+            0,
+            -7,
+            0
+          ],
+          "origin": [
+            6.8,
+            24.45,
+            0
+          ]
+        },
+        {
+          "name": "RHand",
+          "parent": 13,
+          "offset": [
+            0,
+            -6,
+            0
+          ],
+          "origin": [
+            6.8,
+            18.45,
+            0
+          ]
+        },
+        {
+          "name": "rifle",
+          "parent": 1,
+          "offset": [
+            6.8,
+            -3.5,
+            0
+          ],
+          "origin": [
+            6.8,
+            18.45,
+            0
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "pathfinder"
+    },
+    "relay:observer": {
+      "bounds": [
+        [
+          -10.0849609375,
+          0,
+          -9.236769676208496
+        ],
+        [
+          9.6103515625,
+          47.5,
+          8.880258560180664
+        ]
+      ],
+      "rig": [
+        {
+          "name": "hips",
+          "parent": -1,
+          "offset": [
+            0,
+            18.15,
+            0
+          ],
+          "origin": [
+            0,
+            18.15,
+            0
+          ]
+        },
+        {
+          "name": "torso",
+          "parent": 0,
+          "offset": [
+            0,
+            3.8,
+            0
+          ],
+          "origin": [
+            0,
+            21.95,
+            0
+          ]
+        },
+        {
+          "name": "head",
+          "parent": 1,
+          "offset": [
+            0,
+            14,
+            1
+          ],
+          "origin": [
+            0,
+            35.95,
+            1
+          ]
+        },
+        {
+          "name": "LLeg",
+          "parent": 0,
+          "offset": [
+            -4.1,
+            0,
+            0
+          ],
+          "origin": [
+            -4.1,
+            18.15,
+            0
+          ]
+        },
+        {
+          "name": "LKnee",
+          "parent": 3,
+          "offset": [
+            0,
+            -8.5,
+            0
+          ],
+          "origin": [
+            -4.1,
+            9.649999999999999,
+            0
+          ]
+        },
+        {
+          "name": "LFoot",
+          "parent": 4,
+          "offset": [
+            0,
+            -8,
+            0
+          ],
+          "origin": [
+            -4.1,
+            1.6499999999999986,
+            0
+          ]
+        },
+        {
+          "name": "LArm",
+          "parent": 1,
+          "offset": [
+            -6.2,
+            9.5,
+            0
+          ],
+          "origin": [
+            -6.2,
+            31.45,
+            0
+          ]
+        },
+        {
+          "name": "LElbow",
+          "parent": 6,
+          "offset": [
+            0,
+            -6.8,
+            0
+          ],
+          "origin": [
+            -6.2,
+            24.65,
+            0
+          ]
+        },
+        {
+          "name": "LHand",
+          "parent": 7,
+          "offset": [
+            0,
+            -5.9,
+            0
+          ],
+          "origin": [
+            -6.2,
+            18.75,
+            0
+          ]
+        },
+        {
+          "name": "RLeg",
+          "parent": 0,
+          "offset": [
+            4.1,
+            0,
+            0
+          ],
+          "origin": [
+            4.1,
+            18.15,
+            0
+          ]
+        },
+        {
+          "name": "RKnee",
+          "parent": 9,
+          "offset": [
+            0,
+            -8.5,
+            0
+          ],
+          "origin": [
+            4.1,
+            9.649999999999999,
+            0
+          ]
+        },
+        {
+          "name": "RFoot",
+          "parent": 10,
+          "offset": [
+            0,
+            -8,
+            0
+          ],
+          "origin": [
+            4.1,
+            1.6499999999999986,
+            0
+          ]
+        },
+        {
+          "name": "RArm",
+          "parent": 1,
+          "offset": [
+            6.2,
+            9.5,
+            0
+          ],
+          "origin": [
+            6.2,
+            31.45,
+            0
+          ]
+        },
+        {
+          "name": "RElbow",
+          "parent": 12,
+          "offset": [
+            0,
+            -6.8,
+            0
+          ],
+          "origin": [
+            6.2,
+            24.65,
+            0
+          ]
+        },
+        {
+          "name": "RHand",
+          "parent": 13,
+          "offset": [
+            0,
+            -5.9,
+            0
+          ],
+          "origin": [
+            6.2,
+            18.75,
+            0
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "observer"
+    },
+    "relay:escort": {
+      "bounds": [
+        [
+          -20.28125,
+          -0.15500009059906006,
+          -31.5
+        ],
+        [
+          20.28125,
+          53.000003814697266,
+          33.44999694824219
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "body",
+          "parent": 0,
+          "offset": [
+            0,
+            11,
+            0
+          ],
+          "origin": [
+            0,
+            11,
+            0
+          ]
+        },
+        {
+          "name": "wheel-10",
+          "parent": 0,
+          "offset": [
+            -15.680000000000001,
+            6.5,
+            -21.42
+          ],
+          "origin": [
+            -15.680000000000001,
+            6.5,
+            -21.42
+          ]
+        },
+        {
+          "name": "wheel-11",
+          "parent": 0,
+          "offset": [
+            -15.680000000000001,
+            6.5,
+            -3.1500000000000004
+          ],
+          "origin": [
+            -15.680000000000001,
+            6.5,
+            -3.1500000000000004
+          ]
+        },
+        {
+          "name": "wheel-12",
+          "parent": 0,
+          "offset": [
+            -15.680000000000001,
+            6.5,
+            21.42
+          ],
+          "origin": [
+            -15.680000000000001,
+            6.5,
+            21.42
+          ]
+        },
+        {
+          "name": "wheel10",
+          "parent": 0,
+          "offset": [
+            15.680000000000001,
+            6.5,
+            -21.42
+          ],
+          "origin": [
+            15.680000000000001,
+            6.5,
+            -21.42
+          ]
+        },
+        {
+          "name": "wheel11",
+          "parent": 0,
+          "offset": [
+            15.680000000000001,
+            6.5,
+            -3.1500000000000004
+          ],
+          "origin": [
+            15.680000000000001,
+            6.5,
+            -3.1500000000000004
+          ]
+        },
+        {
+          "name": "wheel12",
+          "parent": 0,
+          "offset": [
+            15.680000000000001,
+            6.5,
+            21.42
+          ],
+          "origin": [
+            15.680000000000001,
+            6.5,
+            21.42
+          ]
+        },
+        {
+          "name": "dish",
+          "parent": 0,
+          "offset": [
+            0,
+            39,
+            -14
+          ],
+          "origin": [
+            0,
+            39,
+            -14
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "relay"
+    },
+    "relay:refinery": {
+      "bounds": [
+        [
+          -41.739990234375,
+          -0.12096786499023438,
+          -31.603517532348633
+        ],
+        [
+          41.739990234375,
+          33.70000076293945,
+          34.44499969482422
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "relay"
+    },
+    "relay:lumbermill": {
+      "bounds": [
+        [
+          -41.739990234375,
+          -0.12096786499023438,
+          -34.41184997558594
+        ],
+        [
+          41.739990234375,
+          31.700000762939453,
+          31.600000381469727
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "relay"
+    },
+    "relay:tower": {
+      "bounds": [
+        [
+          -20.1800537109375,
+          0.18860149383544922,
+          -17.200000762939453
+        ],
+        [
+          20.1800537109375,
+          35,
+          29.000003814697266
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "turret",
+          "parent": 0,
+          "offset": [
+            0,
+            27,
+            0
+          ],
+          "origin": [
+            0,
+            27,
+            0
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "relay"
+    },
+    "relay:oilwell": {
+      "bounds": [
+        [
+          -20.1800537109375,
+          0.18860149383544922,
+          -18.5
+        ],
+        [
+          20.1800537109375,
+          31,
+          17.200000762939453
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "pump",
+          "parent": 0,
+          "offset": [
+            0,
+            29,
+            -4
+          ],
+          "origin": [
+            0,
+            29,
+            -4
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "relay"
+    },
+    "relay:assembly": {
+      "bounds": [
+        [
+          -41.739990234375,
+          -0.12096786499023438,
+          -31.600000381469727
+        ],
+        [
+          41.739990234375,
+          44.84025573730469,
+          42.21553039550781
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "gantry",
+          "parent": 0,
+          "offset": [
+            0,
+            37,
+            -18
+          ],
+          "origin": [
+            0,
+            37,
+            -18
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "relay"
+    },
+    "relay:assembly:packed": {
+      "bounds": [
+        [
+          -25.3203125,
+          -0.15500009059906006,
+          -33
+        ],
+        [
+          25.3203125,
+          41.279998779296875,
+          34.44999694824219
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "body",
+          "parent": 0,
+          "offset": [
+            0,
+            11,
+            0
+          ],
+          "origin": [
+            0,
+            11,
+            0
+          ]
+        },
+        {
+          "name": "wheel-10",
+          "parent": 0,
+          "offset": [
+            -20.720000000000002,
+            6.5,
+            -22.44
+          ],
+          "origin": [
+            -20.720000000000002,
+            6.5,
+            -22.44
+          ]
+        },
+        {
+          "name": "wheel-11",
+          "parent": 0,
+          "offset": [
+            -20.720000000000002,
+            6.5,
+            -3.3000000000000003
+          ],
+          "origin": [
+            -20.720000000000002,
+            6.5,
+            -3.3000000000000003
+          ]
+        },
+        {
+          "name": "wheel-12",
+          "parent": 0,
+          "offset": [
+            -20.720000000000002,
+            6.5,
+            22.44
+          ],
+          "origin": [
+            -20.720000000000002,
+            6.5,
+            22.44
+          ]
+        },
+        {
+          "name": "wheel10",
+          "parent": 0,
+          "offset": [
+            20.720000000000002,
+            6.5,
+            -22.44
+          ],
+          "origin": [
+            20.720000000000002,
+            6.5,
+            -22.44
+          ]
+        },
+        {
+          "name": "wheel11",
+          "parent": 0,
+          "offset": [
+            20.720000000000002,
+            6.5,
+            -3.3000000000000003
+          ],
+          "origin": [
+            20.720000000000002,
+            6.5,
+            -3.3000000000000003
+          ]
+        },
+        {
+          "name": "wheel12",
+          "parent": 0,
+          "offset": [
+            20.720000000000002,
+            6.5,
+            22.44
+          ],
+          "origin": [
+            20.720000000000002,
+            6.5,
+            22.44
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "relay"
+    },
+    "relay:relayTower": {
+      "bounds": [
+        [
+          -20.1800537109375,
+          0.18860149383544922,
+          -17.200000762939453
+        ],
+        [
+          20.1800537109375,
+          66,
+          17.200000762939453
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "dish",
+          "parent": 0,
+          "offset": [
+            0,
+            58,
+            0
+          ],
+          "origin": [
+            0,
+            58,
+            0
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "relay"
+    },
+    "relay:routePost": {
+      "bounds": [
+        [
+          -41.739990234375,
+          -0.12096786499023438,
+          -31.600000381469727
+        ],
+        [
+          41.739990234375,
+          40,
+          31.600000381469727
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "relay"
+    },
+    "relay:observatory": {
+      "bounds": [
+        [
+          -41.739990234375,
+          -0.12096786499023438,
+          -31.600000381469727
+        ],
+        [
+          41.739990234375,
+          44.40836715698242,
+          31.600000381469727
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "dish",
+          "parent": 0,
+          "offset": [
+            0,
+            34,
+            -5
+          ],
+          "origin": [
+            0,
+            34,
+            -5
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "relay"
+    },
+    "relay:escortDepot": {
+      "bounds": [
+        [
+          -44.818359375,
+          -0.12096786499023438,
+          -35.20977783203125
+        ],
+        [
+          41.739990234375,
+          54,
+          31.600000381469727
+        ]
+      ],
+      "rig": [
+        {
+          "name": "root",
+          "parent": -1,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "dish",
+          "parent": 0,
+          "offset": [
+            26,
+            46,
+            -20
+          ],
+          "origin": [
+            26,
+            46,
+            -20
+          ]
+        }
+      ],
+      "moving": [],
+      "surface": "relay"
+    }
+  },
+  "scriptHash": "238260fd271cda449c3b0490689baa5dcf055591cf8171eb09a721edd858d1cc",
+  "packs": [
+    "industrial.glb",
+    "brood.glb",
+    "stellar.glb",
+    "relay.glb",
+    "../blender-v1/nature.glb",
+    "worker.glb",
+    "sniper.glb",
+    "rifleman.glb",
+    "medic.glb",
+    "commander.glb",
+    "ranger.glb",
+    "observer.glb",
+    "pathfinder.glb",
+    "mech.glb"
+  ],
+  "textures": [
+    "../blender-v1/albedo.png",
+    "../blender-v1/normal.png",
+    "../blender-v1/orm.png",
+    "industrial-albedo.png",
+    "industrial-normal.png",
+    "industrial-orm.png",
+    "brood-albedo.png",
+    "brood-normal.png",
+    "brood-orm.png",
+    "stellar-albedo.png",
+    "stellar-normal.png",
+    "stellar-orm.png",
+    "relay-albedo.png",
+    "relay-normal.png",
+    "relay-orm.png",
+    "worker-albedo.png",
+    "worker-normal.png",
+    "worker-orm.png",
+    "sniper-albedo.png",
+    "sniper-normal.png",
+    "sniper-orm.png",
+    "rifleman-albedo.png",
+    "rifleman-normal.png",
+    "rifleman-orm.png",
+    "medic-albedo.png",
+    "medic-normal.png",
+    "medic-orm.png",
+    "commander-albedo.png",
+    "commander-normal.png",
+    "commander-orm.png",
+    "ranger-albedo.png",
+    "ranger-normal.png",
+    "ranger-orm.png",
+    "observer-albedo.png",
+    "observer-normal.png",
+    "observer-orm.png",
+    "pathfinder-albedo.png",
+    "pathfinder-normal.png",
+    "pathfinder-orm.png",
+    "mech-albedo.png",
+    "mech-normal.png",
+    "mech-orm.png"
+  ],
+  "surfaces": {
+    "industrial": {
+      "albedo": "industrial-albedo.png",
+      "normal": "industrial-normal.png",
+      "orm": "industrial-orm.png"
+    },
+    "brood": {
+      "albedo": "brood-albedo.png",
+      "normal": "brood-normal.png",
+      "orm": "brood-orm.png"
+    },
+    "stellar": {
+      "albedo": "stellar-albedo.png",
+      "normal": "stellar-normal.png",
+      "orm": "stellar-orm.png"
+    },
+    "relay": {
+      "albedo": "relay-albedo.png",
+      "normal": "relay-normal.png",
+      "orm": "relay-orm.png"
+    },
+    "worker": {
+      "albedo": "worker-albedo.png",
+      "normal": "worker-normal.png",
+      "orm": "worker-orm.png"
+    },
+    "sniper": {
+      "albedo": "sniper-albedo.png",
+      "normal": "sniper-normal.png",
+      "orm": "sniper-orm.png"
+    },
+    "rifleman": {
+      "albedo": "rifleman-albedo.png",
+      "normal": "rifleman-normal.png",
+      "orm": "rifleman-orm.png"
+    },
+    "medic": {
+      "albedo": "medic-albedo.png",
+      "normal": "medic-normal.png",
+      "orm": "medic-orm.png"
+    },
+    "commander": {
+      "albedo": "commander-albedo.png",
+      "normal": "commander-normal.png",
+      "orm": "commander-orm.png"
+    },
+    "ranger": {
+      "albedo": "ranger-albedo.png",
+      "normal": "ranger-normal.png",
+      "orm": "ranger-orm.png"
+    },
+    "observer": {
+      "albedo": "observer-albedo.png",
+      "normal": "observer-normal.png",
+      "orm": "observer-orm.png"
+    },
+    "pathfinder": {
+      "albedo": "pathfinder-albedo.png",
+      "normal": "pathfinder-normal.png",
+      "orm": "pathfinder-orm.png"
+    },
+    "mech": {
+      "albedo": "mech-albedo.png",
+      "normal": "mech-normal.png",
+      "orm": "mech-orm.png"
+    }
+  },
+  "legacyTextures": {
+    "albedo": "../blender-v1/albedo.png",
+    "normal": "../blender-v1/normal.png",
+    "orm": "../blender-v1/orm.png"
+  },
+  "generators": {
+    "industrial": {
+      "script": "scripts/build-sculpt-assets.py",
+      "scriptHash": "238260fd271cda449c3b0490689baa5dcf055591cf8171eb09a721edd858d1cc",
+      "bake": "artifacts/blender-sculpt/industrial-bake.json",
+      "blend": "artifacts/blender-sculpt/industrial.blend"
+    },
+    "brood": {
+      "script": "scripts/build-sculpt-assets.py",
+      "scriptHash": "238260fd271cda449c3b0490689baa5dcf055591cf8171eb09a721edd858d1cc",
+      "bake": "artifacts/blender-sculpt/brood-bake.json",
+      "blend": "artifacts/blender-sculpt/brood.blend"
+    },
+    "stellar": {
+      "script": "scripts/build-sculpt-assets.py",
+      "scriptHash": "238260fd271cda449c3b0490689baa5dcf055591cf8171eb09a721edd858d1cc",
+      "bake": "artifacts/blender-sculpt/stellar-bake.json",
+      "blend": "artifacts/blender-sculpt/stellar.blend"
+    },
+    "relay": {
+      "script": "scripts/build-sculpt-assets.py",
+      "scriptHash": "238260fd271cda449c3b0490689baa5dcf055591cf8171eb09a721edd858d1cc",
+      "bake": "artifacts/blender-sculpt/relay-bake.json",
+      "blend": "artifacts/blender-sculpt/relay.blend"
+    },
+    "worker": {
+      "script": "scripts/build-worker-hero.py",
+      "scriptHash": "8e9e08e10794750a40a3e5f3ee6e17def8aed4f8ec948dbc2d42c0956d1e3e46",
+      "bake": "artifacts/blender-sculpt/worker-bake.json",
+      "blend": "artifacts/worker-hero/engineering-worker.blend"
+    },
+    "sniper": {
+      "script": "scripts/build-sniper-hero.py",
+      "scriptHash": "6f54add7727a09a465a4b1cc02707914bb6f3fac9f6654954c6652baa6cc1b97",
+      "bake": "artifacts/blender-sculpt/sniper-bake.json",
+      "blend": "artifacts/sniper-hero/ghost-sniper.blend"
+    },
+    "rifleman": {
+      "script": "scripts/build-rifleman.py",
+      "scriptHash": "3ec0518cc1612cbe363f1e91bdc27af3a2ee07482c5e74f513a0a7442136e12f",
+      "bake": "artifacts/rifleman/rifleman-bake.json",
+      "blend": "artifacts/rifleman/rifleman.blend"
+    },
+    "medic": {
+      "script": "scripts/build-medic.py",
+      "scriptHash": "598856edcb4748a66726dee1a3bc2a17154dfabd569ed23286af45fdd6f530b1",
+      "bake": "artifacts/medic/medic-bake.json",
+      "blend": "artifacts/medic/medic.blend"
+    },
+    "commander": {
+      "script": "scripts/build-commander.py",
+      "scriptHash": "2d30cfa03746e932f3c8723fb45ebe801aa7a0037faee0d2d8b81023ac4ee296",
+      "bake": "artifacts/commander/commander-bake.json",
+      "blend": "artifacts/commander/commander.blend"
+    },
+    "ranger": {
+      "script": "scripts/build-ranger.py",
+      "scriptHash": "0931d5ffc72b3782989d159c8d1fd529ac5af5371becbae80fae044666a32439",
+      "bake": "artifacts/ranger/ranger-bake.json",
+      "blend": "artifacts/ranger/ranger.blend"
+    },
+    "observer": {
+      "script": "scripts/build-observer.py",
+      "scriptHash": "05053535b99b3b03294cf981df8739d2f45e5a6f282365eeb29bfa20fa1afbce",
+      "bake": "artifacts/observer/observer-bake.json",
+      "blend": "artifacts/observer/observer.blend"
+    },
+    "pathfinder": {
+      "script": "scripts/build-pathfinder.py",
+      "scriptHash": "a25d2db25dc01649349d0645ae0c623004b0df717da253ad2f45602f10fcc6c4",
+      "bake": "artifacts/pathfinder/pathfinder-bake.json",
+      "blend": "artifacts/pathfinder/pathfinder.blend"
+    },
+    "mech": {
+      "script": "scripts/build-mech.py",
+      "scriptHash": "88ea04fa495af119b48ac393353a3715b319c5cd25471bf62faba0f9b9cc9daa",
+      "bake": "artifacts/mech/mech-bake.json",
+      "blend": "artifacts/mech/mech.blend"
+    }
+  }
+}

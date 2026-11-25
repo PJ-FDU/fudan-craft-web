@@ -6,16 +6,21 @@ import {
 import { bark, baseSlab, dark, glass, lightArmor, mineral, orange, paint, Parts, steel, stone, tread, type Size } from './model-parts.js';
 import { ceramicArmor, circuitry, federal, service, strut } from './faction-model-parts.js';
 import { mobileModel } from './mobile-models.js';
-import { modelSurface } from './model-surface.js';
+import { modelSurface, sculptSurface } from './model-surface.js';
+import type { BlenderAssets, BlenderSurface } from './blender-assets.js';
+import { heightAt } from './terrain-height.js';
+import type { WorldData } from './world.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { humanoid, UnitRig, type RigDefinition } from './unit-rig.js';
 import { buildingSize } from './building-layout.js';
 import { COLORS, STATS, isMobile, type BuildingKind, type Kind, type MobileKind, type ResourceKind, type Race, type Side } from './types.js';
 
-interface Model {
+export interface ModelGeometry {
   bounds:Box3;
   rig?:RigDefinition;
   body: [BufferGeometry | undefined, BufferGeometry | undefined, BufferGeometry | undefined];
-  moving: {parts: Model['body']; at: Size}[];
+  moving: {parts: ModelGeometry['body']; at: Size}[];
+  surface?:BlenderSurface;
 }
 
 export interface BattleModel {
@@ -40,14 +45,16 @@ export class BattleModels {
   };
   readonly preview=new MeshStandardMaterial({transparent:true,opacity:.48,depthWrite:false,roughness:.65});
   readonly teams:MeshStandardMaterial[];
-  private models=new Map<string,Model>();
-  private nodes=new Map<string,Model>();
+  private models=new Map<string,ModelGeometry>();
+  private nodes=new Map<string,ModelGeometry>();
+  private sculptPalettes=new Map<BlenderSurface,MeshStandardMaterial[]>();
 
-  constructor(atlas:Texture,private factionDetail?:Texture){
-    this.solid=modelSurface(atlas,factionDetail);
-    this.forest=modelSurface(atlas,undefined,false);
+  constructor(atlas:Texture,private factionDetail?:Texture,private assets?:BlenderAssets,
+    private configureSurface?:(material:MeshStandardMaterial)=>void){
+    this.solid=modelSurface(atlas,factionDetail,true,assets?.surface);
+    this.forest=modelSurface(atlas,undefined,false,assets?.surface);
     this.teams=COLORS.slice(1).map(color=>{
-      const material=modelSurface(atlas,factionDetail);
+      const material=modelSurface(atlas,factionDetail,true,assets?.surface);
       material.color.set(color);
       material.emissive.set(color);material.emissiveIntensity=.04;
       return material;
@@ -62,7 +69,9 @@ export class BattleModels {
       const customRig=factionParts(parts,kind,race,packed);
       const rig=customRig??(mobile?mobileModel(parts,kind as MobileKind):undefined);
       const moving=customRig||mobile?[]:buildingParts(parts,kind as BuildingKind);
-      model=this.compile(parts,moving,rig);
+      model=this.assets
+        ?{...this.assets.model(`${race??'industrial'}:${kind}${packed?':packed':''}`,rig),rig}
+        :this.compile(parts,moving,rig);
       this.models.set(key,model);
     }
     const visual=this.instantiate(model,side,preview,race??(custom?factionLampRace[custom[0]]:'industrial'));
@@ -92,13 +101,26 @@ export class BattleModels {
   resource(kind:ResourceKind,empty:boolean,forest?:{kind:string;size:number}):BattleModel {
     const key=kind+(forest?forest.kind:'')+(empty?'Empty':'');
     let model=this.nodes.get(key);
+    if(!model&&this.assets){
+      const geometries=forest
+        ?[this.assets.nature(`nature:${empty?'stump':forest.kind}`)]
+        :kind==='wood'&&!empty
+          ?[['oak',-19,7,.9],['pine',24,14,.72],['birch',8,-20,.73]].map(([tree,x,z,scale])=>
+            this.assets!.nature(`nature:${tree}`).scale(Number(scale),Number(scale),Number(scale)).translate(Number(x),0,Number(z)))
+          :[this.assets.nature(`resource:${kind}${empty?':empty':''}`)];
+      const geometry=geometries.length===1?geometries[0]:mergeGeometries(geometries)!;
+      if(geometries.length>1)for(const part of geometries)part.dispose();
+      geometry.computeBoundingBox();geometry.computeBoundingSphere();
+      model={body:[geometry,undefined,undefined],moving:[],bounds:geometry.boundingBox!.clone()};
+      this.nodes.set(key,model);
+    }
     if(!model){
       const p=new Parts();
       if(empty&&forest){
         p.add('drum',bark,0,4,0,16,8,16);
-      }else if(empty){
+      }else if(empty&&kind==='wood'){
         p.add('facet',stone,1,2,0,47,11,37);
-        p.add('drum',kind==='wood'?bark:dark,-6,5,5,15,10,15);
+        p.add('drum',bark,-6,5,5,15,10,15);
       }else if(forest){
         tree(p,forest.kind,0,0,0,88,0);
       }else if(kind==='wood'){
@@ -107,19 +129,9 @@ export class BattleModels {
         tree(p,'birch',8,0,-20,73,2);
         p.add('drum',bark,15,8,29,10,32,10,Math.PI/2,0,.24);
       }else if(kind==='gold'){
-        p.add('facet',paint('stone',0xc4b58f),0,7,0,96,26,78);
-        for(const [x,y,z,w,angle] of [[-20,15,9,29,.4],[5,22,1,40,1.4],[25,14,14,25,.4],[-12,12,-22,31,2],[20,11,-18,24,1]]){
-          p.add('facet',paint('stone',0xcbad78),x,y-5,z,w*1.3,w,w*1.25,angle,angle,0);
-          p.add('facet',mineral,x+2,y+4,z+4,w*.83,w*.77,w*.86,angle,angle,0);
-          p.add('facet',paint('ore',0xffe5a4),x-5,y+7,z+4,w*.3,w*.47,w*.5,0,angle,.35);
-        }
+        goldDeposit(p,empty);
       }else{
-        p.add('drum',stone,0,3,0,95,5,66);
-        p.add('drum',dark,0,6,0,72,2,47);
-        p.add('drum',paint('water',0x61777a),2,7,2,54,1,32);
-        for(const [x,z] of [[-28,-14],[27,-8],[-21,16]])p.add('facet',stone,x,8,z,24,16,20);
-        p.add('drum',steel,1,14,0,14,14,14,0,0,.2);
-        p.add('drum',dark,1,21,0,9,3,9,0,0,.2);
+        oilDeposit(p,empty);
       }
       model=this.compile(p,[]);this.nodes.set(key,model);
     }
@@ -131,8 +143,16 @@ export class BattleModels {
     return visual;
   }
 
-  private compile(parts:Parts,moving:{parts:Parts;at:Size}[],rig?:RigDefinition):Model {
-    const bake=(p:Parts,groundOffset=0):Model['body']=>[
+  /** Blender 构建直接读取源码几何，不经过实例缩放和动画姿态。 */
+  source(kind:Kind,race?:Race,packed=false):ModelGeometry {
+    const parts=new Parts(),mobile=isMobile({kind});
+    const customRig=factionParts(parts,kind,race,packed);
+    const rig=customRig??(mobile?mobileModel(parts,kind as MobileKind):undefined);
+    return this.compile(parts,customRig||mobile?[]:buildingParts(parts,kind as BuildingKind),rig);
+  }
+
+  private compile(parts:Parts,moving:{parts:Parts;at:Size}[],rig?:RigDefinition):ModelGeometry {
+    const bake=(p:Parts,groundOffset=0):ModelGeometry['body']=>[
       p.geometry('solid',groundOffset),p.geometry('team',groundOffset),p.geometry('lamp'),
     ];
     const body=bake(parts);
@@ -147,9 +167,22 @@ export class BattleModels {
     return {body,moving:articulated,bounds,rig};
   }
 
-  private instantiate(model:Model,side:Side,preview=false,race:Race='industrial'):BattleModel {
-    const palette=[this.solid,this.teams[side-1],this.lamps[race]];
-    const addMeshes=(result:Group,geometries:Model['body'],rig?:UnitRig)=>{
+  private instantiate(model:ModelGeometry,side:Side,preview=false,race:Race='industrial'):BattleModel {
+    let surfaces:MeshStandardMaterial[]|undefined;
+    if(model.surface){
+      const surface=model.surface;
+      surfaces=this.sculptPalettes.get(surface);
+      if(!surfaces){
+        surfaces=[sculptSurface(surface),...COLORS.slice(1).map(color=>{
+          const material=sculptSurface(surface);material.color.set(color);
+          return material;
+        })];
+        for(const material of surfaces)this.configureSurface?.(material);
+        this.sculptPalettes.set(model.surface,surfaces);
+      }
+    }
+    const palette=[surfaces?.[0]??this.solid,surfaces?.[side]??this.teams[side-1],this.lamps[race]];
+    const addMeshes=(result:Group,geometries:ModelGeometry['body'],rig?:UnitRig)=>{
       geometries.forEach((g,i)=>{
         if(!g)return;
         const material=preview?this.preview:palette[i];
@@ -185,6 +218,8 @@ export class BattleModels {
       for(const geometry of [...model.body,...model.moving.flatMap(m=>m.parts)])geometry?.dispose();
     }
     for(const material of [this.solid,this.forest,this.preview,...Object.values(this.lamps),...this.teams])material.dispose();
+    for(const palette of this.sculptPalettes.values())for(const material of palette)material.dispose();
+    this.sculptPalettes.clear();
     this.factionDetail?.dispose();
     this.models.clear();this.nodes.clear();
   }
@@ -441,7 +476,163 @@ function tree(p:Parts,kind:string,x:number,y:number,z:number,size:number,seed:nu
   }
 }
 
-export function natureGeometry(features:{x:number;y:number;kind:string;size:number}[]) {
+function goldDeposit(p:Parts,empty:boolean){
+  const quarryBed=paint('earth',0x7a6e57,.92,[.95,0,.85]);
+  const darkSlate=paint('stone',0x6c665b,.92,[.9,.02,.85]);
+  const warmRock=paint('stone',0xa99674,.98,[.86,.04,.78]);
+  const goldDeep=paint('ore',0xf0b83d,1.5,[.26,.88,.48]);
+  const goldRich=paint('ore',0xffda6e,1.62,[.2,.92,.36]);
+  const goldGleam=paint('ore',0xfff3be,1.78,[.14,.96,.22]);
+  const timber=paint('bark',0x8c6b4c,.95,[.92,0,.75]);
+  const iron=paint('serviceSteel',0x99a4a0,.95,[.38,.76,.35]);
+
+  if(empty){
+    // Irregular hollowed-out quarry scar with fractured rock walls (no circular base)
+    p.add('rockMound',quarryBed,-4,2,2,72,5,54,0,.45,0);
+    p.add('rockMound',quarryBed,18,1.8,-10,42,4,36,0,2.1,0);
+    p.add('oilPool',paint('earth',0x4d473d,.88,[.96,0,.9]),-2,3.4,1,46,1.6,34,0,.6,0);
+    for(const [x,z,w,h,d,ry] of [
+      [-26,-11,26,15,20,.45],[22,-16,25,13,18,1.25],[-18,19,21,11,16,2.2],
+      [25,10,20,10,16,-.7],[-4,-25,27,13,17,.2],
+    ])p.add('facet',darkSlate,x,h*.42,z,w,h,d,.12,ry,.08);
+    for(const [x,z,s,ry] of [[-11,7,9,.5],[12,-5,8,1.8],[-4,-10,7,2.4],[14,9,6,.9]])
+      p.add('facet',warmRock,x,s*.35,z,s*1.2,s*.7,s,0,ry,0);
+    p.add('pin',timber,-14,4.5,14,3.4,24,3.4,1.35,.55,1.2);
+    p.add('pin',timber,-7,4,18,3,18,3,1.45,-.35,1.35);
+    const spent=paint('ore',0x867650,.82,[.72,.22,.65]);
+    p.add('shard',spent,-3,7,-2,6,9,6,.2,.7,-.3);
+    p.add('facet',spent,7,5.5,4,6,5,5,0,1.2,0);
+    return;
+  }
+
+  // Asymmetric multi-lobed geological rock ridge & talus slope (zero circular/oval discs)
+  p.add('rockMound',quarryBed,-8,3.2,4,86,8,64,0,.38,0);
+  p.add('rockMound',quarryBed,20,2.6,-12,56,7,48,0,2.05,0);
+  p.add('rockMound',darkSlate,-10,7.5,-3,66,15,48,0,.55,0);
+  p.add('rockMound',warmRock,12,8.5,6,52,14,40,0,1.85,0);
+
+  // Asymmetric rocky escarpment: heavier cliff wall on NW, open rocky talus on SE
+  for(const [x,z,w,h,d,ry] of [
+    [-34,-12,28,18,22,.5],[-14,-27,32,20,22,.18],[12,-28,27,16,20,1.65],
+    [33,-14,26,15,20,1.1],[-31,14,22,12,18,2.2],[28,16,20,11,17,-.7],
+  ])p.add('facet',darkSlate,x,h*.42,z,w,h,d,.1,ry,.06);
+
+  // Diagonal geological ore vein: main hero crystal cluster + asymmetric seam outcrops
+  p.add('facet',warmRock,-2,15,-3,34,20,28,.15,.8,-.1);
+  p.add('shard',goldRich,-1,30,-2,22,48,22,.08,.4,-.1);
+  p.add('shard',goldGleam,-9,27,5,15,38,15,.22,1.5,.24);
+  p.add('shard',goldDeep,9,25,-8,17,35,17,-.2,2.4,-.26);
+  p.add('shard',goldGleam,2,35,-6,10,24,10,-.14,.9,.12);
+  p.add('facet',goldRich,-4,19,8,14,12,13,.3,.5,.2);
+
+  for(const [x,y,z,scale,ry,tilt] of [
+    [-24,14,6,1.08,.45,.34],
+    [22,13,-14,1.02,-.75,-.32],
+    [-13,14,-19,1.04,2.5,.28],
+    [18,11,12,.88,1.85,-.26],
+  ]){
+    p.add('facet',warmRock,x,y-4,z,26*scale,18*scale,22*scale,.12,ry,0);
+    p.add('shard',goldDeep,x+2,y+9*scale,z+1,16*scale,30*scale,16*scale,tilt*.7,ry,tilt);
+    p.add('shard',goldRich,x-4,y+7*scale,z+4,11*scale,22*scale,11*scale,-tilt*.5,ry+1.1,-tilt*.8);
+    p.add('shard',goldGleam,x+5,y+5*scale,z-3,8*scale,15*scale,8*scale,tilt*.4,ry+2.1,tilt*.6);
+    p.add('facet',goldRich,x-2,y+2,z-5,10*scale,8*scale,9*scale,0,ry,0);
+  }
+
+  // Natural ore scree & loose nuggets spilling down the open rocky slope
+  for(const [x,z,s,ry] of [
+    [-33,19,7.5,.6],[-10,27,8.5,1.4],[10,25,7,2.2],[34,3,6.5,.3],[-29,-22,7.5,1.9],[4,-29,7,2.8],[25,21,5.5,1.1],
+  ]){
+    p.add('facet',goldDeep,x,s*.46,z,s*1.25,s*.82,s,0,ry,.2);
+    p.add('shard',goldGleam,x+1,s*.82,z,s*.65,s*1.15,s*.65,.2,ry+.7,-.25);
+  }
+
+  // Timber pit-props bracing the cut face & loaded ore crate tucked into the alcove
+  p.add('pin',timber,-29,11,-4,3.4,24,3.4,.12,.2,.32);
+  p.add('pin',timber,-19,12,-14,3.4,24,3.4,-.18,.4,.22);
+  p.add('pin',timber,-24,20,-9,3.2,17,3.2,1.52,-.78,0);
+  p.add('bevel',timber,16,6.5,24,13,9,10,0,.38,0);
+  p.add('box',iron,16,6.5,24,13.4,1.8,10.4,0,.38,0);
+  p.add('facet',goldGleam,15,11.5,23,7,5,6,.2,.9,.1);
+  p.add('facet',goldRich,18,11,25,6,4.5,5.5,-.1,1.6,.2);
+}
+
+function oilDeposit(p:Parts,empty:boolean){
+  const basalt=paint('stone',0x525856,.9,[.88,.04,.85]);
+  const shale=paint('stone',0x353b3a,.88,[.82,.06,.8]);
+  const crude=paint('water',0x101518,.82,[.06,.34,.08]);
+  const slickCyan=paint('water',0x264854,1.12,[.08,.58,.12]);
+  const slickViolet=paint('water',0x42304d,.98,[.09,.54,.12]);
+  const casingSteel=paint('serviceSteel',0x9aa6a2,1,[.34,.78,.35]);
+  const rustPipe=paint('exhaust',0x7a6555,.95,[.56,.66,.55]);
+  const hazardBand=paint('hazard',0xf0bc4a,1.25,[.42,.24,.3]);
+
+  // Irregular multi-lobed oil-stained shale & basalt terrain apron (no oval/cylinder disc)
+  p.add('rockMound',basalt,-6,2.2,2,88,5,64,0,.35,0);
+  p.add('rockMound',basalt,22,1.8,-8,54,4.5,42,0,1.95,0);
+  p.add('oilPool',shale,-4,3.4,2,74,2.6,52,0,.28,0);
+  p.add('oilPool',shale,20,3,-6,40,2.2,30,0,1.8,0);
+
+  // Asymmetric fractured basalt ledges: tall jagged ridge on NW/NE, low broken shelves on S/E
+  for(const [x,z,w,h,d,ry,rx] of [
+    [-36,-10,27,19,21,.45,.15],[-24,-24,28,17,19,-1.05,.12],[-2,-27,26,15,18,.25,.14],
+    [22,-24,25,16,19,2.5,-.1],[37,-8,26,18,21,1.7,.12],[32,14,22,12,17,.9,-.1],
+    [-31,15,21,13,18,1.25,-.12],[-11,26,23,10,16,2.1,.08],[14,23,19,9,15,-.55,.06],
+  ])p.add('facet',empty?basalt:h>14?basalt:shale,x,h*(empty?.34:.42),z,w,empty?h*.72:h,d,rx,ry,.06);
+
+  if(empty){
+    // Dry matte cracked irregular tar fissure & rusted capped casing stub
+    p.add('oilPool',paint('earth',0x2a2d2d,.85,[.94,.02,.88]),-4,4.4,2,58,1.5,40,0,.3,0);
+    p.add('oilPool',paint('earth',0x2a2d2d,.85,[.94,.02,.88]),18,4.2,-6,30,1.4,22,0,1.85,0);
+    p.add('facet',shale,-10,5.8,5,14,5,11,.1,.7,0);
+    p.add('facet',shale,14,5.4,-6,12,4.5,10,0,1.9,.1);
+    p.add('octagon',shale,-12,6.2,-13,15,4,15);
+    p.add('drum',rustPipe,-12,10.5,-13,9,8,9,.12,0,.18);
+    p.add('drum',dark,-12,14.5,-13,10.5,2,10.5,.12,0,.18);
+    return;
+  }
+
+  // Irregular multi-lobed glossy crude oil seep + satellite oil puddle leaking through rock crack
+  p.add('oilPool',crude,-5,4.9,2,62,1.9,44,0,.25,0);
+  p.add('oilPool',crude,19,4.7,-6,34,1.7,24,0,1.85,0);
+  p.add('oilPool',crude,6,4.6,18,22,1.5,15,0,-.7,0);
+  // Subtle iridescent oil-slick sheen patches following the irregular contour
+  p.add('oilPool',slickCyan,-7,5.88,3,38,.32,24,0,.42,0);
+  p.add('oilPool',slickViolet,16,5.68,-6,22,.28,15,0,1.9,0);
+  p.add('oilPool',crude,-1,5.94,1,20,.3,14,0,.1,0);
+
+  // Bubbling crude domes & organic ripple rings
+  for(const [x,z,w,h] of [[7,4,10.5,5],[-14,7,8.5,4.2],[19,-5,7.5,3.8],[-3,-7,9,4.4]])
+    p.add('dome',crude,x,5.7,z,w,h,w);
+  p.add('ring',slickCyan,7,5.95,4,15,15,3,Math.PI/2,0,0);
+  p.add('ring',slickCyan,-14,5.95,7,11.5,11.5,2.4,Math.PI/2,0,0);
+
+  // Industrial survey wellhead anchored on the NW basalt ledge overlooking the main fissure
+  p.add('octagon',shale,-14,6.8,-13,18,5,18);
+  p.add('ring',casingSteel,-14,9.6,-13,14,14,4.5,Math.PI/2,0,0);
+  p.add('drum',casingSteel,-14,13.2,-13,11,7,11);
+  p.add('drum',hazardBand,-14,16.4,-13,11.6,2.8,11.6);
+  p.add('drum',rustPipe,-14,21.2,-13,7.5,8,7.5);
+  p.add('ring',casingSteel,-14,24.7,-13,10,10,3.2,Math.PI/2,0,0);
+  p.add('elbow',rustPipe,-10.5,26.7,-13,9,9,9,0,0,0);
+  p.add('drum',dark,-6.5,26.7,-13,4.2,5.5,4.2,0,0,Math.PI/2);
+  p.add('pin',casingSteel,-7.5,13.7,-13,2.2,6,2.2,0,0,Math.PI/2);
+  p.add('ring',orange,-4.8,13.7,-13,6.5,6.5,2.2,0,Math.PI/2,0);
+  p.add('drum',glass,-14,18.7,-7.5,3.8,1.2,3.8,Math.PI/2,0,0);
+}
+
+export function natureGeometry(features:{x:number;y:number;kind:string;size:number}[],assets?:BlenderAssets,world?:Pick<WorldData,'land'|'heights'>) {
+  if(assets){
+    const parts=features.filter(f=>f.kind!=='water').map(f=>{
+      const scale=f.size/100*(isTreeKind(f.kind)?.88:1),angle=(f.x+f.y)*.024;
+      const gy=world?heightAt(world,f.x,f.y):0;
+      return assets.nature(`nature:${f.kind}`).scale(scale,scale,scale).rotateY(angle).translate(f.x,gy,f.y);
+    });
+    if(!parts.length)return;
+    const geometry=mergeGeometries(parts)!;
+    for(const part of parts)part.dispose();
+    geometry.computeBoundingBox();geometry.computeBoundingSphere();
+    return geometry;
+  }
   const p=new Parts();
   features.forEach((f,i)=>{
     const {x,y:z,size,kind}=f,s=size/100,a=(x+z)*.024;
@@ -466,3 +657,4 @@ export function natureGeometry(features:{x:number;y:number;kind:string;size:numb
   });
   return p.geometry('solid');
 }
+const isTreeKind=(kind:string)=>kind==='pine'||kind==='oak'||kind==='birch';

@@ -2,10 +2,11 @@ import { runFactionAI } from './faction-ai.js';
 import type { Engine } from './engine.js';
 import { powerFor,requirement } from './engine.js';
 import { STATS,TECHS,isCombat,isMobile,maxHp,unitCost,type Unit,type Kind,type MobileKind,type BuildingKind,type Tech,type Cost,type Point } from './types.js';
-import { linkedRefinery, oilNodeAt, OIL_PIPE_RANGE } from './oil.js';
+import { hasRefinery, oilNodeAt } from './oil.js';
 import { isOutpost,outpostAnchor,OUTPOST_SCOUT_TIME,OUTPOST_OIL_RESERVE } from './outposts.js';
 import { distance } from './pathfinding.js';
 import { AI_STYLES,rememberEnemies,strategicTarget } from './ai-strategy.js';
+import { isMapId } from './maps.js';
 import { openingMapRevision } from './world.js';
 
 export const AI_LEVELS = {
@@ -20,7 +21,7 @@ const center=(units:Unit[],fallback:Point)=>units.length?{x:units.reduce((s,u)=>
 
 /** 不读取隐藏敌军、敌方银行或科技。难度只改变决策阈值，所有下单仍经过 Engine.command。 */
 export function runAI(e:Engine){
-  const longerOpening=e.world.revision>=openingMapRevision(e.world.id);
+  const longerOpening=isMapId(e.world.id)?e.world.revision>=openingMapRevision(e.world.id):true;
   for(const p of e.state.players){
     const base=e.base(p.side);if(!p.ai||!base)continue;
     if(p.race){runFactionAI(e,p,base);continue;}
@@ -40,7 +41,7 @@ export function runAI(e:Engine){
     const forwardGold=pilot?outpostAnchor(base,e.extent,'gold'):undefined;
     const front=forward&&e.state.nodes.find(n=>n.kind==='oil'&&isOutpost(n)&&distance(n,forward)<180&&vis[e.indexAt(n)]);
     const mine=forwardGold&&e.state.nodes.find(n=>n.kind==='gold'&&isOutpost(n)&&distance(n,forwardGold)<180&&vis[e.indexAt(n)]);
-    const frontRefinery=forward&&own.find(u=>u.kind==='refinery'&&distance(u,forward)<=OIL_PIPE_RANGE);
+    const frontRefinery=forward&&own.find(u=>u.kind==='refinery'&&distance(u,forward)<=448);
     const frontWell=front&&own.find(u=>u.kind==='oilwell'&&e.indexAt(u)===e.indexAt(front));
     const mainOil=pilot?e.state.nodes.find(n=>n.kind==='oil'&&n.startSide===p.side&&vis[e.indexAt(n)]):undefined;
     const has=(kind:Kind)=>own.some(u=>u.kind===kind&&ready(u));
@@ -105,25 +106,20 @@ export function runAI(e:Engine){
     const canAdvanceOil=forwardDue&&front&&front.amount>0&&!threats.some(t=>distance(t,front)<460);
     if(e.state.oilWells){
       const wells=own.filter(u=>u.kind==='oilwell');
-      const supplied=wells.some(well=>(oilNodeAt(well,e.state.nodes)?.amount??0)>0&&linkedRefinery(p.side,well,own));
-      if(canAdvanceOil&&!frontWell&&front){
-        if(linkedRefinery(p.side,front,own)&&!e.state.units.some(u=>u.kind==='oilwell'&&e.indexAt(u)===e.indexAt(front))){
+      const hasRef=hasRefinery(p.side,own);
+      const supplied=hasRef&&wells.some(well=>(oilNodeAt(well,e.state.nodes)?.amount??0)>0);
+      if(!count('refinery'))plans.push('refinery');
+      else if(canAdvanceOil&&!frontWell&&front&&hasRef){
+        if(!e.state.units.some(u=>u.kind==='oilwell'&&e.indexAt(u)===e.indexAt(front))){
           oilField=front;
           plans.push('oilwell');
-        }else if(!frontRefinery){
-          oilField=front;
-          plans.push('refinery');
         }
       }
-      if(!oilField&&!supplied&&p.oil<600){
+      if(!oilField&&!supplied&&p.oil<600&&hasRef){
         const fields=e.state.nodes.filter(n=>n.kind==='oil'&&n.amount>0&&vis[e.indexAt(n)]&&
           !threats.some(t=>distance(t,n)<360)).sort((a,b)=>distance(a,base)-distance(b,base));
-        oilField=fields.find(n=>linkedRefinery(p.side,n,own)&&!e.state.units.some(u=>u.kind==='oilwell'&&e.indexAt(u)===e.indexAt(n)));
+        oilField=fields.find(n=>!e.state.units.some(u=>u.kind==='oilwell'&&e.indexAt(u)===e.indexAt(n)));
         if(oilField)plans.push('oilwell');
-        else{
-          oilField=fields.find(n=>!own.some(u=>u.kind==='refinery'&&distance(u,n)<=OIL_PIPE_RANGE));
-          if(oilField)plans.push('refinery');
-        }
       }
     }else if(!count('refinery'))plans.push('refinery');
     for(const kind of ['factory','research'] as const)if(!count(kind))plans.push(kind);

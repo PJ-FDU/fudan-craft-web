@@ -5,10 +5,11 @@ import { isClassicMap,makeClassicWorld } from './classic-world.js';
 import { RESOURCE_STOCK,resourceWorld } from './resource-world.js';
 import { templeWoodland } from './temple-woodland.js';
 import { woodlandWorld } from './woodland.js';
+import { applyBuiltinElevation } from './terrain-height.js';
 import type { Point, ResourceNode, ResourceKind, Side } from './types.js';
 export interface Feature extends Point { kind:'pine'|'oak'|'birch'|'bush'|'ruin'|'rock'|'rockLarge'|'water'|'grass'|'flower'|'stump'|'fern'; size:number; cell:number; block:boolean; waterRadii?:Point; outline?:readonly Point[]; river?:boolean }
 export interface WorldData {
-  readonly id:MapId;
+  readonly id:MapId|string;
   readonly revision:number;
   readonly land:Uint8Array;
   readonly roads:Uint8Array;
@@ -19,6 +20,11 @@ export interface WorldData {
   readonly deposits?:readonly ResourceNode[];
   readonly treeTiles?:ReadonlyMap<number,readonly number[]>;
   readonly permanentLand?:Uint8Array;
+  readonly heights?:Float32Array;
+  readonly ramps?:Uint8Array;
+  readonly cliffs?:Uint8Array;
+  readonly waterMask?:Uint8Array;
+  readonly customName?:string;
 }
 const W=MAP.width,T=MAP.tile;
 const original=MAP.layers.find(l=>l.name==='InfoLayer')!;
@@ -90,28 +96,36 @@ const extendedMapRevision=(id:MapId)=>openingMapRevision(id)+1;
 const largeMapRevision=(id:MapId)=>extendedMapRevision(id)+1;
 const previousMapRevision=(id:MapId)=>largeMapRevision(id)+(id===DEFAULT_MAP_ID?1:0);
 const woodlandMapRevision=(id:MapId)=>previousMapRevision(id)+1;
-export const latestMapRevision=(id:MapId)=>woodlandMapRevision(id)+1;
+const flatWoodlandRevision=(id:MapId)=>woodlandMapRevision(id)+1;
+export const latestMapRevision=(id:MapId)=>flatWoodlandRevision(id)+1;
 export const validMapRevision=(id:MapId,value:unknown)=>Number.isInteger(value)&&Number(value)>=1&&Number(value)<=latestMapRevision(id);
 const worlds=new Map<string,WorldData>([[`${DEFAULT_MAP_ID}:1`,temple]]);
-export function getWorld(id:MapId=DEFAULT_MAP_ID,revision=latestMapRevision(id)):WorldData {
-  if(!isMapId(id)||!validMapRevision(id,revision))throw Error('未知战场或地形版本');
-  const key=`${id}:${revision}`;
+const customWorlds=new Map<string,WorldData>();
+export function registerCustomWorld(world:WorldData):void {customWorlds.set(world.id,world);}
+export function unregisterCustomWorld(id:string):void {customWorlds.delete(id);}
+export function getWorld(id:MapId|string=DEFAULT_MAP_ID,revision?:number):WorldData {
+  const custom=customWorlds.get(id);
+  if(custom)return custom;
+  const resolved=revision??(isMapId(id)?latestMapRevision(id):1);
+  if(!isMapId(id)||!validMapRevision(id,resolved))throw Error('未知战场或地形版本');
+  const key=`${id}:${resolved}`;
   let world=worlds.get(key);
   if(!world){
-    if(revision===latestMapRevision(id))world=woodlandWorld(getWorld(id,largeMapRevision(id)),revision,true);
-    else if(revision===woodlandMapRevision(id))world=woodlandWorld(getWorld(id,largeMapRevision(id)),revision);
-    else if(id===DEFAULT_MAP_ID&&revision>largeMapRevision(id))world=templeWoodland(getWorld(id,largeMapRevision(id)),revision);
-    else if(revision===largeMapRevision(id))world=resourceWorld(getWorld(id,resourceMapRevision(id)-1),revision,4);
-    else if(revision===extendedMapRevision(id))world=resourceWorld(getWorld(id,resourceMapRevision(id)-1),revision,2);
-    else if(revision===openingMapRevision(id)){
-      const previous=getWorld(id,revision-1);
+    if(resolved===latestMapRevision(id))world=applyBuiltinElevation({...woodlandWorld(getWorld(id,largeMapRevision(id)),resolved,true)});
+    else if(resolved===flatWoodlandRevision(id))world=woodlandWorld(getWorld(id,largeMapRevision(id)),resolved,true);
+    else if(resolved===woodlandMapRevision(id))world=woodlandWorld(getWorld(id,largeMapRevision(id)),resolved);
+    else if(id===DEFAULT_MAP_ID&&resolved>largeMapRevision(id))world=templeWoodland(getWorld(id,largeMapRevision(id)),resolved);
+    else if(resolved===largeMapRevision(id))world=resourceWorld(getWorld(id,resourceMapRevision(id)-1),resolved,4);
+    else if(resolved===extendedMapRevision(id))world=resourceWorld(getWorld(id,resourceMapRevision(id)-1),resolved,2);
+    else if(resolved===openingMapRevision(id)){
+      const previous=getWorld(id,resolved-1);
       const deposits=previous.deposits!.map(node=>node.tree===undefined?node:{...node,amount:RESOURCE_STOCK.tree,max:RESOURCE_STOCK.tree});
-      world={...previous,revision,deposits};
-    }else if(revision===resourceMapRevision(id))world=resourceWorld(getWorld(id,revision-1),revision);
+      world={...previous,revision:resolved,deposits};
+    }else if(resolved===resourceMapRevision(id))world=resourceWorld(getWorld(id,resolved-1),resolved);
     else if(isClassicMap(id))world=makeClassicWorld(id,initialNodes);
     else {
-      const original=revision===1?makeWorld(id):getWorld(id,1);
-      world=revision===1?original:naturalWorld(original,initialNodes(original));
+      const original=resolved===1?makeWorld(id):getWorld(id,1);
+      world=resolved===1?original:naturalWorld(original,initialNodes(original));
     }
     worlds.set(key,world);
   }

@@ -704,7 +704,10 @@ Esc 取消|Esc to cancel
 间接光照|Indirect lighting
 基础 · 最省性能|Basic · Best performance
 均衡 · 动态反弹光|Balanced · Dynamic bounce light
+均衡 · 时序反弹光与反射|Balanced · Temporal bounce & reflections
 精细 · 更清晰的反弹光|High · Detailed bounce light
+精细 · SVGF 全局光与接触软阴影|High · SVGF GI & contact soft shadows
+影视 · 高精全局光照与动态战火|Cinematic · Full SVGF GI & combat lights
 精细档需要更多显卡性能；设置自动保存|High quality requires more GPU power; preferences save automatically
 当前设备不支持浮点渲染，使用基础光照|This device uses basic lighting because floating-point rendering is unavailable
 当前使用 2D 战场|Using 2D battlefield
@@ -782,20 +785,20 @@ Three.js 3D 战场已就绪|3D battlefield ready
 油井|Oil Well
 石油 · 支撑装甲与航空生产|Oil · Funds armored and aircraft production
 采集金矿和木材，也能建造和维修建筑。|Harvests gold and wood and builds and repairs structures.
-连接附近油井并处理石油，也接收金矿。|Processes oil from nearby wells and accepts gold deliveries.
+解锁油井并精炼石油，也接收金矿。|Unlocks oil wells, processes oil, and accepts gold deliveries.
 提高伐木效率 50%，接收金矿和木材。|Increases harvesting speed for wood by 50% and accepts gold and wood.
-建于精炼厂覆盖的油点上，通过管道自动输油。|Place on an oil deposit within refinery range to deliver oil by pipeline.
+建于油点上自动采油，需先建成石油精炼厂。|Place on an oil deposit to extract oil automatically (requires a completed Refinery).
 建造油井|Build an oil well
 在油点上建造油井|Build an oil well on the deposit
-点击精炼厂覆盖内的油点建井 · Esc 取消|Click an oil deposit within refinery range · Esc to cancel
+点击油点建造油井 · Esc 取消|Click an oil deposit to build an oil well · Esc to cancel
 油井必须建在有储量的油点上|Build an oil well on a deposit with oil remaining
-油点附近需要已完工的己方石油精炼厂|A completed refinery of your own must be near the oil deposit
+需要先建造已完工的石油精炼厂|Requires a completed Oil Refinery
 请在油点上建造油井|Build an oil well on the oil deposit
 此战局使用采集车采油|This match uses harvesters for oil
-油井通过管道输油|Wells deliver oil by pipeline
+油井自动采油|Oil wells extract oil automatically
 采集车采油|Harvesters extract oil
-管道输油中|Delivering oil by pipeline
-等待连接精炼厂|Waiting for a refinery connection
+自动采油中|Extracting oil automatically
+需要石油精炼厂|Requires Oil Refinery
 油点已枯竭|Oil deposit depleted
 剩余石油|Oil remaining
 产量|Output
@@ -1082,4 +1085,6 @@ P2P 连接需要 Pages 构建|P2P connections require a Pages build
 取消目标选择|Cancel target selection
 取消|Cancel
 保留选中兵种|Keep selected unit type
+地图编辑器|Map Editor
+需要平整地面，不能在斜坡或悬崖上建造|Requires flat ground; cannot build on ramps or cliffs
 `.trim().split('\n').map(line=>line.split('|')));

@@ -2,7 +2,7 @@ import { covered, maxShield, needsCoverage } from './races.js';
 import { STATS,TECHS,RESOURCE_INFO,isMobile,weaponsApplies,type Player,type ViewState,type VisibleUnit,type Tech,type MobileKind } from './types.js';
 import { isOutpostMap } from './outposts.js';
 import { powerFor } from './engine.js';
-import { linkedRefinery, oilNodeAt, OIL_PER_SECOND } from './oil.js';
+import { hasRefinery, oilNodeAt, OIL_PER_SECOND } from './oil.js';
 import { BALANCE } from './balance.js';
 
 export interface SelectionInfo {
@@ -45,8 +45,8 @@ export function selectionInfo(selected:VisibleUnit[],view:ViewState,player:Playe
       info.progress={label:`维修${STATS[target.kind].name}`,value:target.hp/target.maxHp,status:rate?`维修中 · 还需约 ${Math.ceil((target.maxHp-target.hp)/rate)} 秒`:assigned.some(w=>w.path.length)?'工程车正在就位':'维修等待资源或作业位置'};
     }
   }else if(u.kind==='oilwell'){
-    const node=oilNodeAt(u,view.nodes),refinery=linkedRefinery(u.side,u,view.units);
-    info.status=!node?.amount?'油点已枯竭':refinery?'管道输油中':'等待连接精炼厂';
+    const node=oilNodeAt(u,view.nodes),refinery=hasRefinery(u.side,view.units);
+    info.status=!node?.amount?'油点已枯竭':refinery?'自动采油中':'需要石油精炼厂';
     info.stats.push({label:'剩余石油',value:String(Math.ceil(node?.amount??0))},
       {label:'产量',value:`${node?.amount&&refinery?OIL_PER_SECOND:0} / 秒`});
     if(node?.amount&&refinery&&view.oilWells&&isOutpostMap(view.mapId)){

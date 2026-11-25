@@ -2,8 +2,8 @@ export type PerformanceMode='auto'|'quality'|'power';
 export const RENDER_PROFILES=[
   {name:'轻量',ratio:.75,shadow:512,shadowHz:10,gi:'off'},
   {name:'流畅',ratio:1,shadow:1024,shadowHz:15,gi:'off'},
-  {name:'均衡',ratio:1.5,shadow:2048,shadowHz:20,gi:'balanced'},
-  {name:'精细',ratio:2,shadow:4096,shadowHz:30,gi:'high'},
+  {name:'均衡',ratio:1.5,shadow:2048,shadowHz:20,gi:'cinematic'},
+  {name:'精细',ratio:2,shadow:4096,shadowHz:30,gi:'cinematic'},
 ] as const;
 /** 以完整动画帧间隔检测 CPU / GPU 压力，冷却与升档迟滞避免来回切档。 */
 export class PerformanceController {

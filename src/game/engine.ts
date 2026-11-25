@@ -7,7 +7,8 @@ import { Movement,circleFree,groundPath,landingNear } from './movement.js';
 import { buildingFacing,buildingTiles,validFacing } from './building-layout.js';
 import { harvestLand,STARTING_RESOURCES,resourcePoint } from './resource-world.js';
 import { weapon } from './weapons.js';
-import { linkedRefinery, oilNodeAt, OIL_PER_SECOND, OIL_PIPE_RANGE } from './oil.js';
+import { hasRefinery, oilNodeAt, OIL_PER_SECOND } from './oil.js';
+import { isFlatForBuilding } from './terrain-height.js';
 import { isOutpost,isOutpostMap,OUTPOST_FIGHT_RANGE } from './outposts.js';
 import { BALANCE } from './balance.js';
 import { runAI } from './ai.js';
@@ -38,26 +39,29 @@ export function requirement(kind: Kind, p: Player, units: Unit[]): string | null
   if (s.tech && !p.tech.includes(s.tech)) return `需要研究${TECHS[s.tech].name}`;
   return null;
 }
-export function placementError(side: Side, kind: BuildingKind, at: Point, units: Unit[], nodes: ResourceNode[], visible?: ArrayLike<number>,facing?:BuildingFacing,land=terrain,oilWells=false,remote=false): string | null {
+export function placementError(side: Side, kind: BuildingKind, at: Point, units: Unit[], nodes: ResourceNode[], visible?: ArrayLike<number>,facing?:BuildingFacing,land=terrain,oilWells=false,remote=false,world?:Pick<WorldData,'land'|'heights'|'ramps'|'cliffs'>): string | null {
   if (kind === 'base') return '每位指挥官仅有一个指挥中心';
   const size=gridSize(land);
   const oil=kind==='oilwell'?oilNodeAt(at,nodes):undefined;
   if(kind==='oilwell'){
     if(!oilWells)return '此战局使用采集车采油';
     if(!oil||oil.amount<=0)return '油井必须建在有储量的油点上';
-    if(!linkedRefinery(side,at,units))return '油点附近需要已完工的己方石油精炼厂';
+    if(!hasRefinery(side,units))return '需要先建造已完工的石油精炼厂';
   }
-  for(const {x,y} of buildingTiles(kind,at,facing??buildingFacing(kind,at,size*TILE))){
+  const cells=buildingTiles(kind,at,facing??buildingFacing(kind,at,size*TILE));
+  for(const {x,y} of cells){
     if (!inBounds(x,y,size) || land[y*size+x]) return '该位置有地形阻挡';
     if (visible && !visible[y*size+x]) return '需要当前视野内的空地';
   }
+  if (world && !isFlatForBuilding(world, cells)) return '需要平整地面，不能在斜坡或悬崖上建造';
   // 基地扩建也要留出通道，避免新建筑重新把集结区挤成单列小巷。
   if (units.some(u => !isMobile(u) && distance(u, at) < STATS[u.kind].radius + STATS[kind].radius + 48)) return '与现有建筑距离过近';
   if(nodes.some(n=>n!==oil&&n.amount>0&&distance(n,at)<STATS[kind].radius+
     Math.max(n.radius+24,oilWells&&n.kind==='oil'?STATS.oilwell.radius+48:0)))return '不能在资源点上建造';
+  if(kind==='oilwell')return null;
   // An explored oil field can anchor a new outpost once a scout and builder reach it.
   if(oilWells&&kind==='refinery'&&nodes.some(n=>n.kind==='oil'&&n.amount>0&&
-    (!visible||visible[indexAt(n,size)])&&distance(n,at)<=OIL_PIPE_RANGE))return null;
+    (!visible||visible[indexAt(n,size)])&&distance(n,at)<=448))return null;
   if (remote||['node','relayTower'].includes(kind))return null;
   if (!units.some(u => u.side === side && !isMobile(u) && complete(u) && distance(u, at) < 800)) return '需要靠近己方建筑';
   return null;
@@ -75,16 +79,20 @@ export class Engine {
   visible = new Map<Side, Uint8Array>();
   private movement!:Movement;
   readonly skills=new SkillEngine(this);
-  constructor(players:{name:string;ai:boolean;team?:Side;aiStyle?:AiStyle;race?:Race}[] = [{name:'指挥官',ai:false},{name:'赤焰军团',ai:true}], difficulty: Difficulty = 'normal',mapId:MapId=DEFAULT_MAP_ID,mapRevision?:number) {
+  constructor(players:{name:string;ai:boolean;team?:Side;aiStyle?:AiStyle;race?:Race}[] = [{name:'指挥官',ai:false},{name:'赤焰军团',ai:true}], difficulty: Difficulty = 'normal',mapId:MapId|string=DEFAULT_MAP_ID,mapRevision?:number) {
     this.world=getWorld(mapId,mapRevision);
     this.size=gridSize(this.world.land);
     this.extent=this.size*TILE;
-    this.outposts=isOutpostMap(mapId)?this.world.deposits?.filter(isOutpost)??[]:[];
+    this.outposts=isMapId(mapId)&&isOutpostMap(mapId)?this.world.deposits?.filter(isOutpost)??[]:[];
     this.outpostPilot=this.outposts.length>0;
     this.openSky=new Uint8Array(this.world.land.length);
-    if(!supportsPlayers(mapId,players.length))throw Error(`${mapInfo(mapId).name}支持 ${mapInfo(mapId).maxPlayers===2?'2':'2–4'} 位指挥官`);
+    if(isMapId(mapId)){
+      if(!supportsPlayers(mapId,players.length))throw Error(`${mapInfo(mapId).name}支持 ${mapInfo(mapId).maxPlayers===2?'2':'2–4'} 位指挥官`);
+    }else if(players.length<2||players.length>this.world.bases.length){
+      throw Error(`自定义地图支持 2–${this.world.bases.length} 位指挥官`);
+    }
     const bank=this.world.deposits?STARTING_RESOURCES:{gold:3600,wood:1600,oil:400};
-    this.state = {version:2,...(this.world.deposits?{oilWells:true as const}:{}),mapId,mapRevision:this.world.revision,time:0,units:[],nodes:initialNodes(this.world),players:players.map((p,i)=>({...p,side:(i+1) as Side,team:p.team??(i+1) as Side,stats:newMatchStats(),credits:bank.gold,wood:bank.wood,oil:bank.oil,tech:[],queue:[],rally:null,kills:0,lost:0,harvested:0})),nextId:1,shots:[],windups:[],events:[],nextEventId:1,winner:null,difficulty,aiTimer:2,explored:{},aiPlans:{}};
+    this.state = {version:2,...(this.world.deposits?{oilWells:true as const}:{}),mapId:mapId as MapId,mapRevision:this.world.revision,time:0,units:[],nodes:initialNodes(this.world),players:players.map((p,i)=>({...p,side:(i+1) as Side,team:p.team??(i+1) as Side,stats:newMatchStats(),credits:bank.gold,wood:bank.wood,oil:bank.oil,tech:[],queue:[],rally:null,kills:0,lost:0,harvested:0})),nextId:1,shots:[],windups:[],events:[],nextEventId:1,winner:null,difficulty,aiTimer:2,explored:{},aiPlans:{}};
     if(new Set(this.state.players.map(p=>p.team)).size<2||this.state.players.some(p=>!this.state.players.some(q=>q.side===p.team)))throw Error('需要至少两个有效队伍');
     for (const p of this.state.players) {
       this.state.explored[p.side] = Array(this.world.land.length).fill(0);
@@ -117,7 +125,7 @@ export class Engine {
   }
   private stationError(u:Unit,point:Point){
     const visible=this.visible.get(u.side),kind='assembly';
-    const error=placementError(u.side,kind,point,this.state.units.filter(v=>v.id!==u.id),this.state.nodes,visible,undefined,this.land(),this.state.oilWells,true);
+    const error=placementError(u.side,kind,point,this.state.units.filter(v=>v.id!==u.id),this.state.nodes,visible,undefined,this.land(),this.state.oilWells,true,this.world);
     if(error)return '落点不可用';
     const facing=buildingFacing(kind,point,this.extent),ground=this.blockers();
     const footprint=buildingTiles(kind,point,facing);
@@ -240,14 +248,14 @@ export class Engine {
     const land=this.land();
     if(kind==='oilwell'){
       const at=snapPoint(near);
-      return placementError(side,kind,at,this.state.units,this.state.nodes,visible,undefined,land,this.state.oilWells)?null:at;
+      return placementError(side,kind,at,this.state.units,this.state.nodes,visible,undefined,land,this.state.oilWells,false,this.world)?null:at;
     }
     for(let r=4;r<18;r++)for(let n=0;n<24;n++){
       const a=n/24*Math.PI*2,at=snapPoint({x:near.x+Math.cos(a)*r*TILE,y:near.y+Math.sin(a)*r*TILE});
       // Starting layouts keep the full apron around their buildings.
       if(!visible&&kind!=='tower'&&buildingTiles('base',at,0).some(({x,y})=>!inBounds(x,y,this.size)||land[y*this.size+x]))continue;
-      if(kind==='refinery'&&this.state.oilWells&&oilNodeAt(near,this.state.nodes)&&distance(near,at)>OIL_PIPE_RANGE)continue;
-      if(!placementError(side,kind,at,this.state.units,this.state.nodes,visible,undefined,land,this.state.oilWells))return at;
+      if(kind==='refinery'&&this.state.oilWells&&oilNodeAt(near,this.state.nodes)&&distance(near,at)>448)continue;
+      if(!placementError(side,kind,at,this.state.units,this.state.nodes,visible,undefined,land,this.state.oilWells,false,this.world))return at;
     }
     return null;
   }
@@ -369,7 +377,7 @@ export class Engine {
       if(!ALL_BUILDING_KINDS.includes(cmd.kind)||!p.race&&!LEGACY_BUILDING_KINDS.some(k=>k===cmd.kind))return '无效建筑';const worker=this.state.units.find(u=>u.id===cmd.worker&&u.side===side&&u.kind==='worker');if(!worker)return '需要选择己方工程采集车';
       if(!validPoint(cmd.point,this.extent))return '无效坐标';const why=requirement(cmd.kind,p,this.state.units);if(why)return why;
       if(cmd.facing!==undefined&&!validFacing(cmd.facing))return '无效建筑朝向';
-      const at=snapPoint(cmd.point),facing=cmd.facing??buildingFacing(cmd.kind,at,this.extent),error=placementError(side,cmd.kind,at,this.state.units,this.state.nodes,this.visible.get(side),facing,this.land(),this.state.oilWells);if(error)return error;
+      const at=snapPoint(cmd.point),facing=cmd.facing??buildingFacing(cmd.kind,at,this.extent),error=placementError(side,cmd.kind,at,this.state.units,this.state.nodes,this.visible.get(side),facing,this.land(),this.state.oilWells,false,this.world);if(error)return error;
       if(this.state.units.filter(u=>u.side===side&&!isMobile(u)).length>=35)return '建筑上限为 35 座';
       if(cmd.kind==='assembly'&&this.state.units.filter(u=>u.side===side&&u.kind==='assembly').length>=3)return '装配站上限为 3 座';
       if(needsCoverage(cmd.kind)&&!covered(side,at,this.state.units))return '需要能量节点覆盖';
@@ -654,7 +662,7 @@ export class Engine {
     this.advanceShots(dt);this.releaseAttacks(dt);
     for(const well of operatingWells){
       const node=oilNodeAt(well,s.nodes);
-      if(node&&node.amount>0&&(well.hp<=0||!linkedRefinery(well.side,well,s.units)))
+      if(node&&node.amount>0&&(well.hp<=0||!hasRefinery(well.side,s.units)))
         recordMatchEvent(this.player(well.side),'oilStopped',well,s.time);
     }
     for(const u of s.units)if(u.refitUntil!==undefined&&u.refitUntil<=s.time)delete u.refitUntil;
@@ -662,7 +670,7 @@ export class Engine {
     if(s.oilWells)for(const well of s.units){
       if(well.kind!=='oilwell'||well.hp<=0||!complete(well)||!this.base(well.side))continue;
       const node=oilNodeAt(well,s.nodes);
-      if(!node||node.amount<=0||!linkedRefinery(well.side,well,s.units))continue;
+      if(!node||node.amount<=0||!hasRefinery(well.side,s.units))continue;
       const amount=Math.min(node.amount,OIL_PER_SECOND*dt),player=this.player(well.side);
       well.activity='produce';node.amount-=amount;player.oil+=amount;player.harvested+=amount;
       (player.stats??=newMatchStats(s.time)).income.oil+=amount;
@@ -747,14 +755,8 @@ export class Engine {
   view(side: Side): ViewState {
     const vis=this.visible.get(side)||new Uint8Array(this.world.land.length),explored=this.state.explored[side];
     const revealed=this.state.units.filter(u=>this.allied(u.side,side)||vis[this.indexAt(u)]);
-    const revealedIds=new Set(revealed.map(u=>u.id));
-    const oilPipes=this.state.oilWells?revealed.flatMap(well=>{
-      if(well.kind!=='oilwell'||!complete(well))return [];
-      const refinery=linkedRefinery(well.side,well,this.state.units);
-      return refinery&&revealedIds.has(refinery.id)?[{well:well.id,refinery:refinery.id}]:[];
-    }):undefined;
     return {
-      ...(this.state.oilWells?{oilWells:true as const,oilPipes}:{}),mapId:this.world.id,mapRevision:this.world.revision,time:this.state.time,
+      ...(this.state.oilWells?{oilWells:true as const}:{}),mapId:this.world.id as MapId,mapRevision:this.world.revision,time:this.state.time,
       events:this.state.events.filter(e=>(e.audience&(1<<side))!==0&&(this.allied(e.side,side)||vis[this.indexAt(e)])).map(({audience,...e})=>e),
       units:revealed.map(u=>({...u,ability:u.ability&&(u.side===side?u.ability:{
         energy:0,cooldowns:{},effects:u.ability.effects.map(({source,...status})=>({...status,source:0})),

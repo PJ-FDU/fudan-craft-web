@@ -15,12 +15,15 @@ const weapon=paint('weapon',0x889599,1.2);
 /** 共用步态关节契约，兵种的衣着、负重与武器独立建形。 */
 export function humanoidModel(m:MobileModel,kind:MobileKind){
   const soldier=kind==='soldier',medic=kind==='medic',sniper=kind==='sniper';
-  const commander=kind==='commander',engineer=kind==='pathfinder',observer=kind==='observer';
-  const relay=engineer||observer||kind==='ranger',cloaked=sniper||observer;
+  const commander=kind==='commander',engineer=kind==='pathfinder',observer=kind==='observer',ranger=kind==='ranger';
+  const relay=engineer||observer||ranger,cloaked=sniper||observer;
   const soft=commander?coat:relay?canvas:sniper?recon:undersuit;
   const shell=medic?medical:relay?composite:ceramicArmor;
-  const width=soldier?17:medic?12.5:commander?14:engineer?15:12;
-  const shoulders=width/2+1,legWidth=soldier?4.7:engineer?4.3:3.7;
+  const width=soldier?14.5:engineer?14.6:commander?13.8:medic?13.4:relay?13.0:12;
+  const shoulders=sniper?5.4:(soldier||engineer)?6.8:(medic||commander)?6.4:ranger?6.3:observer?6.2:width/2+1;
+  const legWidth=soldier?4.7:engineer?4.4:medic?4.3:(ranger||observer)?4.1:commander?4.0:3.7;
+  const armUpper=sniper?7.6:soldier?7.2:(medic||commander||ranger||engineer)?7.0:observer?6.8:6.5;
+  const armLower=sniper?6.5:soldier?6.2:(medic||ranger||engineer)?6.0:(commander||observer)?5.9:5.4;
   const [thigh,shin,ankle]=legLengths(false);
   m.joint('hips',[0,thigh+shin+ankle,0],undefined,p=>{
     p.add('bevel',soft,0,0,0,10,5,7);
@@ -157,12 +160,12 @@ export function humanoidModel(m:MobileModel,kind:MobileKind){
       }
       if(i===1)p.add('panel','team',s*2.7,0,0,.6,2.7,3);
     });
-    m.joint(side+'Elbow',[0,-6.5,0],side+'Arm',p=>{
+    m.joint(side+'Elbow',[0,-armUpper,0],side+'Arm',p=>{
       p.add('bevel',soldier?shell:soft,0,-2.6,.4,soldier?4.4:3.2,5.3,3.6);
       if(relay||soldier)p.add('panel',shell,0,-3.1,2.2,soldier?3.3:2.7,3.15,.8);
     });
     m.at(side+'Elbow',p=>p.add('sleeve',soft,0,0,0,3,3,3),true);
-    m.joint(side+'Hand',[0,-5.4,0],side+'Elbow',p=>{
+    m.joint(side+'Hand',[0,-armLower,0],side+'Elbow',p=>{
       p.add('bevel',fieldRubber,0,0,.7,2.7,3,2.7);
       if(i===0){
         if(commander||observer){
@@ -173,6 +176,17 @@ export function humanoidModel(m:MobileModel,kind:MobileKind){
       }
       handEquipment(p,kind);
     });
+  }
+  if(sniper||soldier||medic||ranger||engineer){
+    // 枪械／医疗发射器／工程作业具独立于腕骨，双手解析 IK 分别追踪握把与前托；旧关节顺序保持兼容。
+    m.joint('rifle',[shoulders,9.5-armUpper-armLower,0],'torso',()=>{});
+  }
+  if(sniper){
+    for(const [i,side] of sides.entries())for(let segment=0;segment<4;segment++){
+      const sign=i===0?-1:1;
+      m.joint(side+'Cape'+segment,segment?[sign*.3,-7,-.5]:[sign*2.9,10.4,-4.9],
+        segment?side+'Cape'+(segment-1):'torso',()=>{});
+    }
   }
 }
 

@@ -8,12 +8,15 @@ import './operation-menu.css';
 import './settings.css';
 import './touch-hud.css';
 import './improvements.css';
+import './map-editor.css';
 import { getLanguage,onLanguageChange,t } from './game/locale.js';
 import { dropdownMarkup,type GameSelect } from './game/dropdown.js';
 import { uiIcon } from './game/icons.js';
 import { AudioDirector } from './game/audio.js';
 import { audioSettingsMarkup,bindAudioSettings } from './game/audio-settings.js';
-import { mapInfo,type MapId } from './game/maps.js';
+import { isMapId,mapInfo,type MapId } from './game/maps.js';
+import { MapEditor } from './game/map-editor.js';
+import { syncCustomWorlds,type CustomMapDocument } from './game/custom-maps.js';
 import { mapPickerMarkup,bindMapPicker } from './game/map-picker.js';
 import { OperationMenu } from './game/operation-menu.js';
 import { BattleControls } from './game/controls.js';
@@ -40,6 +43,9 @@ let hudVisible=true,dispatchExpanded=false,spaceDragged=false;
 const titleScreen=$('title-screen'),battleUI=$('battle-ui'),battleHeader=$('battle-header');
 let home=true,entryId=0,assetsPromise:Promise<void>|null=null,pendingBattle:(()=>void)|null=null;
 let operation:OperationMenu|null=null,operationOpen=false,operationBeforePaused=true;
+let mapEditor:MapEditor|null=null,lastEditedMap:CustomMapDocument|null=null;
+syncCustomWorlds();
+const displayMapName=(id:string)=>isMapId(id)?mapInfo(id).name:renderer.currentWorld.customName??'自定义战场';
 let engine=new Engine(),view=engine.view(1),side:Side=1,started=false,paused=true,network=false,attackMode=false,rallyMode=false,repairMode=false,showingResult=false;
 let waitingForState=false;
 type LobbyPlayers={name:string;side:Side;race?:Race;connected?:boolean}[];
@@ -84,7 +90,7 @@ function refreshHomeSave(){
     const raw=localStorage.getItem(LOCAL_SAVE_KEY);if(!raw)return;
     // 与正式读档共用校验，损坏的存档不能点亮「继续远征」。
     const saved=readLocalBattle(raw).engine.state;
-    button.disabled=false;$('continue-detail').textContent=`${mapInfo(saved.mapId).name} · ${time(saved.time)}`;
+    button.disabled=false;$('continue-detail').textContent=`${displayMapName(saved.mapId)} · ${time(saved.time)}`;
     $('home-save-status').textContent=`本地战役已保存 · ${time(saved.time)}`;
   }catch{$('continue-detail').textContent='存档无法读取';$('home-save-status').textContent='可开始新的战役。';}
 }
@@ -116,6 +122,7 @@ async function prepareBattle(action:()=>void){
   }
 }
 function returnHome(){
+  if(mapEditor){mapEditor.destroy();mapEditor=null;app.classList.remove('map-editor-active');}
   closeOperation(false);
   ++entryId;
   if(started&&!network)saveGame();
@@ -162,7 +169,7 @@ function beginBuilding(kind:BuildingKind){
   setMode(null);buildKind=kind;buildWorker=worker.id;renderer.selected=new Set([worker.id]);
   const point=snapPoint(renderer.camera);renderer.placement={kind,point,facing:buildingFacing(kind,point,renderer.camera.world)};
   $('command-hint').hidden=false;$('rotate-building').hidden=false;
-  $('command-message').textContent=kind==='oilwell'?'点击精炼厂覆盖内的油点建井 · Esc 取消':`放置${STATS[kind].name} · 绿色可建造 / 红色不可建造 · Esc 取消`;canvas.style.cursor='crosshair';updateUI(true);
+  $('command-message').textContent=kind==='oilwell'?'点击油点建造油井 · Esc 取消':`放置${STATS[kind].name} · 绿色可建造 / 红色不可建造 · Esc 取消`;canvas.style.cursor='crosshair';updateUI(true);
 }
 function readyForCommand(){if(home||operationOpen||!$('battle-loading').hidden||!started){toast('先开始战役，接管你的部队');return false;}if(paused&&!network){toast('战局已暂停，按 P 继续');return false;}if(view.winner){toast('本场战役已结束');return false;}return true;}
 function command(c:Command):boolean{if(!readyForCommand())return false;if(network){if(socket?.readyState===WebSocket.OPEN)socket.send(JSON.stringify({type:'command',command:c}));else{toast('连接已断开，请返回单机战役',true);return false;}}else{const err=engine.command(side,c);if(err){toast(err,true);return false;}view=engine.view(side);}renderer.selectedNode=null;soundscape.command(c,view,side);updateUI(true);return true;}
@@ -269,7 +276,28 @@ function showDialog(title:string,content:string,tag='COMMAND CENTER',pause=true)
 function closeDialog(){galleryCleanup?.();galleryCleanup=null;dialog.close();app.append($('audio-caption'));if(dialogPauses)paused=beforeDialog;dialogPauses=false;if(operationOpen)$('operation-back').focus({preventScroll:true});else if(home)$($<HTMLButtonElement>('continue-game').disabled?'start':'continue-game').focus({preventScroll:true});else canvas.focus({preventScroll:true});}
 $('cancel-command').onclick=()=>{setMode(null);updateUI(true);};
 $('close-dialog').onclick=closeDialog;dialog.addEventListener('cancel',e=>{e.preventDefault();closeDialog();});dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();const m=e as MouseEvent;if(m.clientX<r.left||m.clientX>r.right||m.clientY<r.top||m.clientY>r.bottom)closeDialog();}});
-function startLocal(count:number,difficulty:Difficulty,mapId:MapId,aiStyle:AiStyle,race:Race,opponent:Race){
+function openMapEditor(doc?:CustomMapDocument){
+  closeOperation(false);closeDialog();
+  void prepareBattle(()=>{
+    if(roomCode||socket)leaveNetwork();
+    started=false;paused=true;network=false;keys.clear();controls.clear();setMode(null);
+    app.classList.add('map-editor-active');
+    mapEditor?.destroy();
+    mapEditor=new MapEditor(app,canvas,renderer,{
+      onExit:()=>{
+        mapEditor?.destroy();mapEditor=null;app.classList.remove('map-editor-active');
+        returnHome();
+      },
+      onPlaytest:(edited)=>{
+        lastEditedMap=edited;
+        mapEditor?.destroy();mapEditor=null;app.classList.remove('map-editor-active');
+        startLocal(Math.max(2,Math.min(4,edited.bases.length)),'normal',edited.id,'balanced','industrial','brood');
+      },
+      onToast:(msg,warn)=>toast(msg,warn),
+    },doc??lastEditedMap??undefined);
+  });
+}
+function startLocal(count:number,difficulty:Difficulty,mapId:MapId|string,aiStyle:AiStyle,race:Race,opponent:Race){
   if(roomCode)leaveNetwork();engine=new Engine(Array.from({length:count},(_,i)=>({name:i===0?'指挥官':`${['','赤焰','苍穹','金砂'][i]}军团`,ai:i!==0,aiStyle,race:i===0?race:i===1?opponent:RACES[(RACES.indexOf(opponent)+i-1)%RACES.length]})),difficulty,mapId);
   side=1;renderer.side=side;view=engine.view(side);renderer.reset();renderer.selected.clear();clearGroups();started=true;paused=false;network=false;showingResult=false;lastReady=0;lastAutosave=0;accumulator=0;
   soundscape.reset(view,side);
@@ -310,7 +338,12 @@ function loadGame(){
     });
   }catch{toast('当前存档无法读取；扩展版使用独立 v2 存档',true);refreshHomeSave();}
 }
-const lightingChoices=[['off','基础 · 最省性能'],['balanced','均衡 · 动态反弹光'],['high','精细 · 更清晰的反弹光']] as const;
+const lightingChoices=[
+  ['off','基础 · 最省性能'],
+  ['balanced','均衡 · 时序反弹光与反射'],
+  ['high','精细 · SVGF 全局光与接触软阴影'],
+  ['cinematic','影视 · 高精全局光照与动态战火'],
+] as const;
 function menu(){showDialog('战局控制',`<p class="dialog-description">${network?'联机战役持续进行，打开菜单不会暂停其他玩家。':'单机战局在菜单打开时暂停，关闭菜单后恢复。'}</p><div class="dialog-actions"><button id="menu-resume" class="primary-button">返回战场 <span>${uiIcon('arrow-up-right')}</span></button><button id="new-battle" class="secondary-button">新建战役</button><button id="menu-multiplayer" class="secondary-button">多人联机</button></div><div class="dialog-actions"><button id="menu-codex" class="secondary-button">战术档案</button><button id="menu-help" class="secondary-button">操作指南</button><button id="menu-animation" class="secondary-button">动画图鉴</button></div><div class="dialog-actions"><button id="save" class="secondary-button" ${network?'disabled':''}>保存战局</button><button id="load" class="secondary-button">读取存档</button></div><label class="toggle-label">播放部队与环境动画<input id="animation-toggle" type="checkbox" ${renderer.animate?'checked':''}></label><label class="toggle-label">显示单位生命值<input id="health-toggle" type="checkbox" ${renderer.showHealth?'checked':''}></label><label class="toggle-label">显示选中单位攻击范围<input id="range-toggle" type="checkbox" ${renderer.showRanges?'checked':''}></label>${audioSettingsMarkup(audio)}<label class="toggle-label">触控板模式：双指平移 / 捏合缩放<input id="trackpad-toggle" type="checkbox" ${controls.trackpad?'checked':''}/></label><p class="room-note">自动存档：单机战役每 30 秒保存一次。存档保留在本浏览器。</p>`);
   addModelGalleryButton($('menu-animation').parentElement!);
   bindPerformanceSettings();
@@ -322,10 +355,10 @@ function menu(){showDialog('战局控制',`<p class="dialog-description">${netwo
     $('dialog-content').insertBefore(label,$('animation-toggle').parentElement);
     const select=$<GameSelect>('lighting-quality');
     select.value=renderer.lightingQuality;select.disabled=!renderer.supportsGI;
-    select.title=renderer.supportsGI?'精细档需要更多显卡性能；设置自动保存':'当前设备不支持浮点渲染，使用基础光照';
+    select.title=renderer.supportsGI?'实时计算屏幕内的反弹光与反射；精细档需要更多显卡性能，设置自动保存':'当前设备不支持浮点渲染，使用基础光照';
     select.onchange=()=>{
       const value=select.value;
-      if(value==='off'||value==='balanced'||value==='high')renderer.lightingQuality=value;
+      if(value==='off'||value==='balanced'||value==='high'||value==='cinematic')renderer.lightingQuality=value;
     };
   }
   const homeButton=document.createElement('button');homeButton.id='menu-home';homeButton.className='secondary-button';homeButton.textContent=network?'离开战役并返回主菜单':'保存并返回主菜单';homeButton.onclick=returnHome;
@@ -350,7 +383,7 @@ function addModelGalleryButton(parent:HTMLElement){
     try{
       await ensureBattleAssets();
       const {modelGallery}=await import('./game/model-gallery.js');
-      if(dialog.open&&loading.isConnected)galleryCleanup=modelGallery($('dialog-content'),renderer.images);
+      if(dialog.open&&loading.isConnected&&renderer.blenderAssets)galleryCleanup=modelGallery($('dialog-content'),renderer.images,renderer.blenderAssets);
     }catch{
       if(loading.isConnected)loading.textContent='模型加载失败，请关闭图鉴后重试。';
     }
@@ -367,7 +400,7 @@ function techTree(){
     showDialog(RACE_NAMES[race]+'科技路线',`<div class="tech-road">${stages.map(stage=>`<div><b>${stage.title}</b><p>${stage.line}</p></div>`).join('')}${technologies.map(k=>`<div><b>${TECHS[k].name}</b><p>${STATS[TECHS[k].building!].name} · ${TECHS[k].description}</p></div>`).join('')}</div>`,'TECHNOLOGY ROADMAP');
     return;
   }
-  showDialog('从采集到机械化远征',`<p class="dialog-description">金矿和木材驱动早期建设，石油支撑机械化。生产建筑决定兵种，研究中心决定技术。所有前置建筑必须建造完成。</p><div class="tech-road"><div><b>01 / 建立补给</b><p>指挥中心 → 工程采集车 → 金矿 / 木材</p><p>木材加工厂：伐木 +50%，可就近交付木材和金矿</p></div><div><b>02 / 基础军事</b><p>聚能电站 → 步兵营 → 突击步兵</p><p>步兵营 → 石油精炼厂 → ${view.oilWells?'油井通过管道输油':'采集车采油'}</p></div><div><b>03 / 机械化</b><p>步兵营 → 战车工厂 → 侦察战车 / 攻城坦克</p><p>科技研究中心 → 战地医疗兵 / 精密武器 → 幽影狙击手</p></div><div><b>04 / 先进科技</b><p>精密武器 + 战车工厂 → 先进工程 → 远程火炮 / 泰坦机甲</p><p>战车工厂 → 航空机库；精密武器 + 机库 → 航空技术 → 猎隼战机</p></div><div><b>05 / 支援升级</b><p>智能物流：采集效率 +50%，货仓 100 → 150</p><p>复合装甲：全部作战单位生命值 +25%</p></div></div><p class="room-note">留意电力上限：电力不足时，军事生产和研究暂停；指挥中心仍可生产采集车。建造额外电站可以恢复供电。</p>`,'TECHNOLOGY ROADMAP');}
+  showDialog('从采集到机械化远征',`<p class="dialog-description">金矿和木材驱动早期建设，石油支撑机械化。生产建筑决定兵种，研究中心决定技术。所有前置建筑必须建造完成。</p><div class="tech-road"><div><b>01 / 建立补给</b><p>指挥中心 → 工程采集车 → 金矿 / 木材</p><p>木材加工厂：伐木 +50%，可就近交付木材和金矿</p></div><div><b>02 / 基础军事</b><p>聚能电站 → 步兵营 → 突击步兵</p><p>步兵营 → 石油精炼厂 → ${view.oilWells?'油井自动采油':'采集车采油'}</p></div><div><b>03 / 机械化</b><p>步兵营 → 战车工厂 → 侦察战车 / 攻城坦克</p><p>科技研究中心 → 战地医疗兵 / 精密武器 → 幽影狙击手</p></div><div><b>04 / 先进科技</b><p>精密武器 + 战车工厂 → 先进工程 → 远程火炮 / 泰坦机甲</p><p>战车工厂 → 航空机库；精密武器 + 机库 → 航空技术 → 猎隼战机</p></div><div><b>05 / 支援升级</b><p>智能物流：采集效率 +50%，货仓 100 → 150</p><p>复合装甲：全部作战单位生命值 +25%</p></div></div><p class="room-note">留意电力上限：电力不足时，军事生产和研究暂停；指挥中心仍可生产采集车。建造额外电站可以恢复供电。</p>`,'TECHNOLOGY ROADMAP');}
 function settings(){
   showDialog('游戏设置',`<p class="dialog-description">调整你的视听与操作偏好。</p>${audioSettingsMarkup(audio)}<label class="toggle-label">播放部队与环境动画<input id="setting-animation" type="checkbox" ${renderer.animate?'checked':''}></label><label class="toggle-label">显示单位生命值<input id="setting-health" type="checkbox" ${renderer.showHealth?'checked':''}></label><label class="toggle-label">显示选中单位攻击范围<input id="setting-ranges" type="checkbox" ${renderer.showRanges?'checked':''}></label><label class="toggle-label">触控板模式：双指平移 / 捏合缩放<input id="setting-trackpad" type="checkbox" ${controls.trackpad?'checked':''}></label><div class="toggle-label select-setting"><span>间接光照</span>${dropdownMarkup('setting-lighting','间接光照',lightingChoices)}</div><p class="room-note">光照选项随本浏览器保存，在进入战场后生效；不支持的设备自动使用基础渲染。单机战役每 30 秒自动存档，返回主菜单时也会保存。</p><div class="dialog-actions"><button id="settings-ok" class="primary-button">返回主菜单 <span>${uiIcon('arrow-up-right')}</span></button></div>`,'GAME SETTINGS',false);
   bindAudioSettings($('dialog-content'),audio,syncSound);
@@ -377,8 +410,8 @@ function settings(){
   $<HTMLInputElement>('setting-ranges').onchange=e=>renderer.showRanges=(e.target as HTMLInputElement).checked;
   $<HTMLInputElement>('setting-trackpad').onchange=e=>controls.trackpad=(e.target as HTMLInputElement).checked;
   const select=$<GameSelect>('setting-lighting');select.value=renderer.ready?renderer.lightingQuality:matchMedia('(max-width:580px)').matches?'off':'balanced';
-  try{const saved=localStorage.getItem('fudancraft-lighting');if(saved==='off'||saved==='balanced'||saved==='high')select.value=saved;}catch{/* 无本地存储时使用设备默认值。 */}
-  select.onchange=()=>{const value=select.value;if(value==='off'||value==='balanced'||value==='high')renderer.lightingQuality=value;};
+  try{const saved=localStorage.getItem('fudancraft-lighting');if(saved==='off'||saved==='balanced'||saved==='high'||saved==='cinematic')select.value=saved;}catch{/* 无本地存储时使用设备默认值。 */}
+  select.onchange=()=>{const value=select.value;if(value==='off'||value==='balanced'||value==='high'||value==='cinematic')renderer.lightingQuality=value;};
   $('settings-ok').onclick=closeDialog;
 }
 function bindPerformanceSettings(){
@@ -434,7 +467,7 @@ function connect(){
       else if(m.type==='state'&&network){const newSession=waitingForState;if(waitingForState){renderer.reset();started=true;waitingForState=false;lastReady=0;}const first=network&&view.players.find(p=>p.side===side)?.ai!==false;view={...m.state,visible:typeof m.state.visible==='string'?decodeFog('visible',m.state.visible):m.state.visible,explored:typeof m.state.explored==='string'?decodeFog('explored',m.state.explored):m.state.explored};if(newSession)soundscape.reset(view,side);if(first||!lastReady){focusBase();lastReady=1;}updateUI();}
       else if(m.type==='transport'){$('connection').textContent=m.message;}
       else if(m.type==='notice')toast(m.message);
-    };ws.onclose=e=>{clearTimeout(timeout);reject(Error('连接已关闭'));if(socket!==ws)return;socket=null;if(e.code===4001){clearReconnect();toast('席位已在另一个连接恢复',true);return;}if(PAGES_BUILD&&e.code===4004){clearReconnect();returnHome();toast('房主已离开，房间结束',true);return;}if(reconnectTicket){$('system-state').textContent='画面暂停更新 · 正在重连';retryNetwork();}else if(PAGES_BUILD&&roomCode){toast('房主页面已关闭，房间结束',true);returnHome();}};});
+    };ws.onclose=e=>{clearTimeout(timeout);reject(Error('连接已关闭'));if(socket!==ws)return;socket=null;const joinBtn=$('join-room') as HTMLButtonElement|null;if(joinBtn)joinBtn.disabled=false;const createBtn=$('create-room') as HTMLButtonElement|null;if(createBtn)createBtn.disabled=false;if(e.code===4001){clearReconnect();toast('席位已在另一个连接恢复',true);return;}if(PAGES_BUILD&&e.code===4004){clearReconnect();returnHome();toast('房主已离开，房间结束',true);return;}if(reconnectTicket){$('system-state').textContent='画面暂停更新 · 正在重连';retryNetwork();}else if(PAGES_BUILD&&roomCode){toast('房主页面已关闭，房间结束',true);returnHome();}};});
   })();
   const shared=pending.finally(()=>{if(connectionPromise===shared)connectionPromise=null;});
   connectionPromise=shared;
@@ -522,7 +555,7 @@ function renderSupplyAlerts(player:Player){
 }
 function updateUI(force=false){const now=performance.now();if(!force&&now-lastUI<160)return;lastUI=now;const player=view.players.find(p=>p.side===side);if(!player)return;
   renderSupplyAlerts(player);
-  $('sector-map').textContent=$('radar-map').textContent=mapInfo(view.mapId).name;
+  $('sector-map').textContent=$('radar-map').textContent=displayMapName(view.mapId);
   const isPaused=paused&&started&&!network&&!view.winner,clockState=view.winner?'已结束':!started?'待部署':isPaused?'已暂停':network?'联机':'作战中';
   $('pause').setAttribute('aria-label',isPaused?'继续战役':'暂停');
   $('pause').setAttribute('aria-pressed',String(isPaused));$('pause').toggleAttribute('disabled',!started||network||!!view.winner);
@@ -599,11 +632,8 @@ $('zoom-in').onclick=()=>changeZoom(1.18);$('zoom-out').onclick=()=>changeZoom(1
 $('orbit-left').onclick=()=>renderer.orbit(-1);$('orbit-right').onclick=()=>renderer.orbit(1);
 function updateRendererMode(){
   $('orbit-left').hidden=$('orbit-right').hidden=!renderer.is3D;
-  $('system-state').textContent=renderer.is3D?'Three.js 3D 战场已就绪':'当前使用 2D 战场';
+  $('system-state').textContent=renderer.is3D?'Blender 3D 战场已就绪':'3D 战场正在加载';
 }
-canvas.addEventListener('renderermodechange',()=>{
-  updateRendererMode();toast('3D 渲染已中断，已切换至 2D 战场');
-});
 document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(b=>b.onclick=()=>{productionTab=b.dataset.tab as typeof productionTab;renderProduction(view.players.find(p=>p.side===side)!,true);});
 $('production-content').onclick=e=>{const b=(e.target as Element).closest<HTMLButtonElement>('button');if(!b)return;if(b.dataset.train)command({type:'train',kind:b.dataset.train as MobileKind});if(b.dataset.build)beginBuilding(b.dataset.build as BuildingKind);if(b.dataset.research)command({type:'research',tech:b.dataset.research as Tech});};
 $('production-content').onpointerover=e=>{const b=(e.target as Element).closest<HTMLButtonElement>('.dispatch-card');if(b&&e.pointerType!=='touch'&&!b.contains(e.relatedTarget as Node|null))showCommandTooltip(b);};
@@ -646,7 +676,7 @@ function issueAt(point:Point,pick:ReturnType<Renderer['pick']>){
   }
 }
 const controls=new BattleControls(canvas,renderer,{
-  blocked:()=>home||operationOpen||dialog.open||!$('battle-loading').hidden,
+  blocked:()=>home||operationOpen||dialog.open||!$('battle-loading').hidden||!!mapEditor,
   spaceHeld:()=>keys.has(' '),
   spaceDragged:()=>{spaceDragged=true;},
   canBoxSelect:()=>!attackMode&&!rallyMode&&!repairMode&&!buildKind,
@@ -836,14 +866,14 @@ function frame(now:number){
   const live=started&&!view.winner&&(network||!paused);
   renderer.samplePerformance(gap,lastRenderCost,now,live&&!dialog.open);
   const interval=1000/(live?renderer.performance.fps:24);
-  if(!document.hidden&&now-lastRender>=interval-.9){
+  if(!mapEditor&&!document.hidden&&now-lastRender>=interval-.9){
     lastRender=now-lastRender>interval*2?now:lastRender+interval;
     const drawStart=performance.now();renderer.draw(view,now);lastRenderCost=performance.now()-drawStart;
     updateUI();
   }
   queueFrame();
 }
-$('continue-game').onclick=loadGame;$('home-codex').onclick=codex;$('home-settings').onclick=settings;
+$('continue-game').onclick=loadGame;$('home-editor').onclick=()=>openMapEditor();$('home-codex').onclick=codex;$('home-settings').onclick=settings;
 $('home-help').onclick=help;
 window.addEventListener('storage',e=>{if(home&&e.key===LOCAL_SAVE_KEY)refreshHomeSave();});
 function syncLanguage(){
@@ -855,6 +885,7 @@ onLanguageChange(syncLanguage);syncLanguage();
 syncSound();
 try{const saved=JSON.parse(sessionStorage.getItem(SEAT_KEY)||'null');if(saved&&(PAGES_BUILD?parseInvite(saved.code):/^[A-F0-9]{6}$/.test(saved.code))&&/^[a-f0-9]{64}$/.test(saved.token)){reconnectTicket=saved;roomCode=saved.code;retryNetwork();}}catch{/* 无效席位记录不影响本地游戏。 */}
 if(PAGES_BUILD&&parseInvite(location.href)&&!reconnectTicket)multiplayer();
+if(PAGES_BUILD)window.addEventListener('hashchange',()=>{if(parseInvite(location.href)&&!network&&!roomCode&&!reconnectTicket)multiplayer();});
 
 function showTargetHint(message:string){
   $('command-hint').hidden=false;$('command-message').textContent=message+' · × / Esc 取消';canvas.style.cursor='crosshair';
