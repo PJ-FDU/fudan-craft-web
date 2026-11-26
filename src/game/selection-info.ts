@@ -23,9 +23,10 @@ export function selectionInfo(selected:VisibleUnit[],view:ViewState,player:Playe
   const status={idle:'等待指令',move:'正在移动',attack:'正在交战',assault:'攻击移动',hold:'原地驻守',gather:u.returning?'返回交付':'正在采集',build:'建造任务',repair:'维修任务'}[u.order];
   const info:SelectionInfo={title:s.name,status:u.waitingForGold?'金矿已枯竭 · 等待指派':isMobile(u)?status:'建筑已就绪',health,maxHealth,stats:[]};
   if(s.damage)info.stats.push({label:'攻击',value:`${Math.round(s.damage*(weaponsApplies(u,player)?1.2:1)*10)/10}`},{label:'射程',value:`${s.range}`});
+  if(u.kind==='medic')info.stats.push({label:'治疗',value:`${BALANCE.medicHeal}`},{label:'治疗射程',value:`${s.range}`});
   if(u.kind==='worker')info.stats.push({label:'载货',value:`${Math.floor(u.cargo)} / ${player.tech.includes('logistics')?150:100}${u.cargoKind?' '+RESOURCE_INFO[u.cargoKind].name:''}`});
   else if(isMobile(u))info.stats.push({label:'移速',value:`${s.speed}`});
-  else info.stats.push({label:s.power<0?'供电':'用电',value:`${Math.abs(s.power)}`});
+  else if(!player.race||player.race==='industrial')info.stats.push({label:s.power<0?'供电':'用电',value:`${Math.abs(s.power)}`});
   if(maxShield(u))info.stats.push({label:'原生护盾',value:`${Math.ceil(u.shield??0)} / ${maxShield(u)}`});
   if(u.station)info.status={packing:'收拢中',mobile:'可迁移',deploying:'架设中'}[u.station.mode];
   if(needsCoverage(u.kind)&&!covered(u.side,u,view.units))info.status='失去覆盖 · 队列暂停';
@@ -55,9 +56,10 @@ export function selectionInfo(selected:VisibleUnit[],view:ViewState,player:Playe
     }
   }else if(!isMobile(u)){
     const task=player.queue.find(q=>q.producer===u.id);
-    if(task){const active=u.kind==='base'||powerFor(player.side,view.units).active;
-      info.status=active?task.research?'正在研究':'正在生产':'缺电暂停';
-      info.progress={label:(task.research?'研究':'训练')+(task.research?TECHS[task.kind as Tech].name:STATS[task.kind as MobileKind].name),value:1-task.remaining/task.duration,status:active?`剩余 ${Math.ceil(task.remaining)} 秒`:'电力不足 · 进度已暂停'};
+    if(task){
+      const pauseReason=needsCoverage(u.kind)&&!covered(u.side,u,view.units)?'失去覆盖 · 队列暂停':u.station?'迁移中 · 队列暂停':u.refitUntil!==undefined?'换装中 · 队列暂停':(!player.race||player.race==='industrial')&&u.kind!=='base'&&!powerFor(player.side,view.units).active?'电力不足 · 进度已暂停':null;
+      info.status=pauseReason??(task.research?'正在研究':'正在生产');
+      info.progress={label:(task.research?'研究':'训练')+(task.research?TECHS[task.kind as Tech].name:STATS[task.kind as MobileKind].name),value:1-task.remaining/task.duration,status:pauseReason??`剩余 ${Math.ceil(task.remaining)} 秒`};
     }
   }
   return info;

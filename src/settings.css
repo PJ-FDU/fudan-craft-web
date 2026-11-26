@@ -18,21 +18,80 @@
 .select-setting {
   gap: 20px;
 }
-.operation-settings{border-top:1px solid #8faa9733;margin-top:18px;padding-top:12px}
-.operation-settings h3{margin:16px 0 10px;font-size:14px}
-.operation-settings input[type="range"]{width:140px;accent-color:#a5bf9d}
-.operation-settings output{min-width:40px;text-align:right}
+.operation-preferences{display:block;border-top:1px solid #8faa9733;margin-top:18px;padding-top:12px;min-width:0}
+.operation-preferences h3{margin:16px 0 10px;font-size:14px}
+.operation-preferences input[type="range"]{width:140px;accent-color:#a5bf9d}
+.operation-preferences output{min-width:40px;text-align:right}
 .notice-settings{display:flex;gap:16px;align-items:center;justify-content:space-between}
 .notice-settings .toggle-label{gap:6px;font-size:12px}
-.binding-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.binding-grid label{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px}
+.binding-grid{display:grid;grid-template-columns:1fr;gap:8px}
+.binding-grid label{font-size:12px}
 .binding-grid input{width:62px;padding:8px;text-align:center;background:#11201b;color:#e8e2d2;border:1px solid #8faa9766}
+.hotkey-settings > summary,.fixed-hotkeys > summary{cursor:pointer;padding:12px 0;color:#d6c39a}
+.hotkey-settings p{font-size:12px;line-height:1.7;color:#a4b7a8}
+.manual-filters{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin:16px 0}
+.manual-filters input[type="search"]{flex:1 1 200px;min-width:0;min-height:44px}
+.manual-filters label{display:flex;flex-direction:column;gap:6px;font-size:11px;color:#a4b7a8;flex:1 1 145px}
+.manual-filters input,.manual-filters select,.binding-row select{border:1px solid #8faa9755;background:#11201b;color:#e8e2d2;padding:10px;border-radius:3px;color-scheme:dark}
+.manual-filters select{min-height:44px;max-width:100%}
+.manual-filters input:focus-visible,.manual-filters select:focus-visible,.binding-row :focus-visible{outline:2px solid #c9b68a;outline-offset:2px}
+.binding-group{margin:18px 0}
+.binding-group h4{margin:0 0 8px;color:#c9b68a;font-size:12px;letter-spacing:.06em}
+.binding-row{display:grid;grid-template-columns:minmax(0,1fr) 62px 55px 30px;gap:6px;align-items:center;padding:10px 0;border-bottom:1px solid #8faa9726}
+.binding-row label{min-width:0;line-height:1.4}
+.binding-row label small{display:block;color:#95a69a;font-size:10px;margin-top:4px;overflow-wrap:anywhere}
+.binding-row input,.binding-row select{min-height:38px}
+.binding-row select{width:55px;padding:6px;font-size:11px}
+.binding-row button{width:30px;min-height:38px;padding:0;background:transparent;border:1px solid #8faa9733;color:#c9b68a;font-size:18px}
+.binding-row button:disabled{opacity:.3}
+.binding-row input:focus{background:#263d2c;border-color:#c9b68a}
+.binding-feedback{min-height:24px;font-size:12px;color:#e4cc93;line-height:1.6;margin:12px 0}
+.binding-conflict{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.binding-conflict button{flex:1 1 120px}
+.fixed-hotkeys{margin-top:12px;border-top:1px solid #8faa9733}
+.binding-row[hidden],.binding-group[hidden],.binding-empty[hidden],.binding-conflict[hidden]{display:none}
+.information-facts{font-size:11px;line-height:1.6;margin:12px 0}
+.information-facts > div{display:grid;grid-template-columns:100px minmax(0,1fr);gap:10px;padding:5px 0;border-bottom:1px solid #8faa9720}
+.information-facts dt{color:#9eada2}
+.information-facts dd{margin:0;color:#e8e2d2;overflow-wrap:anywhere}
+.information-skills p{font-size:12px;line-height:1.7;margin:10px 0}
+.information-skills strong{color:#d6c39a}
+.information-skills small{display:block;color:#9eada2;font-size:10px;margin-top:3px}
+.field-manual-list{display:grid;grid-template-columns:1fr;gap:0 24px}
+.manual-entry{min-width:0;border-top:1px solid #8faa9755;padding:18px 0}
+.manual-entry-heading{display:flex;align-items:start;gap:14px}
+.manual-entry-heading > .sprite{flex:none}
+.manual-entry-heading > div{min-width:0}
+.manual-entry-heading small{font-size:10px;color:#b4c49b}
+.manual-entry h3{margin:6px 0;font-size:15px;color:#f0e9d7;line-height:1.5}
+.manual-entry h3 span{display:block;color:#9eada2;font-size:9px;letter-spacing:.06em;font-weight:400}
+.manual-entry p{font-size:12px;color:#adb9ad;line-height:1.7;margin:8px 0}
+.manual-base-stats{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:10px;color:#9eada2;margin:14px 0}
+.manual-base-stats b{font-weight:500;color:#e8e2d2;margin-left:4px}
+.manual-entry summary{color:#d6c39a;font-size:12px;cursor:pointer;padding:8px 0}
+.manual-empty{grid-column:1/-1;padding:24px;color:#a4b7a8}
+.unit-reference{border-top:1px solid #8faa9733;margin-top:8px;font-size:11px}
+.unit-reference summary{cursor:pointer;padding:8px 0;color:#c9b68a}
+.unit-reference > p{font-size:11px;line-height:1.6;color:#adb9ad;margin:4px 0}
+.unit-description{font-size:11px;line-height:1.6;color:#adb9ad;margin:8px 0 4px}
+.unit-reference .information-facts{margin-top:4px}
+.command-tooltip{max-height:min(62vh,480px);overflow:hidden}
+.command-tooltip .information-facts{margin:8px 0}
+.command-tooltip .information-facts > div{grid-template-columns:85px minmax(0,1fr);padding:3px 0}
+@media(max-width:760px){.field-manual-list{grid-template-columns:1fr}.binding-grid{grid-template-columns:1fr}}
+@media(max-width:580px){
+  .manual-filters{gap:10px}.manual-filters input[type="search"]{flex-basis:100%}
+  .binding-row{grid-template-columns:minmax(0,1fr) 58px 55px 36px}
+  .binding-row input{width:58px}.binding-row button{width:36px}
+  .binding-row input,.binding-row select,.binding-row button{min-height:44px}
+  .unit-reference .information-facts > div{grid-template-columns:80px minmax(0,1fr)}
+}
 .task-row{display:flex;justify-content:space-between;gap:12px;width:100%;padding:12px;margin:4px 0;background:#192a22;border:1px solid #8faa9733;text-align:left}
 .task-row span{flex:none;color:#c9b68a}
 .operation-task-unit{padding:12px 0;border-bottom:1px solid #8faa9733}
 .operation-task-unit p{font-size:12px;color:#a4b7a8}
 .touch-ui .touch-actions{grid-template-columns:repeat(7,minmax(0,1fr))}
-@media(max-width:580px){.notice-settings{gap:8px}.binding-grid{grid-template-columns:1fr}.operation-settings input[type="range"]{width:110px}}
+@media(max-width:580px){.notice-settings{gap:8px}.binding-grid{grid-template-columns:1fr}.operation-preferences input[type="range"]{width:110px}}
 .select-setting > span:first-child {
   flex: none;
 }

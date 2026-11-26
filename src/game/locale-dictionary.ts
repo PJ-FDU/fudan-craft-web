@@ -1,3 +1,4 @@
+import { UNIT_DESCRIPTIONS } from './unit-descriptions.js';
 // 中文是现有界面的源文案；英文只作用于显示层，地图 ID、存档和模拟数据保持稳定。
 export const ENGLISH:Record<string,string>=Object.fromEntries(`
 P2P 静态版 · 房主创建房间后复制邀请链接。房主需保持页面打开；离开或刷新会结束房间。|P2P edition: create a room and copy its invite link. Keep the host page open; leaving or reloading ends the room.
@@ -1131,3 +1132,8 @@ P2P 连接需要 Pages 构建|P2P connections require a Pages build
 选中单位后查看任务队列|Select a unit to inspect its tasks
 返回战场|Return to battle
 `.trim().split('\n').map(line=>line.split('|')));
+Object.assign(ENGLISH,Object.fromEntries(Object.values(UNIT_DESCRIPTIONS)),{
+  '生产步兵和支援单位；具体解锁条件见各单位档案。':'Produces infantry and support units; see each unit entry for unlock requirements.',
+  '单位与建筑档案':'Unit and Building Archives',
+  '治疗射程':'Healing range',
+});

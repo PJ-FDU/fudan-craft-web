@@ -1,6 +1,7 @@
 import { ABILITIES, ABILITY_IDS, type AbilityId, type AbilityRuntime } from './abilities.js';
 import type { MapId } from './maps.js';
 import type { MatchStats } from './match-stats.js';
+import { UNIT_DESCRIPTIONS } from './unit-descriptions.js';
 export type Side = 1 | 2 | 3 | 4;
 export const LEGACY_MOBILE_KINDS = ['worker', 'soldier', 'scout', 'medic', 'sniper', 'tank', 'artillery', 'fighter', 'mech'] as const;
 export type LegacyMobileKind = typeof LEGACY_MOBILE_KINDS[number];
@@ -101,11 +102,11 @@ export interface Stat { name: string; en: string; description: string; hp: numbe
 const unit = (name: string, en: string, cell: number, description: string, values: Partial<Stat>): Stat => ({name,en,cell,description,hp:100,damage:0,range:120,speed:100,cooldown:1,vision:8,cost:200,wood:0,oil:0,build:6,radius:14,size:62,power:0,atlas:'units',...values});
 const building = (name: string,en: string,cell: number,description: string,values: Partial<Stat>): Stat => ({...unit(name,en,cell,description,{}),atlas:'buildings',hp:700,range:0,speed:0,vision:10,cost:600,wood:300,build:14,radius:38,size:132,power:10,requires:'base',...values});
 const special = (name:string,en:string,producer:BuildingKind,values:Partial<Stat>={}) =>
-  unit(name,en,3,'核心支援单位。',{hp:145,cost:230,wood:90,oil:35,build:12,producer,...values});
+  unit(name,en,3,UNIT_DESCRIPTIONS[en][0],{hp:145,cost:230,wood:90,oil:35,build:12,producer,...values});
 const line = (name:string,en:string,producer:BuildingKind,values:Partial<Stat>={}) =>
-  unit(name,en,1,'常规作战单位。',{hp:115,damage:12,range:160,cooldown:.8,cost:150,wood:35,build:7,producer,...values});
+  unit(name,en,1,UNIT_DESCRIPTIONS[en][0],{hp:115,damage:12,range:160,cooldown:.8,cost:150,wood:35,build:7,producer,...values});
 const facility = (name:string,en:string,cell=5,values:Partial<Stat>={}) =>
-  building(name,en,cell,'种族生产、供给或科技设施。',{cost:330,wood:160,build:15,hp:720,power:0,...values});
+  building(name,en,cell,values.description??UNIT_DESCRIPTIONS[en][0],{cost:330,wood:160,build:15,hp:720,power:0,...values});
 export const STATS: Record<Kind, Stat> = {
   worker:unit('工程采集车','HARVESTER',0,'采集金矿和木材，也能建造和维修建筑。',{hp:120,speed:112,cost:110,build:6,producer:'base',size:63}),
   soldier:unit('突击步兵','RIFLEMAN',1,'可靠的基础火力，低成本部署，适合保护采集线。',{hp:105,damage:10,range:150,cooldown:.7,cost:160,wood:30,build:7,producer:'barracks',size:53}),
@@ -117,7 +118,7 @@ export const STATS: Record<Kind, Stat> = {
   fighter:unit('猎隼战机','FALCON VTOL',7,'无视地形的空中单位，高机动持续打击。',{hp:210,damage:18,range:225,speed:190,cooldown:.95,vision:12,cost:750,wood:200,oil:200,build:16,producer:'airfield',tech:'aviation',air:true,size:88}),
   mech:unit('泰坦机甲','TITAN WALKER',8,'高生命值的重型突击单位，解锁于先进工程。',{hp:650,damage:40,range:240,speed:68,cooldown:1.4,cost:1050,wood:320,oil:240,build:22,producer:'factory',tech:'advanced',size:94}),
   base:building('指挥中心','COMMAND CENTER',0,'训练采集车，接收全部资源。被摧毁即出局。',{hp:2000,cost:2000,wood:1000,oil:400,radius:54,size:182,power:-20,requires:undefined,vision:15}),
-  barracks:building('步兵营','BARRACKS',1,'生产突击步兵，搭配研究中心解锁医疗兵与狙击手。',{hp:900,cost:500,wood:240,requires:'powerplant',size:144}),
+  barracks:building('步兵营','BARRACKS',1,'生产步兵和支援单位；具体解锁条件见各单位档案。',{hp:900,cost:500,wood:240,requires:'powerplant',size:144}),
   factory:building('战车工厂','VEHICLE WORKS',2,'生产侦察车、坦克、火炮与重型机甲。',{hp:1100,cost:800,wood:360,oil:80,build:24,requires:'barracks',power:20,size:158}),
   airfield:building('航空机库','AIRFIELD',3,'研究航空技术后生产猎隼战机。',{hp:1000,cost:1000,wood:450,oil:150,build:26,requires:'factory',power:25,radius:46,size:174}),
   refinery:building('石油精炼厂','REFINERY',4,'解锁油井并精炼石油，也接收金矿。',{hp:850,cost:550,wood:280,build:18,requires:'barracks',power:15,size:144}),
