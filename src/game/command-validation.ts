@@ -9,10 +9,14 @@ const orders=(ids:unknown):ids is number[]=>Array.isArray(ids)&&ids.length<=140&
 export function validCommand(x:unknown,extent:number):x is Command {
   if(!x||typeof x!=='object')return false;
   const c=x as Command,point=(p:unknown)=>validPoint(p,extent);
+  if('append'in c&&c.append!==undefined&&typeof c.append!=='boolean')return false;
+  if(c.type==='assign-idle')return c.resource==='gold'||c.resource==='wood';
+  if(c.type==='cancel-task')return id(c.id)&&Number.isInteger(c.index)&&c.index>=0&&c.index<16;
   if(c.type==='train')return ALL_MOBILE_KINDS.includes(c.kind)&&(c.producer===undefined||id(c.producer));
   if(c.type==='research')return Object.hasOwn(TECHS,c.tech);
   if(c.type==='cancel')return Number.isInteger(c.index)&&c.index>=0&&c.index<24;
   if(c.type==='cancel-build')return id(c.id);
+  if(c.type==='resume-build')return id(c.worker)&&id(c.target);
   if(c.type==='factory-module')return id(c.id)&&(c.module==='armor'||c.module==='support');
   if(c.type==='station')return id(c.id)&&(c.action==='pack'||c.action==='stop'||(c.action==='move'||c.action==='deploy')&&point(c.point));
   if(c.type==='cast')return orders(c.ids)&&isAbility(c.skill)&&(c.target===undefined||id(c.target))&&(c.area===undefined||id(c.area))&&(c.point===undefined||point(c.point));

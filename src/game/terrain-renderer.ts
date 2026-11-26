@@ -2,7 +2,7 @@ import { getWorld,type WorldData } from './world.js';
 import { drawCell } from './art.js';
 import { TILE,gridSize } from './pathfinding.js';
 import { ByteLRU,TERRAIN_BUDGET,TERRAIN_CHUNK,fitTerrainLOD } from './terrain-detail.js';
-import { traceWater } from './terrain-shapes.js';
+import { smoothRoadMask,traceWater } from './terrain-shapes.js';
 import { heightAt } from './terrain-height.js';
 
 export class DetailedTerrain {
@@ -20,7 +20,8 @@ export class DetailedTerrain {
     // Keep four source texels per world pixel, including when zooming in.
     this.grass.setTransform(new DOMMatrix().scale(.25));this.earth.setTransform(new DOMMatrix().scale(.25));
     this.dirtMask.width=this.size;this.dirtMask.height=this.size;const c=this.dirtMask.getContext('2d')!,p=c.createImageData(this.size,this.size);
-    for(let i=0;i<world.roads.length;i++)if(world.roads[i]){p.data[i*4]=255;p.data[i*4+1]=255;p.data[i*4+2]=255;p.data[i*4+3]=world.roads[i];}
+    const roads=smoothRoadMask(world.roads,this.size);
+    for(let i=0;i<roads.length;i++)if(roads[i]){p.data[i*4]=255;p.data[i*4+1]=255;p.data[i*4+2]=255;p.data[i*4+3]=roads[i];}
     c.putImageData(p,0,0);
     this.fallback.width=this.fallback.height=512;this.overview(this.fallback);
   }

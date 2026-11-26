@@ -1,6 +1,18 @@
 import type { Point } from './types.js';
 import type { Feature } from './world.js';
 
+/** 仅平滑地表显示遮罩，不修改道路、碰撞或地图版本；固定一格半径避免大地图过度模糊。 */
+export function smoothRoadMask(roads:Uint8Array,size:number):Uint8Array {
+  const horizontal=new Float32Array(roads.length),result=new Uint8Array(roads.length);
+  for(let y=0;y<size;y++)for(let x=0;x<size;x++){
+    const row=y*size;
+    horizontal[row+x]=(roads[row+Math.max(0,x-1)]+roads[row+x]*2+roads[row+Math.min(size-1,x+1)])/4;
+  }
+  for(let y=0;y<size;y++)for(let x=0;x<size;x++)
+    result[y*size+x]=Math.round((horizontal[Math.max(0,y-1)*size+x]+horizontal[y*size+x]*2+horizontal[Math.min(size-1,y+1)*size+x])/4);
+  return result;
+}
+
 // 坐标噪声不消耗装饰随机序列：增减一棵树不会改变道路、湖岸或碰撞。
 export function terrainNoise(seed:number){
   const hash=(x:number,y:number)=>{

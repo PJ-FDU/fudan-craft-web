@@ -18,6 +18,21 @@
 .select-setting {
   gap: 20px;
 }
+.operation-settings{border-top:1px solid #8faa9733;margin-top:18px;padding-top:12px}
+.operation-settings h3{margin:16px 0 10px;font-size:14px}
+.operation-settings input[type="range"]{width:140px;accent-color:#a5bf9d}
+.operation-settings output{min-width:40px;text-align:right}
+.notice-settings{display:flex;gap:16px;align-items:center;justify-content:space-between}
+.notice-settings .toggle-label{gap:6px;font-size:12px}
+.binding-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.binding-grid label{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px}
+.binding-grid input{width:62px;padding:8px;text-align:center;background:#11201b;color:#e8e2d2;border:1px solid #8faa9766}
+.task-row{display:flex;justify-content:space-between;gap:12px;width:100%;padding:12px;margin:4px 0;background:#192a22;border:1px solid #8faa9733;text-align:left}
+.task-row span{flex:none;color:#c9b68a}
+.operation-task-unit{padding:12px 0;border-bottom:1px solid #8faa9733}
+.operation-task-unit p{font-size:12px;color:#a4b7a8}
+.touch-ui .touch-actions{grid-template-columns:repeat(7,minmax(0,1fr))}
+@media(max-width:580px){.notice-settings{gap:8px}.binding-grid{grid-template-columns:1fr}.operation-settings input[type="range"]{width:110px}}
 .select-setting > span:first-child {
   flex: none;
 }

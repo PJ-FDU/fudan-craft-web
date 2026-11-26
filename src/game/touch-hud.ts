@@ -3,7 +3,7 @@ import { isMobile,STATS,type Kind,type VisibleUnit } from './types.js';
 import { GameSelect } from './dropdown.js';
 
 const element=(id:string)=>document.getElementById(id)!;
-interface Actions {attack:()=>void;repair:()=>void;stop:()=>void;all:()=>void;clear:()=>void;dispatch:()=>void;resize:()=>void;idle:()=>void;group:(key:string,save:boolean)=>void;filter:(kind:Kind|'army')=>void}
+interface Actions {attack:()=>void;repair:()=>void;resumeBuild:()=>void;stop:()=>void;all:()=>void;clear:()=>void;dispatch:()=>void;resize:()=>void;idle:()=>void;group:(key:string,save:boolean)=>void;filter:(kind:Kind|'army')=>void}
 /** 触屏布局独立管理。生产按钮、小地图和详细读数复用同一 DOM，避免两套状态产生偏差。 */
 export class TouchHUD {
   active=false;
@@ -21,6 +21,7 @@ export class TouchHUD {
     ].map(([node,slot])=>{const marker=document.createComment('desktop-hud-slot');node.before(marker);return {node,slot,marker};});
     for(const [id,action] of [['touch-attack',actions.attack],['touch-repair',actions.repair],['touch-stop',actions.stop],['touch-all',actions.all],['touch-clear',actions.clear],['touch-dispatch',actions.dispatch]] as const)element(id).onclick=action;
     element('touch-idle').onclick=actions.idle;
+    element('touch-resume-build').onclick=actions.resumeBuild;
     element('touch-group-save').onclick=()=>{this.saving=!this.saving;element('touch-group-save').setAttribute('aria-pressed',String(this.saving));};
     for(const button of app.querySelectorAll<HTMLButtonElement>('[data-touch-group]'))button.onclick=()=>{
       actions.group(button.dataset.touchGroup!,this.saving);this.saving=false;element('touch-group-save').setAttribute('aria-pressed','false');

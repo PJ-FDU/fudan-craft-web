@@ -35,6 +35,8 @@ export interface Point { x: number; y: number }
 export interface Cost { gold: number; wood: number; oil: number }
 export interface ResourceNode extends Point { id: number; kind: ResourceKind; amount: number; max: number; radius: number; tree?:number; startSide?:Side }
 export interface Unit extends Point {
+  tasks?:UnitTask[];
+  reservedBuild?:true;
   id: number; side: Side; kind: Kind; hp: number; angle: number;
   path: Point[]; target: number | null; cooldown: number; repath: number;
   order: 'idle' | 'move' | 'attack' | 'assault' | 'hold' | 'gather' | 'build' | 'repair'; destination?: Point;
@@ -44,7 +46,7 @@ export interface Unit extends Point {
   waitingForGold?:true;
   cargoNode?:number;
   facing?: BuildingFacing;
-  travel?:number;velocity?:Point;blockedFor?:number;navigationProgress?:number;yieldPoint?:Point;yieldTo?:number;yieldOrigin?:Point;
+  travel?:number;velocity?:Point;blockedFor?:number;navigationProgress?:number;navigationStalled?:number;navigationRetries?:number;yieldPoint?:Point;yieldTo?:number;yieldOrigin?:Point;
   action?:{started:number;fired:number|null;until:number};
   service?:{kind:'node'|'depot'|'build';target:number;point:Point;waiting:boolean};
   ability?:AbilityRuntime;
@@ -73,20 +75,28 @@ export interface SkillArea extends Point {id:number;skill:AbilityId;source:numbe
 export interface GameState { customMap?:import('./map-versions.js').MapSnapshot; mapHash?:string; areas?:SkillArea[]; version: 2; oilWells?:true; mapId:MapId; mapRevision:number; time: number; units: Unit[]; nodes: ResourceNode[]; players: Player[]; nextId: number; shots: Shot[]; windups:Windup[]; events: VisualEvent[]; nextEventId: number; winner: Side | null; difficulty: Difficulty; aiTimer: number; explored: Record<number, number[]>;aiPlans?:Partial<Record<Side,AIPlan>> }
 export interface ViewState { mapHash?:string; areas?:SkillArea[];areaEdges?:{skill:AbilityId;start:Point;end:Point}[]; oilWells?:true; mapId:MapId; mapRevision:number; time: number; units: VisibleUnit[]; nodes: ResourceNode[]; players: Player[]; shots: VisibleShot[]; events: Omit<VisualEvent,'audience'>[]; winner: Side | null; explored: number[]; visible: ArrayLike<number>; difficulty: Difficulty }
 export type Command =
+  | {type:'cancel-task';id:number;index:number}
+  | {type:'assign-idle';resource:'gold'|'wood'}
   | { type: 'train'; kind: MobileKind; producer?:number }
   | { type: 'cast'; ids:number[]; skill:AbilityId; target?:number; point?:Point; area?:number }
   | { type: 'station'; id:number; action:'pack'|'move'|'deploy'|'stop'; point?:Point }
   | { type: 'medic-auto'; ids:number[]; enabled:boolean }
   | { type: 'cancel-build'; id:number }
   | { type: 'factory-module'; id:number; module:'armor'|'support' }
-  | { type: 'build'; kind: BuildingKind; point: Point; worker: number; facing?: BuildingFacing }
+  | { type: 'build'; kind: BuildingKind; point: Point; worker: number; facing?: BuildingFacing; append?:boolean }
+  | { type: 'resume-build'; worker: number; target: number; append?:boolean }
   | { type: 'research'; tech: Tech }
-  | { type: 'gather'; ids: number[]; node: number }
-  | { type: 'repair'; ids: number[]; target: number }
+  | { type: 'gather'; ids: number[]; node: number; append?:boolean }
+  | { type: 'repair'; ids: number[]; target: number; append?:boolean }
   | { type: 'cancel'; index: number }
-  | { type: 'order'; ids: number[]; point: Point; target?: number; assault?: boolean }
+  | { type: 'order'; ids: number[]; point: Point; target?: number; assault?: boolean; append?:boolean }
   | { type: 'stop' | 'hold'; ids: number[] }
   | { type: 'rally'; point: Point };
+export type UnitTask =
+  | {type:'order';point:Point;target?:number;assault?:boolean}
+  | {type:'gather';node:number}
+  | {type:'repair';target:number}
+  | {type:'resume-build';target:number};
 export interface Stat { name: string; en: string; description: string; hp: number; damage: number; range: number; speed: number; cooldown: number; vision: number; cost: number; wood: number; oil: number; build: number; radius: number; size: number; producer?: BuildingKind; requires?: BuildingKind; tech?: Tech; power: number; air?: boolean; splash?: number; atlas: 'units' | 'buildings'; cell: number }
 const unit = (name: string, en: string, cell: number, description: string, values: Partial<Stat>): Stat => ({name,en,cell,description,hp:100,damage:0,range:120,speed:100,cooldown:1,vision:8,cost:200,wood:0,oil:0,build:6,radius:14,size:62,power:0,atlas:'units',...values});
 const building = (name: string,en: string,cell: number,description: string,values: Partial<Stat>): Stat => ({...unit(name,en,cell,description,{}),atlas:'buildings',hp:700,range:0,speed:0,vision:10,cost:600,wood:300,build:14,radius:38,size:132,power:10,requires:'base',...values});

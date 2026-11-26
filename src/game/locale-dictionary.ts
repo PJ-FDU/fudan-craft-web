@@ -414,6 +414,7 @@ TS · 河湾双人战|TS · River duel
 油井|Oil well
 水域|Water
 资源与电力|Resources and power
+资源、人口与电力|Resources, population and power
 资源采集|Harvest resources
 精炼补给|Refine supplies
 科技研发|Research technology
@@ -1011,6 +1012,17 @@ T3 高级干扰|T3 Advanced Disruption
 工厂正在换装或已装备该模块|Factory is refitting or already has this module
 取消施工|Cancel construction
 找不到可取消的施工|No construction to cancel
+工程采集车都在建造或维修，请等待完工或手动停止当前任务|All harvesters are building or repairing. Wait for completion or manually stop a task.
+没有可用的工程采集车，请等待完工或手动停止当前任务|No harvester is available. Wait for completion or manually stop a task.
+工程采集车正在建造或维修，请选择其他车辆|This harvester is building or repairing. Choose another vehicle.
+继续施工|Resume construction
+继续无人施工的未完工建筑|Resume an unfinished building with no assigned harvester
+选中采集车接手最近的未完工建筑，或选中未完工建筑自动派车|Select a harvester to resume the nearest unfinished building, or select an unfinished building to assign a harvester
+选择并定位空闲采集车 (F3)|Select and locate an idle harvester (F3)
+请选中可用的工程采集车或无人施工的未完工建筑|Select an available harvester or an unfinished building with no assigned harvester
+已派遣工程采集车继续施工|Harvester assigned to resume construction
+没有可继续施工的己方建筑|No friendly building is available to resume construction
+该建筑已有工程采集车施工|A harvester is already assigned to this building
 该种族无法建造或训练此项|This faction cannot build or train this
 该种族无法研究此项|This faction cannot research this
 需要 T2 支援分化|Requires T2 Support Specialization
@@ -1092,4 +1104,30 @@ P2P 连接需要 Pages 构建|P2P connections require a Pages build
 保留选中兵种|Keep selected unit type
 地图编辑器|Map Editor
 需要平整地面，不能在斜坡或悬崖上建造|Requires flat ground; cannot build on ramps or cliffs
+任务队列已满|Task queue is full
+资源点不在当前视野内或已枯竭|Resource is not visible or has been depleted
+无效施工目标|Invalid construction target
+没有可达的可见资源点|No reachable visible resource
+没有可用的工程采集车，请等待完工或手动停止当前任务|No available harvester. Wait for construction to finish or stop a task manually.
+按种族及选中的生产建筑训练（以调度面板标签为准）|Train for your faction and selected production building; follow the dispatch panel labels
+选中工人后右键受损的己方建筑维修；也可选中受损建筑点击「维修」。维修按恢复生命消耗资源，完成后恢复采集。|Select a harvester and right-click a damaged friendly building, or select the building and click Repair. Repairs consume resources and then resume harvesting.
+基地正在遭受攻击|Base under attack
+施工暂停：失去能量覆盖|Construction paused: no energy coverage
+未完工建筑：无人施工|Unfinished building: no builder
+施工暂停：采集车无法抵达|Construction paused: builder cannot reach site
+施工进度已停滞|Construction has stalled
+资源点已枯竭，请重新分配采集车|Resource depleted; reassign harvesters
+人口不足，请建造补给设施|Population full; add supply
+任务|Tasks
+采集车与任务|Harvesters and tasks
+追加任务（触屏 / 鼠标）|Append tasks (touch / mouse)
+持续建造|Continuous building
+空闲车采金矿|Idle harvesters → gold
+空闲车采木材|Idle harvesters → wood
+停止会清空队列。排队建筑已锁定落点并预留资源，取消后退款。建造完成后恢复原采集。|Stop clears tasks. Queued buildings reserve their location and resources; cancellation refunds them. Construction resumes previous harvesting.
+当前任务|Current task
+完成后恢复采集|Resume harvesting afterwards
+没有排队任务|No queued tasks
+选中单位后查看任务队列|Select a unit to inspect its tasks
+返回战场|Return to battle
 `.trim().split('\n').map(line=>line.split('|')));

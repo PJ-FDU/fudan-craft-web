@@ -54,6 +54,18 @@ test('WebSocket rooms: host authority, join, hidden state, validated orders and 
     // 点击密林内部会改为采集可抵达的林缘；网络回传应确认有效木材任务。
     await a.next('state',m=>m.state.units.some((u:any)=>u.id===ownWorker.id&&u.order==='gather'
       &&m.state.nodes.some((n:any)=>n.id===u.resource&&n.kind==='wood')));
+    const queuedPoint={x:ownWorker.x+128,y:ownWorker.y};
+    a.send({type:'command',command:{type:'order',ids:[ownWorker.id],point:queuedPoint,append:true}});
+    const queued=await a.next('state',m=>m.state.units.some((u:any)=>u.id===ownWorker.id&&u.tasks?.length===1));
+    assert.deepEqual(queued.state.units.find((u:any)=>u.id===ownWorker.id).tasks[0].point,queuedPoint);
+    b.send({type:'command',command:{type:'cancel-task',id:ownWorker.id,index:0}});
+    assert.match((await b.next('error')).message,/无效队列/);
+    a.send({type:'command',command:{type:'cancel-task',id:ownWorker.id,index:0}});
+    await a.next('state',m=>m.state.units.some((u:any)=>u.id===ownWorker.id&&!u.tasks?.length));
+    a.send({type:'command',command:{type:'order',ids:[ownWorker.id],point:queuedPoint,append:true}});
+    await a.next('state',m=>m.state.units.some((u:any)=>u.id===ownWorker.id&&u.tasks?.length===1));
+    a.send({type:'command',command:{type:'stop',ids:[ownWorker.id]}});
+    await a.next('state',m=>m.state.units.some((u:any)=>u.id===ownWorker.id&&u.order==='idle'&&!u.tasks?.length));
     assert.equal(av.players[1].wood,0);assert.equal(av.players[1].oil,0);assert.deepEqual(av.players[1].tech,[]);
     const c=await new Peer().open();peers.push(c);c.send({type:'join',code:room.code,name:'Late'});assert.match((await c.next('error')).message,/已开始/);
     c.send({type:'create',mapId:'unknown'});assert.match((await c.next('error')).message,/未知/);

@@ -3,6 +3,7 @@ import { createMapSnapshot, registerMapSnapshot, validateMapSnapshot } from './m
 import { deserializeCustomMap, isCustomMapId } from './custom-maps.js';
 import { SkillEngine, attackScale, hasEffect, motionScale } from './ability-engine.js';
 import { ROSTERS, covered, groundOnly, maxShield, needsCoverage, population, producersFor, raceRequirement, technologyAllowed, researchBuilding } from './races.js';
+import { availableForConstruction, unfinishedConstruction } from './construction-worker.js';
 import { getWorld,initialNodes,validMapRevision,type WorldData } from './world.js';
 import { DEFAULT_MAP_ID,isMapId,mapInfo,supportsPlayers,type MapId } from './maps.js';
 import { Movement,circleFree,groundPath,landingNear } from './movement.js';
@@ -267,7 +268,7 @@ export class Engine {
     const destination=clampPoint(goal,this.extent),plain=(u.order==='move'||u.order==='assault')&&!u.target;
     u.path=STATS[u.kind].air?[destination]:groundPath(u,destination,blocked,[],plain);
     u.destination=plain?(u.path.at(-1)??destination):destination;
-    u.navigationProgress=u.path.length?distance(u,u.path[0]):undefined;u.repath=.8;
+    u.navigationProgress=u.path.length?distance(u,u.path[0]):undefined;delete u.navigationStalled;delete u.navigationRetries;u.repath=.8;
   }
   clearWindup(u:Unit){
     this.state.windups=this.state.windups.filter(a=>a.source!==u.id);
@@ -331,6 +332,43 @@ export class Engine {
   }
   command(side: Side, cmd: Command): string | null {
     const p=this.player(side);if(!p||this.state.winner)return '对局已结束';if(!this.base(side))return '指挥中心已被摧毁';
+    if(cmd.type==='order'){
+      const target=this.state.units.find(u=>u.id===cmd.target&&u.side===side&&!isMobile(u));
+      const workers=this.state.units.filter(u=>u.side===side&&u.kind==='worker'&&cmd.ids.includes(u.id));
+      if(target&&workers.length){
+        if(!complete(target))return this.command(side,{type:'resume-build',worker:workers[0].id,target:target.id,append:cmd.append});
+        if(target.hp<maxHp(target,p))return this.command(side,{type:'repair',ids:workers.map(u=>u.id),target:target.id,append:cmd.append});
+      }
+    }
+    if(cmd.type==='assign-idle'){
+      const nodes=this.state.nodes.filter(n=>n.kind===cmd.resource&&n.amount>0&&this.visible.get(side)?.[this.indexAt(n)]);
+      const blocked=this.blockers();
+      for(const u of this.state.units.filter(u=>u.side===side&&u.kind==='worker'&&u.order==='idle'&&!u.tasks?.length)){
+        const node=[...nodes].sort((a,b)=>distance(u,a)+this.state.units.filter(v=>v.resource===a.id).length*96-distance(u,b)-this.state.units.filter(v=>v.resource===b.id).length*96)
+          .find(n=>this.servicePoint({...u,service:undefined},'node',n,n.radius+30,blocked));
+        if(node)this.command(side,{type:'gather',ids:[u.id],node:node.id});
+      }
+      return null;
+    }
+    if(cmd.type==='cancel-task'){
+      const u=this.state.units.find(u=>u.side===side&&u.id===cmd.id);
+      if(!u?.tasks||!Number.isInteger(cmd.index)||cmd.index<0||cmd.index>=u.tasks.length)return '无效队列';
+      const [task]=u.tasks.splice(cmd.index,1);this.releaseTask(u,task);return null;
+    }
+    if((cmd.type==='order'||cmd.type==='gather'||cmd.type==='repair'||cmd.type==='resume-build')&&cmd.append){
+      const units=this.state.units.filter(u=>u.side===side&&isMobile(u)&&(cmd.type==='resume-build'?u.id===cmd.worker:cmd.ids.includes(u.id)));
+      if(!units.length)return '无效指令';
+      if(units.some(u=>(u.tasks?.length??0)>=16))return '任务队列已满';
+      if(cmd.type==='order'&&!validPoint(cmd.point,this.extent))return '无效坐标';
+      if(cmd.type==='gather'&&!this.state.nodes.some(n=>n.id===cmd.node&&n.amount>0&&this.visible.get(side)?.[this.indexAt(n)]&&(n.kind!=='oil'||!this.state.oilWells&&this.has(side,'refinery'))))return '资源点不在当前视野内或已枯竭';
+      if((cmd.type==='repair'||cmd.type==='resume-build')&&!this.state.units.some(u=>u.id===cmd.target&&u.side===side&&!isMobile(u)&&(cmd.type==='repair'?complete(u):unfinishedConstruction(u))))return '无效施工目标';
+      if(cmd.type!=='order'&&units.some(u=>u.kind!=='worker'))return '请先选择工程采集车';
+      for(const u of units){
+        const task=cmd.type==='order'?{type:cmd.type,point:{x:cmd.point.x,y:cmd.point.y},target:cmd.target,assault:cmd.assault}:cmd.type==='gather'?{type:cmd.type,node:cmd.node}:{type:cmd.type,target:cmd.target};
+        (u.tasks??=[]).push(task);if(u.order==='idle'||u.order==='hold')this.nextTask(u);
+      }
+      return null;
+    }
     if(cmd.type==='cast')return p.race?this.skills.cast(side,cmd):'此战局使用传统规则';
     if(cmd.type==='medic-auto'){
       if(!p.race)return '此战局使用传统规则';
@@ -347,7 +385,7 @@ export class Engine {
     }
     if(cmd.type==='cancel-build'){
       const u=this.state.units.find(u=>u.id===cmd.id&&u.side===side&&!isMobile(u)&&!complete(u));
-      if(!p.race||!u)return '找不到可取消的施工';
+      if(!u)return '找不到可取消的施工';
       spend(p,unitCost(u.kind),-1);this.state.units=this.state.units.filter(v=>v.id!==u.id);return null;
     }
     if(cmd.type==='train'){
@@ -382,8 +420,9 @@ export class Engine {
       if(!validPoint(cmd.point,this.extent))return '无效坐标';const why=requirement(cmd.kind,p,this.state.units);if(why)return why;
       if(cmd.facing!==undefined&&!validFacing(cmd.facing))return '无效建筑朝向';
       const at=snapPoint(cmd.point),facing=cmd.facing??buildingFacing(cmd.kind,at,this.extent),error=placementError(side,cmd.kind,at,this.state.units,this.state.nodes,this.visible.get(side),facing,this.land(),this.state.oilWells,false,this.world);if(error)return error;
-      if(this.state.units.filter(u=>u.side===side&&!isMobile(u)).length>=35)return '建筑上限为 35 座';
-      if(cmd.kind==='assembly'&&this.state.units.filter(u=>u.side===side&&u.kind==='assembly').length>=3)return '装配站上限为 3 座';
+      // 模拟端也保护现有施工，防止连续点击或联机旧快照重复派遣同一辆车。
+      if(!cmd.append&&!availableForConstruction(worker))return '工程采集车正在建造或维修，请选择其他车辆';
+      if(cmd.append&&(worker.tasks?.length??0)>=16)return '任务队列已满';
       if(needsCoverage(cmd.kind)&&!covered(side,at,this.state.units))return '需要能量节点覆盖';
       if(!afford(p,unitCost(cmd.kind)))return '建造资源不足';
       const blocked=this.blockers();
@@ -392,8 +431,25 @@ export class Engine {
         :findPath(worker,at,blocked).length;
       if(!reachable)return '工程采集车无法抵达该地点';
       spend(p,unitCost(cmd.kind));const building=this.spawn(cmd.kind,side,at);building.facing=facing;building.construction=.01;building.hp=STATS[cmd.kind].hp*.01;building.builder=worker.id;
-      this.cancelAction(worker);delete worker.resumeResource;delete worker.service;worker.blockedFor=0;worker.navigationProgress=undefined;
+      if(cmd.append){building.reservedBuild=true;(worker.tasks??=[]).push({type:'resume-build',target:building.id});if(worker.order==='idle'||worker.order==='hold')this.nextTask(worker);return null;}
+      this.clearTasks(worker);
+      this.cancelAction(worker);worker.resumeResource=worker.order==='gather'?worker.resource??undefined:worker.resumeResource;delete worker.service;worker.blockedFor=0;worker.navigationProgress=undefined;
       worker.order='build';worker.target=building.id;worker.resource=null;worker.returning=false;this.route(worker,at);return null;
+    }
+    if(cmd.type==='resume-build'){
+      const worker=this.state.units.find(u=>u.id===cmd.worker&&u.side===side&&availableForConstruction(u));
+      if(!worker)return '没有可用的工程采集车，请等待完工或手动停止当前任务';
+      const building=this.state.units.find(u=>u.id===cmd.target&&u.side===side&&unfinishedConstruction(u));
+      if(!building)return '没有可继续施工的己方建筑';
+      if(building.reservedBuild&&building.builder!==worker.id)return '该建筑已有工程采集车施工';
+      if(this.state.units.some(u=>u.side===side&&u.hp>0&&u.kind==='worker'&&u.order==='build'&&u.target===building.id))return '该建筑已有工程采集车施工';
+      // 续建使用原建筑和原进度，不重复扣除建造费用；先检查实际施工位置是否可达。
+      const blocked=this.blockers(),place=this.servicePoint({...worker,service:undefined},'build',building,STATS[building.kind].radius+65,blocked);
+      if(!place)return '工程采集车无法抵达该地点';
+      worker.tasks=worker.tasks?.filter(t=>t.type!=='resume-build'||t.target!==building.id);this.clearTasks(worker);
+      this.cancelAction(worker);worker.resumeResource=worker.order==='gather'?worker.resource??undefined:worker.resumeResource;delete worker.service;delete building.reservedBuild;
+      worker.blockedFor=0;worker.navigationProgress=undefined;worker.order='build';worker.target=building.id;
+      worker.resource=null;worker.returning=false;building.builder=worker.id;this.route(worker,place.point,blocked);return null;
     }
     if(cmd.type==='rally'){if(!validPoint(cmd.point,this.extent))return '无效坐标';p.rally=clampPoint(cmd.point,this.extent);return null;}
     const units=this.state.units.filter(u=>u.side===side&&cmd.ids.includes(u.id)&&isMobile(u));
@@ -403,7 +459,7 @@ export class Engine {
       if(building.hp>=maxHp(building,p)-1e-6)return '建筑生命值已满';
       const workers=units.filter(u=>u.kind==='worker');if(!workers.length)return '请先选择工程采集车';
       const blocked=this.blockers();
-      for(const u of workers){this.cancelAction(u);u.resumeResource=u.order==='gather'?u.resource??undefined:u.resumeResource;delete u.service;u.order='repair';u.target=building.id;u.resource=null;u.path=[];u.repath=0;u.blockedFor=0;u.navigationProgress=undefined;this.route(u,building,blocked);}
+      for(const u of workers){this.clearTasks(u);this.cancelAction(u);u.resumeResource=u.order==='gather'?u.resource??undefined:u.resumeResource;delete u.service;u.order='repair';u.target=building.id;u.resource=null;u.path=[];u.repath=0;u.blockedFor=0;u.navigationProgress=undefined;this.route(u,building,blocked);}
       return null;
     }
     if(cmd.type==='gather'){
@@ -414,15 +470,16 @@ export class Engine {
       const b=this.blockers();for(const u of workers){
         const target=node.tree===undefined?node:this.nearestNode(u,'wood',node);
         if(!target)continue;
+        this.clearTasks(u);
         this.cancelAction(u);delete u.resumeResource;delete u.service;u.blockedFor=0;u.navigationProgress=undefined;u.order='gather';u.resource=target.id;u.target=null;u.returning=u.cargo>0;u.path=[];u.repath=0;if(!u.returning)this.route(u,target,b);
       }return null;
     }
-    if(cmd.type==='stop'||cmd.type==='hold'){for(const u of units){this.cancelAction(u);delete u.resumeResource;delete u.service;u.velocity={x:0,y:0};u.path=[];u.target=null;u.destination=undefined;u.resource=null;u.order=cmd.type==='hold'?'hold':'idle';}return null;}
+    if(cmd.type==='stop'||cmd.type==='hold'){for(const u of units){this.clearTasks(u);this.cancelAction(u);delete u.resumeResource;delete u.service;u.velocity={x:0,y:0};u.path=[];u.target=null;u.destination=undefined;u.resource=null;u.order=cmd.type==='hold'?'hold':'idle';}return null;}
     if(cmd.type!=='order'||!validPoint(cmd.point,this.extent))return '无效指令';
     const target=this.state.units.find(u=>u.id===cmd.target&&this.visible.get(side)?.[this.indexAt(u)]);
     // 右键建筑与显式维修按钮走同一条权威命令；混编部队只让工程车参与维修。
     if(target?.side===side&&!isMobile(target)&&complete(target)&&target.hp<maxHp(target,p)&&units.some(u=>u.kind==='worker'))
-      return this.command(side,{type:'repair',ids:units.filter(u=>u.kind==='worker').map(u=>u.id),target:target.id});
+      return this.command(side,{type:'repair',ids:units.filter(u=>u.kind==='worker').map(u=>u.id),target:target.id,append:cmd.append});
     const blocked=this.blockers(),cols=Math.ceil(Math.sqrt(units.length)),remaining=new Set(units);
     const reserved=this.state.units.filter(u=>u.hp>0&&isMobile(u)&&!remaining.has(u)&&(u.side===side||this.visible.get(side)?.[this.indexAt(u)]))
       .map(u=>({point:u.destination&&u.path.length&&u.side===side?u.destination:u,air:!!STATS[u.kind].air,radius:STATS[u.kind].radius}));
@@ -435,6 +492,7 @@ export class Engine {
       for(const candidate of remaining){const d=distance(candidate,hint);if(d<best){best=d;u=candidate;}}
       if(!u)break;
       remaining.delete(u);
+      this.clearTasks(u);
       this.cancelAction(u);delete u.resumeResource;delete u.service;u.blockedFor=0;u.navigationProgress=undefined;
       if(u.kind==='worker'&&target?.side===side&&!complete(target)){target.builder=u.id;u.order='build';u.target=target.id;u.resource=null;this.route(u,target,blocked);continue;}
       const enemy=target&&!this.allied(target.side,side)&&u.kind!=='worker'&&u.kind!=='medic'?target:undefined;
@@ -447,6 +505,28 @@ export class Engine {
       if(u.destination)reserved.push({point:u.destination,air,radius});
     }
     return null;
+  }
+  private releaseTask(u:Unit,task:NonNullable<Unit['tasks']>[number]){
+    if(task.type!=='resume-build')return;
+    const building=this.state.units.find(b=>b.id===task.target&&b.side===u.side&&b.reservedBuild&&b.builder===u.id);
+    if(building){spend(this.player(u.side),unitCost(building.kind),-1);this.state.units=this.state.units.filter(b=>b!==building);}
+  }
+  private clearTasks(u:Unit){for(const task of u.tasks??[])this.releaseTask(u,task);delete u.tasks;}
+  private nextTask(u:Unit){
+    const resume=u.resumeResource;
+    while(u.tasks?.length){
+      const task=u.tasks.shift()!,pending=u.tasks;delete u.tasks;
+      const cmd:Command=task.type==='resume-build'?{...task,worker:u.id}:{...task,ids:[u.id]};
+      const error=this.command(u.side,cmd);u.tasks=pending;u.resumeResource=resume;
+      if(!error)return;
+      this.releaseTask(u,task);
+    }
+    delete u.tasks;
+    if(u.kind==='worker'&&resume!==undefined){
+      const node=this.state.nodes.find(n=>n.id===resume&&n.amount>0);
+      delete u.resumeResource;
+      if(node){u.order='gather';u.resource=node.id;u.returning=u.cargo>0;u.target=null;u.path=[];delete u.service;u.repath=0;}
+    }
   }
   updateVision(explore=true) {
     for(const p of this.state.players){const vis=new Uint8Array(this.world.land.length),explored=this.state.explored[p.side];
@@ -693,7 +773,11 @@ export class Engine {
       if(u.station){this.stepStation(u,dt,blocked);continue;}
       if(u.ability?.cast||(u.ability?.recovery??0)>s.time)continue;
       if(u.kind==='worker'){
-        if(u.order==='gather')this.harvest(u,dt,blocked);
+        if(u.order==='gather'){
+          const returning=u.returning;this.harvest(u,dt,blocked);
+          // 采集任务在一轮交付后让出队列，避免无限采集阻塞后续工作。
+          if(returning&&!u.returning&&u.tasks?.length){u.resumeResource=u.resource??u.resumeResource;u.order='idle';u.path=[];this.nextTask(u);}
+        }
         if(u.order==='build'){
           const building=u.target?byId.get(u.target):undefined;
           if(!building||building.hp<=0||complete(building)){u.order='idle';u.target=null;u.path=[];delete u.service;}
@@ -705,8 +789,7 @@ export class Engine {
         if(u.order==='repair'){
           const building=u.target?byId.get(u.target):undefined;
           if(!building||building.hp<=0||building.side!==u.side||isMobile(building)||!complete(building)||building.hp>=maxHp(building,owner)-1e-6){
-            const node=s.nodes.find(n=>n.id===u.resumeResource);
-            u.order=node?'gather':'idle';u.resource=node?.id??null;u.returning=u.cargo>0;u.target=null;u.path=[];u.repath=0;delete u.resumeResource;delete u.service;
+            u.order='idle';u.resource=null;u.target=null;u.path=[];u.repath=0;delete u.service;
           }else if((!needsCoverage(building.kind)||covered(u.side,building,s.units))&&this.approach(u,'build',building,STATS[building.kind].radius+65,blocked)){
             u.path=[];u.angle=Math.atan2(building.y-u.y,building.x-u.x);
             const slot=repairSlots.get(building.id)??0;repairSlots.set(building.id,slot+1);
@@ -716,7 +799,7 @@ export class Engine {
             if(proposed>0&&available>0){spend(owner,cost,fraction*available);building.hp=Math.min(maxHp(building,owner),building.hp+proposed*available);u.activity='repair';if(u.cooldown<=0){this.emit('heal',building);u.cooldown=.8;}}
           }
         }
-        this.move(u,dt);continue;
+        this.move(u,dt);if(u.order==='idle')this.nextTask(u);continue;
       }
       let attacking=false;
       if(u.kind==='medic'&&u.order!=='move'&&u.cooldown<=0&&u.ability?.auto!==false&&(!owner.race||!u.target)){
@@ -746,7 +829,10 @@ export class Engine {
         this.move(u,dt);if(!u.path.length&&!u.target&&u.order==='attack')u.order='idle';
       }
     }
-    for(const u of s.units)if(u.hp<=0)this.emit('death',u);
+    for(const u of s.units){
+      if(u.hp<=0){this.clearTasks(u);this.emit('death',u);}
+      else if(isMobile(u)&&(u.order==='idle'||u.order==='assault'&&!u.path.length&&!u.target))this.nextTask(u);
+    }
     s.units=s.units.filter(u=>u.hp>0);s.windups=s.windups.filter(a=>s.units.some(u=>u.id===a.source));
     const alive=s.players.filter(p=>this.base(p.side));if(alive.length&&new Set(alive.map(p=>teamOf(p.side,s.players))).size===1)s.winner=alive[0].side;
     for(const p of s.players)recordEconomy(p,s.units,s.time,dt);
@@ -762,7 +848,7 @@ export class Engine {
     return {
       ...(this.state.mapHash?{mapHash:this.state.mapHash}:{}),...(this.state.oilWells?{oilWells:true as const}:{}),mapId:this.world.id as MapId,mapRevision:this.world.revision,time:this.state.time,
       events:this.state.events.filter(e=>(e.audience&(1<<side))!==0&&(this.allied(e.side,side)||vis[this.indexAt(e)])).map(({audience,...e})=>e),
-      units:revealed.map(u=>({...u,ability:u.ability&&(u.side===side?u.ability:{
+      units:revealed.map(u=>({...u,navigationStalled:u.side===side?u.navigationStalled:undefined,navigationRetries:u.side===side?u.navigationRetries:undefined,tasks:u.side===side?u.tasks:undefined,resumeResource:u.side===side?u.resumeResource:undefined,ability:u.ability&&(u.side===side?u.ability:{
         energy:0,cooldowns:{},effects:u.ability.effects.map(({source,...status})=>({...status,source:0})),
         cast:u.ability.cast?{skill:u.ability.cast.skill,until:u.ability.cast.until,
           point:u.ability.cast.point&&vis[this.indexAt(u.ability.cast.point)]?u.ability.cast.point:undefined}:undefined,
@@ -814,6 +900,12 @@ function validSave(s: unknown): s is GameState {
     !v.areas.every(a=>a&&point(a)&&entityId(a.id)&&entityId(a.source)&&v.players.some(p=>p.side===a.side)&&
       sustainedAreas.includes(a.skill)&&a.radius===ABILITIES[a.skill].radius&&number(a.until,0,v.time+6))))return false;
   for(const u of v.units){
+    if(!u)return false;
+    if(u.reservedBuild!==undefined&&(u.reservedBuild!==true||isMobile(u)||u.construction!==.01))return false;
+    if(u.tasks!==undefined&&(!isMobile(u)||!Array.isArray(u.tasks)||u.tasks.length>16||u.tasks.some(t=>!t||
+      (t.type==='order'?(!point(t.point)||t.target!==undefined&&!entityId(t.target)||t.assault!==undefined&&typeof t.assault!=='boolean'):
+      t.type==='gather'?(u.kind!=='worker'||!entityId(t.node)):
+      t.type==='repair'||t.type==='resume-build'?(u.kind!=='worker'||!entityId(t.target)):true))))return false;
     if(!u||u.shield!==undefined&&!number(u.shield,0,maxShield(u))||u.shieldHit!==undefined&&!number(u.shieldHit,0,v.time))return false;
     if(u.station&&(u.kind!=='assembly'||!['packing','mobile','deploying'].includes(u.station.mode)||
       u.station.mode!=='mobile'&&!number(u.station.until,0,v.time+8)||u.station.mode==='deploying'&&!point(u.station.point)))return false;
@@ -832,7 +924,7 @@ function validSave(s: unknown): s is GameState {
     if(a.feedback!==undefined&&(!a.feedback||typeof a.feedback.text!=='string'||a.feedback.text.length>80||!number(a.feedback.until,0,v.time+2)))return false;
   }
 
-  if(v.units.some(u=>u.yieldOrigin!==undefined&&!point(u.yieldOrigin)))return false;
+  if(v.units.some(u=>u.yieldOrigin!==undefined&&!point(u.yieldOrigin)||u.navigationStalled!==undefined&&(!finite(u.navigationStalled)||u.navigationStalled<0)||u.navigationRetries!==undefined&&(!Number.isSafeInteger(u.navigationRetries)||u.navigationRetries<0)))return false;
   if(v.windups!==undefined&&(!Array.isArray(v.windups)||v.windups.length>560||new Set(v.windups.map(a=>a.source)).size!==v.windups.length||!v.windups.every(a=>a&&Number.isSafeInteger(a.source)&&a.source>0&&a.source<v.nextId&&Number.isSafeInteger(a.target)&&a.target>0&&a.target<v.nextId&&finite(a.fireAt)&&a.fireAt>=0&&a.fireAt<=v.time+2&&typeof a.healing==='boolean')))return false;
   if(!v.units.every(u=>(u.navigationProgress===undefined||finite(u.navigationProgress)&&u.navigationProgress>=0)&&(u.yieldPoint===undefined||point(u.yieldPoint))&&(u.travel===undefined||finite(u.travel)&&u.travel>=0&&u.travel<=1e12)&&(u.blockedFor===undefined||finite(u.blockedFor)&&u.blockedFor>=0)&&(u.velocity===undefined||u.velocity&&finite(u.velocity.x)&&finite(u.velocity.y)&&Math.abs(u.velocity.x)<=1000&&Math.abs(u.velocity.y)<=1000)&&(u.service===undefined||u.service&&['node','depot','build'].includes(u.service.kind)&&Number.isSafeInteger(u.service.target)&&u.service.target>0&&point(u.service.point)&&typeof u.service.waiting==='boolean')&&(u.action===undefined||u.action&&finite(u.action.started)&&u.action.started>=0&&u.action.started<=v.time&&finite(u.action.until)&&u.action.until>=u.action.started&&u.action.until<=v.time+5&&(u.action.fired===null||finite(u.action.fired)&&u.action.fired>=u.action.started&&u.action.fired<=v.time))))return false;
   if(v.events!==undefined&&(!Array.isArray(v.events)||v.events.length>512||!v.events.every(e=>point(e)&&Number.isSafeInteger(e.id)&&e.id>0&&e.id<(v.nextEventId??1)&&Number.isSafeInteger(e.unit)&&e.unit>0&&Object.hasOwn(STATS,e.kind)&&[1,2,3,4].includes(e.side)&&Number.isFinite(e.angle)&&Number.isFinite(e.time)&&e.time>=0&&e.time<=v.time&&Number.isInteger(e.audience)&&e.audience>=0&&e.audience<=30&&(['attack','fire','impact','heal','damage','death','spawn','complete'].includes(e.type)&&e.skill===undefined||e.type==='cast'&&isAbility(e.skill)&&ABILITIES[e.skill].unit===e.kind))))return false;
@@ -845,6 +937,12 @@ function validSave(s: unknown): s is GameState {
   if(v.players.some(p=>p.side>world.bases.length))return false;
   if(!v.players.every(p=>[1,2,3,4].includes(p.side)&&typeof p.name==='string'&&[p.credits,p.wood,p.oil,p.harvested,p.kills,p.lost].every(n=>Number.isFinite(n)&&n>=0)&&Array.isArray(p.tech)&&p.tech.every(t=>Object.hasOwn(TECHS,t))&&Array.isArray(p.queue)&&p.queue.length<=24&&p.queue.every(q=>q&&typeof q.research==='boolean'&&(q.research?Object.hasOwn(TECHS,q.kind):ALL_MOBILE_KINDS.includes(q.kind as MobileKind))&&Number.isFinite(q.remaining)&&q.remaining>=0&&Number.isFinite(q.duration)&&q.duration>0&&Number.isInteger(q.producer))&&typeof p.ai==='boolean'&&(p.rally===null||point(p.rally))&&Array.isArray(v.explored[p.side])&&v.explored[p.side].length===world.land.length&&v.explored[p.side].every(n=>n===0||n===1)))return false;
   const ids=new Set<number>();for(const u of v.units){if(!point(u)||!Object.hasOwn(STATS,u.kind)||!sides.has(u.side)||!Number.isInteger(u.id)||u.id<=0||ids.has(u.id)||u.id>=v.nextId||!Number.isFinite(u.hp)||u.hp<=0||u.hp>maxHp(u,v.players.find(p=>p.side===u.side)!)+1||!Number.isFinite(u.angle)||!Number.isFinite(u.cooldown)||!Number.isFinite(u.repath)||!Number.isFinite(u.cargo)||u.cargo<0||u.cargo>150.001||!Number.isFinite(u.construction)||u.construction<=0||u.construction>1||!Array.isArray(u.path)||u.path.length>world.land.length||!u.path.every(point)||!['idle','move','attack','assault','hold','gather','build','repair'].includes(u.order)||(u.order==='repair'&&u.kind!=='worker')||(u.destination!==undefined&&!point(u.destination))||(u.cargoKind!==null&&!['gold','wood','oil'].includes(u.cargoKind))||typeof u.returning!=='boolean'||(u.target!==null&&!Number.isInteger(u.target))||(u.resource!==null&&!Number.isInteger(u.resource))||(u.builder!==null&&!Number.isInteger(u.builder)))return false;ids.add(u.id);}
+  // 已扣费的占位建筑必须恰好属于一个同阵营工人的待执行任务，防止读档后无法取消或重复退款。
+  for(const building of v.units.filter(u=>u.reservedBuild)){
+    const owners=v.units.filter(u=>u.tasks?.some(t=>t.type==='resume-build'&&t.target===building.id));
+    if(owners.length!==1||owners[0].kind!=='worker'||owners[0].side!==building.side||owners[0].id!==building.builder||
+      owners[0].tasks!.filter(t=>t.type==='resume-build'&&t.target===building.id).length!==1)return false;
+  }
   if(!v.nodes.every(n=>point(n)&&Number.isInteger(n.id)&&['gold','wood','oil'].includes(n.kind)&&Number.isFinite(n.amount)&&n.amount>=0&&Number.isFinite(n.max)&&n.max>=n.amount&&Number.isFinite(n.radius)&&n.radius>0))return false;
   if(new Set(v.nodes.map(n=>n.id)).size!==v.nodes.length)return false;
   if(v.units.some(u=>u.cargoNode!==undefined&&(u.kind!=='worker'||u.cargoKind!=='gold'||!v.nodes.some(n=>n.id===u.cargoNode&&n.kind==='gold'))))return false;

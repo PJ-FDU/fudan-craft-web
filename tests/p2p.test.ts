@@ -19,6 +19,25 @@ function room(mode='ffa'){
   };
   return {host,output,code,join};
 }
+test('Pages authority preserves appended tasks through snapshot transport and guest reconnect, and rejects foreign cancellation',async()=>{
+  const {host,join,output,code}=room(),ticket=join('guest');
+  host.receive('host-123',{type:'start'});const engine=host.engine!;
+  const worker=engine.state.units.find(u=>u.side===2&&u.kind==='worker')!;
+  const point={x:worker.x+128,y:worker.y};
+  host.receive('guest',{type:'command',command:{type:'order',ids:[worker.id],point,append:true}});
+  assert.equal(worker.tasks?.length,1);
+  host.receive('host-123',{type:'command',command:{type:'cancel-task',id:worker.id,index:0}});
+  assert.equal(worker.tasks?.length,1);
+  const payload=JSON.parse(await decodeState(await encodeState(engine.view(2))));
+  assert.deepEqual(payload.state.units.find((u:any)=>u.id===worker.id).tasks,JSON.parse(JSON.stringify(worker.tasks)));
+  assert.equal(engine.view(1).units.find(u=>u.id===worker.id)?.tasks,undefined);
+  const now=Date.now();host.disconnect('guest',false,now);host.connect('resumed',now+1);
+  host.receive('resumed',{type:'resume',code,token:ticket.token},now+1);
+  const restored=output.filter(o=>o.id==='resumed'&&o.message.type==='state').at(-1)!.message.state as ReturnType<Engine['view']>;
+  assert.equal(restored.units.find(u=>u.id===worker.id)?.tasks?.length,1);
+  host.receive('resumed',{type:'command',command:{type:'cancel-task',id:worker.id,index:0}});
+  assert.equal(worker.tasks?.length,0);
+});
 test('Pages invites preserve the pinned host and reject incomplete or malformed identifiers',()=>{
   const code='aabbccddeeff:Case_Sensitive-host';
   assert.equal(parseInvite(code)?.code,'AABBCCDDEEFF:Case_Sensitive-host');

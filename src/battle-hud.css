@@ -10,7 +10,11 @@
 .compact-header .brand-mark{display:grid;place-items:center;width:31px;height:32px;line-height:1;font-size:25px;padding:0;color:#c6c9a4;border:1px solid #a19472;border-radius:3px;background:linear-gradient(145deg,#4d5c4b,#29392e);box-shadow:inset 0 0 0 2px #101b18,0 2px 2px #0006;text-shadow:0 1px 2px #0007}
 .compact-header .brand-wordmark small{display:block;margin:4px 0 0;font-size:6px;line-height:1;letter-spacing:2.6px;color:#879e8c}
 .compact-header .economy-bar{height:auto;display:block;padding:0;border:0;background:none;min-width:0}
-.compact-header .economy-resources{display:grid;grid-template-columns:repeat(3,minmax(66px,104px)) minmax(106px,128px);gap:5px;justify-content:center;width:100%}
+.compact-header .economy-resources{display:grid;grid-template-columns:repeat(3,minmax(66px,104px)) minmax(100px,120px) minmax(106px,128px);gap:5px;justify-content:center;width:100%}
+.compact-header .economy-resources:has(#power-stat[hidden]){grid-template-columns:repeat(3,minmax(0,104px)) minmax(0,120px)}
+.compact-header .population-stat .resource-icon{color:#b7bd94}
+.compact-header .population-stat small{display:flex;align-items:center;gap:4px;letter-spacing:0}
+.compact-header #population-reserved{font:7px var(--mono);color:#d2b979}
 .compact-header .economy-stat{position:relative;display:flex;align-items:center;min-width:0;height:35px;gap:7px;padding:4px 8px;white-space:nowrap;border:1px solid #61705b66;border-top-color:#10191b;border-radius:2px;background:linear-gradient(#0c1618,#172124);box-shadow:inset 0 1px 4px #0006,0 1px 0 #b4b59620}
 .compact-header .resource-icon{width:21px;height:21px;flex:none;filter:drop-shadow(0 1px 1px #0008)}
 .compact-header .gold .resource-icon{color:#d2b979}.compact-header .wood .resource-icon{color:#9fb585}.compact-header .oil .resource-icon{color:#8bb0bd}.compact-header .power .resource-icon{color:#a9c692}
@@ -149,6 +153,10 @@
 .battle-dock .population strong,.battle-dock .worker-stat strong{font:11px var(--mono);display:inline;color:#cbcdbb}
 .battle-dock .population em{font-size:8px;color:#88988a}
 .battle-dock .worker-stat em{display:none}
+.battle-dock .idle-workers{display:inline-flex;align-items:center;gap:4px;padding:2px 5px;border:1px solid #8c9c9140;border-radius:2px;color:#8c9c91;font-size:9px}
+.battle-dock .idle-workers b{font:10px var(--mono)}
+.battle-dock .idle-workers.has-idle{color:#d4dca5;border-color:#b4c67d80;background:#b4c67d16}
+.battle-dock .idle-workers:disabled{opacity:.5}
 .battle-dock .logistics-queue{display:flex;align-items:center;flex:1;min-width:0;border-left:1px solid #c5ddbd20;padding-left:10px;gap:8px}
 .battle-dock .queue-heading{display:block;font-size:8px;color:#8c9b8e;flex:none;margin:0}
 .battle-dock .queue-heading b{font:8px var(--mono);color:#c5c9aa;margin-left:4px}
@@ -240,13 +248,13 @@
 #app .pause-overlay{z-index:20;background:#08130ec7}
 
 @media(min-width:1600px){
-  .header.compact-header{gap:24px;padding:0 20px}.compact-header .economy-resources{grid-template-columns:repeat(3,minmax(80px,116px)) minmax(106px,136px);gap:7px}
+  .header.compact-header{gap:24px;padding:0 20px}.compact-header .economy-resources{grid-template-columns:repeat(3,minmax(80px,116px)) minmax(110px,128px) minmax(106px,136px);gap:7px}
   .battle-dock .dispatch-info strong,.battle-dock .building-grid .dispatch-info strong{font-size:10px;line-height:13px}
   .battle-dock .unit-detail-title strong{font-size:17px}.battle-dock .unit-stat-list{font-size:11px}
 }
 @media(max-width:1050px){
   #app{--toolbar-height:46px}.header.compact-header{gap:12px;padding:0 9px}.compact-header .brand{font-size:17px;gap:7px}
-  .compact-header .economy-resources{grid-template-columns:repeat(3,minmax(58px,94px)) minmax(98px,114px)}
+  .compact-header .economy-resources{grid-template-columns:repeat(3,minmax(58px,94px)) minmax(90px,106px) minmax(98px,114px)}
   .compact-header .economy-stat{gap:5px;padding-inline:6px}.compact-header .economy-stat.power{gap:5px;padding-inline:6px}
   .compact-header .economy-stat strong{font-size:12px}.compact-header .economy-stat strong.large-stock{font-size:11px}
   .hud-tools .hud-label,.hud-tools kbd{display:none}.hud-button,.hud-button.menu-button,.hud-button.help-button{width:32px;height:32px;padding:0}.hud-button.menu-button{margin:0}
@@ -257,7 +265,7 @@
 }
 @media(max-width:800px){
   .header.compact-header{gap:8px;padding-inline:7px}.compact-header .brand-wordmark{display:none}
-  .compact-header .economy-resources{grid-template-columns:repeat(3,minmax(46px,1fr)) minmax(82px,1.2fr);gap:4px}
+  .compact-header .economy-resources{grid-template-columns:repeat(3,minmax(0,1fr)) minmax(0,1.35fr) minmax(0,1.2fr);gap:4px}
   .compact-header .economy-stat,.compact-header .economy-stat.power{padding-inline:5px;gap:4px}
   .compact-header .resource-icon{width:17px;height:17px}.compact-header .economy-stat strong{font-size:11px}.compact-header .economy-stat small{font-size:6px}
   .compact-header .power-meter{left:26px;right:5px}
@@ -279,9 +287,9 @@
 @media(max-width:580px){
   #app{--toolbar-height:72px}.header.compact-header{grid-template-columns:28px minmax(0,1fr);grid-template-rows:32px 28px;gap:4px 6px;padding:3px 6px 4px}
   .compact-header .brand{grid-column:1;grid-row:1}.compact-header .brand-mark{width:28px;height:30px;font-size:23px}
-  .compact-header .economy-bar{grid-column:2;grid-row:1}.compact-header .economy-resources{grid-template-columns:repeat(3,minmax(42px,1fr)) minmax(76px,1.2fr);gap:4px}
+  .compact-header .economy-bar{grid-column:2;grid-row:1}.compact-header .economy-resources{grid-template-columns:repeat(3,minmax(0,1fr)) minmax(0,1.35fr) minmax(0,1.2fr);gap:4px}
   .compact-header .economy-stat,.compact-header .economy-stat.power{height:32px;padding:3px 4px;gap:4px}
-  .compact-header .resource-icon{width:16px;height:16px}.compact-header .economy-stat small{font-size:6px;line-height:7px;letter-spacing:0}
+  .compact-header .resource-icon{display:none}.compact-header .economy-stat small{font-size:6px;line-height:7px;letter-spacing:0}
   .compact-header .economy-stat strong{font-size:11px;line-height:13px;letter-spacing:-.2px}.compact-header .economy-stat strong.large-stock{font-size:9px}
   .compact-header .economy-stat em{font-size:8px}.compact-header .economy-stat.power small{gap:3px}
   .compact-header .economy-stat.power small i{font-size:5px}.compact-header .power-meter{left:25px;right:4px}

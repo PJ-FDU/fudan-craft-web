@@ -16,7 +16,8 @@ import { BattleModels, natureGeometry, type BattleModel } from './models-3d.js';
 import type { BlenderAssets } from './blender-assets.js';
 import { natureSurface } from './model-surface.js';
 import { terrainGeometry, waterGeometry, waterMaskGeometry } from './battle-terrain.js';
-import { terrainColor, terrainNormal, terrainSurfaceUniforms, terrainWaterBed, terrainWaterFoam, terrainWaterNormal, type TerrainSurfaces } from './terrain-surfaces.js';
+import { terrainColor, terrainNormal, terrainRoadUniforms, terrainSurfaceUniforms, terrainWaterBed, terrainWaterFoam, terrainWaterNormal, type TerrainSurfaces } from './terrain-surfaces.js';
+import { smoothRoadMask } from './terrain-shapes.js';
 import { heightAt, normalAt } from './terrain-height.js';
 import { humanoid,poseRig } from './unit-rig.js';
 import { weapon } from './weapons.js';
@@ -324,14 +325,14 @@ export class BattleScene {
               mix(rippleHash(i+vec2(0,1)),rippleHash(i+vec2(1,1)),f.x),f.y);
           }`:''}
         ${terrainSurfaces?terrainSurfaceUniforms:ground?atlasSamplingGLSL:''}
-        ${ground?`uniform sampler2D roads;
+        ${ground?`${terrainRoadUniforms}
           uniform sampler2D groundShade;`:''}
       `+shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
         ${ground?(terrainSurfaces?terrainColor:`vec2 fieldUV=battleUv*battleExtent*(17.5/4096.0);
           vec3 grass=paintGround(${atlasCellGLSL('grass')},fieldUV);
           vec3 dirt=paintGround(${atlasCellGLSL('earth')},fieldUV*.77);
           float edge=sin(battleUv.x*425.0+battleUv.y*293.0)*cos(battleUv.y*507.0-battleUv.x*165.0);
-          float road=smoothstep(.13,.88,texture2D(roads,battleUv).r+edge*.12+(grass.g-.21)*.47);
+          float road=terrainRoadCoverage(battleWorldPos.xz,grass.g-.21);
           float shade=sin(battleUv.x*57.0+sin(battleUv.y*33.0)*1.55)*cos(battleUv.y*62.0);
           vec3 field=mix(vec3(.075,.119,.055),grass*.76,.77)*(1.0+shade*.24);
           vec3 trail=mix(vec3(.178,.137,.088),dirt*vec3(.72,.89,1.13),.62)*(1.0+shade*.16);
@@ -416,7 +417,7 @@ export class BattleScene {
 
   private makeTerrain() {
     const size=gridSize(this.world.land),extent=this.extent.value;
-    const roads=new DataTexture(this.world.roads,size,size,RedFormat);
+    const roads=new DataTexture(smoothRoadMask(this.world.roads,size),size,size,RedFormat);
     roads.magFilter=roads.minFilter=LinearFilter;roads.needsUpdate=true;
     const shadows=document.createElement('canvas');
     shadows.width=shadows.height=1024;

@@ -28,6 +28,10 @@ import { TouchHUD } from './game/touch-hud.js';
 import { GROUP_KEYS, groupAction, groupKey, groupShortcut, readGroups, type GroupAction, type GroupKey } from './game/control-groups.js';
 import { buildingFacing,nextFacing } from './game/building-layout.js';
 import { Engine, complete, requirement, powerFor, snapPoint, validPoint } from './game/engine.js';
+import { constructionWorker, resumeConstruction } from './game/construction-worker.js';
+import { DEFAULT_BINDINGS,readPreferences,savePreferences,productionBindings,operationText as opText,type Binding,type NoticeKind } from './game/operation-preferences.js';
+import { bindOperationSettings } from './game/operation-settings.js';
+import { OperationNotices } from './game/operation-notices.js';
 import { animationGallery } from './game/animation-gallery.js';
 import { selectionInfo } from './game/selection-info.js';
 import { Renderer } from './game/renderer.js';
@@ -67,10 +71,10 @@ let beforeDialog=false,dialogPauses=false,renderQueueKey='',renderSelectedKey=''
 const keys=new Set<string>(),groups=new Map<GroupKey,number[]>();
 let lastGroupRecall:{key:GroupKey;time:number}|undefined;
 let mouseGroupAction:Exclude<GroupAction,'recall'>|undefined;
-const trainingShortcuts={q:'soldier',e:'worker',r:'tank'} as const;
-const buildingShortcuts={i:'refinery',o:'oilwell',l:'lumbermill'} as const;
-const productionShortcuts:Partial<Record<Kind,string>>=Object.fromEntries(
-  Object.entries({...trainingShortcuts,...buildingShortcuts}).map(([key,kind])=>[kind,key.toUpperCase()]));
+const preferences=readPreferences(),operationNotices=new OperationNotices();
+let productionShortcuts:Partial<Record<Kind,string>>={};
+let appendTasks=false;
+let renderOperationTasks:(()=>void)|undefined;
 const LOCAL_SAVE_KEY='fudancraft-save-v2';
 let buildKind:BuildingKind|null=null,buildWorker=0,productionTab:'units'|'buildings'|'tech'='units',productionKey='';
 const escape=(s:string)=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
@@ -81,7 +85,7 @@ const touchHUD=new TouchHUD(app,{
   all:selectAll,clear:()=>{setMode(null);renderer.selected.clear();renderer.selectedNode=null;touchHUD.showDetails(false);updateUI(true);},
   dispatch:()=>{if(!dispatchExpanded&&renderer.selected.size){const selected=view.units.filter(u=>renderer.selected.has(u.id));productionTab=selected.some(u=>u.kind==='worker')?'buildings':selected.some(u=>u.kind==='research')?'tech':'units';renderProduction(view.players.find(p=>p.side===side)!,true);}setDispatch(!dispatchExpanded);},
   resize:()=>renderer.resize(),
-  idle:selectIdleWorker,group:(key,save)=>{const number=groupKey(key);if(number)controlGroup(number,save?'save':'recall');},filter:filterSelection,
+  idle:()=>selectIdleWorker(),resumeBuild:beginResumeConstruction,group:(key,save)=>{const number=groupKey(key);if(number)controlGroup(number,save?'save':'recall');},filter:filterSelection,
 });
 function readLocalBattle(raw:string){
   const saved=JSON.parse(raw);
@@ -174,24 +178,45 @@ function rotateBuilding(){
   if(renderer.placement)renderer.placement.facing=nextFacing(renderer.placement.facing);
 }
 $('rotate-building').onclick=rotateBuilding;
-function beginBuilding(kind:BuildingKind){
+function beginBuilding(kind:BuildingKind,append=false){
   if(!readyForCommand())return;const player=view.players.find(p=>p.side===side)!,why=requirement(kind,player,view.units);if(why){toast(why,true);return;}
-  const workers=view.units.filter(u=>u.side===side&&u.kind==='worker');const worker=workers.find(u=>renderer.selected.has(u.id))||workers.find(u=>u.order!=='build')||workers[0];
-  if(!worker){toast('先在指挥中心训练工程采集车',true);return;}
+  const worker=append?view.units.find(u=>u.side===side&&u.kind==='worker'&&renderer.selected.has(u.id))??constructionWorker(view.units,side,renderer.selected):constructionWorker(view.units,side,renderer.selected);
+  if(!worker){toast(view.units.some(u=>u.side===side&&u.kind==='worker'&&u.hp>0)?'工程采集车都在建造或维修，请等待完工或手动停止当前任务':'先在指挥中心训练工程采集车',true);return;}
   if(dispatchExpanded&&touchHUD.active)setDispatch(false);
   setMode(null);buildKind=kind;buildWorker=worker.id;renderer.selected=new Set([worker.id]);
   const point=snapPoint(renderer.camera);renderer.placement={kind,point,facing:buildingFacing(kind,point,renderer.camera.world)};
   $('command-hint').hidden=false;$('rotate-building').hidden=false;
   $('command-message').textContent=kind==='oilwell'?'点击油点建造油井 · Esc 取消':`放置${STATS[kind].name} · 绿色可建造 / 红色不可建造 · Esc 取消`;canvas.style.cursor='crosshair';updateUI(true);
 }
-function readyForCommand(){if(home||operationOpen||!$('battle-loading').hidden||!started){toast('先开始战役，接管你的部队');return false;}if(paused&&!network){toast('战局已暂停，按 P 继续');return false;}if(view.winner){toast('本场战役已结束');return false;}return true;}
-function command(c:Command):boolean{if(!readyForCommand())return false;if(network){if(socket?.readyState===WebSocket.OPEN)socket.send(JSON.stringify({type:'command',command:c}));else{toast('连接已断开，请返回单机战役',true);return false;}}else{const err=engine.command(side,c);if(err){toast(err,true);return false;}view=engine.view(side);}renderer.selectedNode=null;soundscape.command(c,view,side);updateUI(true);return true;}
+function readyForCommand(){if(home||operationOpen||!$('battle-loading').hidden||!started){toast('先开始战役，接管你的部队');return false;}if(paused&&!network&&!(dialog.open&&dialogPauses&&!beforeDialog)){toast('战局已暂停，按 P 继续');return false;}if(view.winner){toast('本场战役已结束');return false;}return true;}
+function commandError(message:string){
+  if(message.includes('人口')){
+    const base=view.units.find(u=>u.side===side&&u.kind==='base');
+    if(base)operationNotices.emit('population',opText('人口不足，请建造补给设施','Population full; add supply'),base,view.time,'population',preferences,noticeSound);
+  }
+  toast(message,true);
+}
+function noticeSound(kind:NoticeKind){if(kind!=='attack')audio.effect('alarm',.45,0,12);}
+function command(c:Command):boolean{if(!readyForCommand())return false;if(network){if(socket?.readyState===WebSocket.OPEN)socket.send(JSON.stringify({type:'command',command:c}));else{toast('连接已断开，请返回单机战役',true);return false;}}else{const err=engine.command(side,c);if(err){commandError(err);return false;}view=engine.view(side);}renderer.selectedNode=null;soundscape.command(c,view,side);updateUI(true);return true;}
+function trainUnit(kind:MobileKind){
+  const producer=view.units.find(u=>u.side===side&&renderer.selected.has(u.id)&&complete(u)&&u.kind===(kind==='worker'&&view.players.find(p=>p.side===side)?.race==='brood'?'hatchery':STATS[kind].producer));
+  command({type:'train',kind,producer:producer?.id});
+}
 function togglePause(){if(network){toast(PAGES_BUILD?'P2P 战役由房主持续模拟':'联机对战由服务器持续模拟');return;}if(!started||view.winner)return;paused=!paused;$('pause-overlay').hidden=!paused;updateUI(true);}
 function selectAll(){if(!started)return;renderer.selected=new Set(view.units.filter(u=>u.side===side&&isCombat(u)).map(u=>u.id));setMode(null);soundscape.select(view,side,renderer.selected);updateUI(true);}
-function selectIdleWorker(fallback=false){
-  const workers=view.units.filter(u=>u.side===side&&u.kind==='worker'&&u.order==='idle').sort((a,b)=>a.id-b.id),current=workers.findIndex(u=>renderer.selected.has(u.id));
-  const worker=workers[(current+1)%workers.length]??(fallback?view.units.find(u=>u.side===side&&u.kind==='worker'):undefined);if(!worker){toast('没有空闲采集车');return;}
+function selectIdleWorker(){
+  const workers=view.units.filter(u=>u.side===side&&u.kind==='worker'&&u.hp>0&&u.order==='idle').sort((a,b)=>a.id-b.id),current=workers.findIndex(u=>renderer.selected.has(u.id));
+  const worker=workers[(current+1)%workers.length];if(!worker){toast('没有空闲采集车');return;}
   renderer.selected=new Set([worker.id]);renderer.selectedNode=null;setMode(null);renderer.focus(worker);updateUI(true);
+}
+function beginResumeConstruction(){
+  if(!readyForCommand())return;
+  const assignment=resumeConstruction(view.units,side,renderer.selected);
+  if(!assignment){toast('请选中可用的工程采集车或无人施工的未完工建筑',true);return;}
+  if(command({type:'resume-build',worker:assignment.worker.id,target:assignment.building.id})){
+    renderer.selected=new Set([assignment.worker.id]);setMode(null);updateUI(true);
+    toast('已派遣工程采集车继续施工');
+  }
 }
 const groupButtons=GROUP_KEYS.map(key=>{
   const button=document.createElement('button');
@@ -286,7 +311,7 @@ function showDialog(title:string,content:string,tag='COMMAND CENTER',pause=true)
   dialog.classList.toggle('map-dialog',tag==='NEW OPERATION'||tag.startsWith('ROOM / '));
   $('dialog-title').textContent=title;$('dialog-tag').textContent=tag;$('dialog-content').innerHTML=content;if(!dialog.open)dialog.showModal();
 }
-function closeDialog(){galleryCleanup?.();galleryCleanup=null;dialog.close();app.append($('audio-caption'));if(dialogPauses)paused=beforeDialog;dialogPauses=false;if(operationOpen)$('operation-back').focus({preventScroll:true});else if(home)$($<HTMLButtonElement>('continue-game').disabled?'start':'continue-game').focus({preventScroll:true});else canvas.focus({preventScroll:true});}
+function closeDialog(){renderOperationTasks=undefined;galleryCleanup?.();galleryCleanup=null;dialog.close();app.append($('audio-caption'));if(dialogPauses)paused=beforeDialog;dialogPauses=false;if(operationOpen)$('operation-back').focus({preventScroll:true});else if(home)$($<HTMLButtonElement>('continue-game').disabled?'start':'continue-game').focus({preventScroll:true});else canvas.focus({preventScroll:true});}
 $('cancel-command').onclick=()=>{setMode(null);updateUI(true);};
 $('close-dialog').onclick=closeDialog;dialog.addEventListener('cancel',e=>{e.preventDefault();closeDialog();});dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();const m=e as MouseEvent;if(m.clientX<r.left||m.clientX>r.right||m.clientY<r.top||m.clientY>r.bottom)closeDialog();}});
 function openMapEditor(doc?:CustomMapDocument){
@@ -383,12 +408,19 @@ function menu(){showDialog('战局控制',`<p class="dialog-description">${netwo
   $('menu-animation').onclick=openAnimationGallery;$<HTMLInputElement>('animation-toggle').onchange=e=>renderer.animate=(e.target as HTMLInputElement).checked;
   $('menu-resume').onclick=closeDialog;$('new-battle').onclick=setupBattle;$('save').onclick=saveGame;$('load').onclick=loadGame;$('menu-multiplayer').onclick=multiplayer;$('menu-codex').onclick=codex;$('menu-help').onclick=help;$<HTMLInputElement>('trackpad-toggle').onchange=e=>controls.trackpad=(e.target as HTMLInputElement).checked;
   $<HTMLInputElement>('health-toggle').onchange=e=>renderer.showHealth=(e.target as HTMLInputElement).checked;$<HTMLInputElement>('range-toggle').onchange=e=>renderer.showRanges=(e.target as HTMLInputElement).checked;
+  bindSavedPreferences('menu');
 }
 function help(){
   const touch=`<h3>触屏操作</h3><p class="room-note">单击己方单位选择；选中后点击空地移动、敌军攻击、资源采集。选中工人后点击受损建筑维修或未完工建筑续建。</p><p class="room-note">双击单位选择当前视野同类，三击选择己方全部移动单位（含工人）。长按 420 毫秒后拖出选择框；直接单指拖动平移，双指平移和缩放战场。</p><p class="room-note">点击「保存」再点 1–3 保存编队，点击编号召回，连点两次定位。底部「调度」打开生产、建造和科技；点击选中摘要查看详细数值，× 取消选择或指令。</p>`;
   const groupMouseHelp='<p class="room-note">鼠标编队：先点击「保存」「追加」或「加选」，再点击编队编号。也可点击编号召回，双击定位。</p>';
   const desktop=`<div class="control-list"><span><kbd>左键</kbd> 点选 / 拖动框选</span><span><kbd>Shift</kbd> 加选 / 取消单位</span><span><kbd>右键</kbd> 移动 / 指定攻击</span><span><kbd>A</kbd> 攻击移动至目标</span><span><kbd>J</kbd> 维修</span><span><kbd>H</kbd> 驻守当前位置</span><span><kbd>X</kbd> 停止当前指令</span><span><kbd>Q E R</kbd> 训练步兵 / 采集车 / 坦克</span><span><kbd>F2</kbd> 选择全部作战部队</span><span><kbd>F3</kbd> 轮选空闲采集车</span><span><kbd>↑ ↓ ← →</kbd> 移动战场视野</span><span><kbd>Space</kbd> 轻按回基地，按住 + 左键拖图</span><span><kbd>滚轮 / 捏合</kbd> 以指针为中心缩放</span><span><kbd>Z / C</kbd> 旋转 3D 视角</span><span><kbd>T</kbd> 旋转待放置的建筑</span><span><kbd>P</kbd> 暂停 / 恢复战役</span><span><kbd>Ctrl / Cmd + 1–0</kbd> 保存编队</span><span><kbd>Ctrl / Cmd + Shift + 1–0</kbd> 向编队追加单位</span><span><kbd>1–0</kbd> 召回编队，连按两次定位</span><span><kbd>Shift + 1–0</kbd> 将编队加选到当前选择</span><span><kbd>I / O / L</kbd> 建造精炼厂 / 油井 / 木材加工厂</span><span><kbd>+ / −</kbd> 缩放战场</span><span><kbd>G</kbd> 设置生产集结点</span><span><kbd>F</kbd> 一键全屏 / 退出</span><span><kbd>V</kbd> 隐藏 / 显示控制台</span><span><kbd>B</kbd> 展开 / 收起调度面板</span><span><kbd>中键 / 右键拖动</kbd> 平移战场</span><span><kbd>Esc</kbd> 取消指令 / 取消选择</span></div>`;
-  showDialog('指挥官操作指南',`<p class="dialog-description">探索地图、训练部队、保护基地。使用不同兵种协同作战，摧毁敌方基地取得胜利。</p>${touchHUD.active?touch:desktop+groupMouseHelp+touch}<p class="room-note">选中工人后右键受损的己方建筑维修；也可选中受损建筑点击「维修」，或按 J 后点击建筑。维修按恢复生命消耗资源，完成后恢复采集。</p><div class="dialog-actions"><button id="help-ok" class="primary-button">收到，指挥官 <span>${uiIcon('check')}</span></button></div>`,'FIELD MANUAL');$('help-ok').onclick=closeDialog;
+  const shortcuts=preferences.bindings;
+  let currentHelp=desktop.replace('训练步兵 / 采集车 / 坦克','按种族及选中的生产建筑训练（以调度面板标签为准）');
+  for(const action of ['attack','repair','hold','stop','army','idle','pause','rally'] as const)
+    currentHelp=currentHelp.replace(`<kbd>${DEFAULT_BINDINGS[action].toUpperCase()}</kbd>`,`<kbd>${escape(shortcuts[action].toUpperCase())}</kbd>`);
+  currentHelp=currentHelp.replace('<kbd>Q E R</kbd>',`<kbd>${escape([shortcuts.train1,shortcuts.train2,shortcuts.train3].join(' ').toUpperCase())} …</kbd>`)
+    .replace('<kbd>I / O / L</kbd>',`<kbd>${escape([shortcuts.refinery,shortcuts.oilwell,shortcuts.lumbermill].join(' / ').toUpperCase())}</kbd>`);
+  showDialog('指挥官操作指南',`<p class="dialog-description">探索地图、训练部队、保护基地。使用不同兵种协同作战，摧毁敌方基地取得胜利。</p>${touchHUD.active?touch:currentHelp+groupMouseHelp+touch}<p class="room-note">选中工人后右键受损的己方建筑维修；也可选中受损建筑点击「维修」。维修按恢复生命消耗资源，完成后恢复采集。</p><p class="room-note">${opText('Shift 追加任务；任务面板可取消队列、分配空闲车和启用持续建造。','Shift appends tasks. The Tasks panel cancels queued work, assigns idle harvesters and enables continuous building.')}</p><div class="dialog-actions"><button id="help-ok" class="primary-button">收到，指挥官 <span>${uiIcon('check')}</span></button></div>`,'FIELD MANUAL');$('help-ok').onclick=closeDialog;
 }
 function codex(){showDialog('远征部队档案',`<p class="dialog-description">一辆采集车到一支机械化远征军。不同兵种需要对应的生产建筑与科技。</p><div class="dialog-actions" id="codex-models"></div><div class="codex-grid">${ALL_MOBILE_KINDS.map(k=>{const st=STATS[k];return `<div class="codex-card">${spriteMarkup(k)}<div><strong>${st.name} <small>${st.en}</small></strong><p>${st.description}</p><small>HP ${st.hp} · ATK ${st.damage} · ${costMarkup(unitCost(k))}</small><p>${st.producer?STATS[st.producer].name:''}${st.tech?' → '+TECHS[st.tech].name:''}</p></div></div>`;}).join('')}</div><div class="dialog-actions"><button id="open-tree" class="primary-button">查看科技发展路线 <span>${uiIcon('arrow-up-right')}</span></button></div>`,'EXPEDITION FIELD MANUAL');$('open-tree').onclick=techTree;addModelGalleryButton($('codex-models'));}
 async function openAnimationGallery(){
@@ -453,6 +485,19 @@ function settings(){
   try{const saved=localStorage.getItem('fudancraft-lighting');if(saved==='off'||saved==='balanced'||saved==='high'||saved==='cinematic')select.value=saved;}catch{/* 无本地存储时使用设备默认值。 */}
   select.onchange=()=>{const value=select.value;if(value==='off'||value==='balanced'||value==='high'||value==='cinematic')renderer.lightingQuality=value;};
   $('settings-ok').onclick=closeDialog;
+  bindSavedPreferences('settings');
+}
+function applyPreferences(){
+  renderer.animate=preferences.animation;renderer.showHealth=preferences.health;renderer.showRanges=preferences.ranges;
+  controls.trackpad=preferences.trackpad;controls.zoomSensitivity=preferences.zoomSensitivity;controls.reverseZoom=preferences.reverseZoom;controls.edgeScroll=preferences.edgeScroll;
+  soundscape.baseAttackSound=preferences.notices.attack.sound;
+  productionKey='';if(started)updateUI(true);
+}
+function bindSavedPreferences(mode:'menu'|'settings'){
+  const ids=mode==='menu'?['animation-toggle','health-toggle','range-toggle','trackpad-toggle']:['setting-animation','setting-health','setting-ranges','setting-trackpad'];
+  ids.forEach((id,i)=>{const key=(['animation','health','ranges','trackpad'] as const)[i],input=$<HTMLInputElement>(id);
+    input.onchange=()=>{preferences[key]=input.checked;savePreferences(preferences);applyPreferences();};});
+  bindOperationSettings($('dialog-content'),preferences,applyPreferences);
 }
 function bindPerformanceSettings(){
   const label=document.createElement('div');label.className='toggle-label select-setting';
@@ -497,7 +542,7 @@ function connect(){
     mapSync?.reset();
     const sync=new MapSynchronizer(message=>{if(socket===ws)ws.send(JSON.stringify(message));},updateMapSyncUI);
     mapSync=sync;
-    return new Promise<GameConnection>((resolve,reject)=>{const timeout=setTimeout(()=>{ws.close();reject(Error('连接超时'));},8000);ws.onopen=()=>{clearTimeout(timeout);resolve(ws);};ws.onerror=()=>{clearTimeout(timeout);reject(Error('无法连接联机服务器'));};ws.onmessage=e=>{if(socket!==ws)return;let m;try{m=JSON.parse(e.data);}catch{return;}if(m.type==='error'){toast(m.message,true);const button=$('join-room') as HTMLButtonElement|null;if(button)button.disabled=false;const create=$('create-room') as HTMLButtonElement|null;if(create)create.disabled=false;}
+    return new Promise<GameConnection>((resolve,reject)=>{const timeout=setTimeout(()=>{ws.close();reject(Error('连接超时'));},8000);ws.onopen=()=>{clearTimeout(timeout);resolve(ws);};ws.onerror=()=>{clearTimeout(timeout);reject(Error('无法连接联机服务器'));};ws.onmessage=e=>{if(socket!==ws)return;let m;try{m=JSON.parse(e.data);}catch{return;}if(m.type==='error'){commandError(m.message);const button=$('join-room') as HTMLButtonElement|null;if(button)button.disabled=false;const create=$('create-room') as HTMLButtonElement|null;if(create)create.disabled=false;}
       else if(m.type==='resume-error'){clearReconnect();leaveNetwork();toast(m.message,true);if(!home)returnHome();else multiplayer();}
       else if(m.type==='lobby'){
         roomCode=m.code;roomHost=m.host;reconnectTicket=PAGES_BUILD&&m.host?null:{code:m.code,token:m.token};reconnectUntil=0;reconnectAttempt=0;
@@ -616,9 +661,10 @@ function showCommandTooltip(button:HTMLButtonElement){
   $('command-tooltip').hidden=false;
 }
 function renderProduction(player:Player,force=false){
+  productionShortcuts=productionBindings(player,view.units,renderer.selected,preferences);
   // 只在资源跨过费用门槛时重绘按钮，采集中的每次数值变化不会打断悬停。
   const affordability=[...MOBILE_KINDS,...BUILDING_KINDS].map(k=>Number(canAfford(unitCost(k),player))).join('')+Object.values(TECHS).map(t=>Number(canAfford(t.cost,player))).join('');
-  const key=productionTab+'|'+Boolean(view.oilWells)+'|'+player.tech.join(',')+'|'+view.units.filter(u=>u.side===side&&!isMobile(u)).map(u=>u.kind+complete(u)+(u.station?.mode??'')+(u.factoryModule??'')+(u.refitUntil??'')).join(',')+'|'+player.queue.filter(q=>q.research).map(q=>q.kind).join(',')+'|'+affordability;
+  const key=JSON.stringify(productionShortcuts)+'|'+productionTab+'|'+Boolean(view.oilWells)+'|'+player.tech.join(',')+'|'+view.units.filter(u=>u.side===side&&!isMobile(u)).map(u=>u.kind+complete(u)+(u.station?.mode??'')+(u.factoryModule??'')+(u.refitUntil??'')).join(',')+'|'+player.queue.filter(q=>q.research).map(q=>q.kind).join(',')+'|'+affordability;
   if(!force&&key===productionKey)return;productionKey=key;
   hideCommandTooltip();$('production-content').setAttribute('aria-labelledby','tab-'+productionTab);
   document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(b=>{b.classList.toggle('active',b.dataset.tab===productionTab);b.setAttribute('aria-selected',String(b.dataset.tab===productionTab));});
@@ -643,20 +689,25 @@ function renderProduction(player:Player,force=false){
 let visibleSupplyAlerts:MatchEvent[]=[];
 let supplyAlertKey='';
 $('field-alerts').onclick=e=>{
+  const operationIndex=e.target instanceof HTMLElement?e.target.closest<HTMLButtonElement>('[data-operation-alert]')?.dataset.operationAlert:undefined;
+  if(operationIndex!==undefined){const alert=operationNotices.notices[Number(operationIndex)];if(alert)renderer.focus(alert);return;}
   const index=e.target instanceof HTMLElement?e.target.closest<HTMLButtonElement>('[data-alert]')?.dataset.alert:undefined;
   const alert=index===undefined?undefined:visibleSupplyAlerts[Number(index)];
   if(alert)renderer.focus(alert);
 };
 function renderSupplyAlerts(player:Player){
   visibleSupplyAlerts=view.winner?[]:(player.stats?.events??[]).filter(event=>isSupplyAlert(event)&&view.time-event.time<=50).slice(-3).reverse();
-  const key=JSON.stringify(visibleSupplyAlerts);
+  const notices=operationNotices.notices.filter(n=>preferences.notices[n.kind].visual);
+  const key=JSON.stringify([visibleSupplyAlerts,notices]);
   if(key===supplyAlertKey)return;
   supplyAlertKey=key;
-  $('field-alerts').hidden=visibleSupplyAlerts.length===0;
+  $('field-alerts').hidden=visibleSupplyAlerts.length===0&&notices.length===0;
   $('field-alerts').innerHTML=visibleSupplyAlerts.map((event,i)=>
-    `<button type="button" data-alert="${i}" title="点击定位"><span aria-hidden="true">⌖</span>${MATCH_EVENT_NAMES[event.kind]}</button>`).join('');
+    `<button type="button" data-alert="${i}" title="点击定位"><span aria-hidden="true">⌖</span>${MATCH_EVENT_NAMES[event.kind]}</button>`).join('')+
+    notices.map(n=>`<button type="button" data-operation-alert="${operationNotices.notices.indexOf(n)}" title="${opText('点击定位','Focus location')}">⌖ ${escape(n.label)}</button>`).join('');
 }
 function updateUI(force=false){const now=performance.now();if(!force&&now-lastUI<160)return;lastUI=now;const player=view.players.find(p=>p.side===side);if(!player)return;
+  if(dialog.open&&$('operation-task-list'))renderOperationTasks?.();
   renderSupplyAlerts(player);
   $('sector-map').textContent=$('radar-map').textContent=displayMapName(view.mapId);
   const isPaused=paused&&started&&!network&&!view.winner,clockState=view.winner?'已结束':!started?'待部署':isPaused?'已暂停':network?'联机':'作战中';
@@ -666,6 +717,10 @@ function updateUI(force=false){const now=performance.now();if(!force&&now-lastUI
   $('pause-icon').innerHTML=uiIcon(isPaused?'play':'pause');$('pause-label').textContent=isPaused?'继续':'暂停';
   $('battle-clock').classList.toggle('paused',isPaused);$('battle-clock').classList.toggle('standby',!started||!!view.winner);$('clock-state').textContent=clockState;
   const own=view.units.filter(u=>u.side===side),power=powerFor(side,own),workers=own.filter(u=>u.kind==='worker');
+  const idleWorkers=workers.filter(u=>u.hp>0&&u.order==='idle').length;
+  $('idle-workers').title=opText('选择并定位空闲采集车','Select and focus idle harvester')+' ('+preferences.bindings.idle.toUpperCase()+')';
+  $('idle-worker-count').textContent=String(idleWorkers);$('idle-workers').toggleAttribute('disabled',!idleWorkers);
+  $('idle-workers').classList.toggle('has-idle',idleWorkers>0);
   for(const [id,stat,value,label] of [['credits','gold-stat',player.credits,'金矿'],['wood','wood-stat',player.wood,'木材'],['oil','oil-stat',player.oil,'石油']] as const){
     const stock=Math.floor(value).toLocaleString();$(id).textContent=stock;$(id).classList.toggle('large-stock',stock.length>7);
     $(stat).setAttribute('aria-label',`${label}库存 ${stock}`);$(stat).title=`${label}库存 ${stock} · 采集并运回后计入`;
@@ -678,7 +733,13 @@ function updateUI(force=false){const now=performance.now();if(!force&&now-lastUI
   $('worker-count').innerHTML=`${workers.length} <em>${workers.filter(u=>u.order==='gather').length} 采集中</em>`;$('economy-status').textContent=!power.active?'电力不足：军事生产与研究暂停':`${workers.filter(u=>u.order==='gather').length} 辆采集中 · ${workers.filter(u=>u.order==='build').length} 辆建造中 · ${workers.filter(u=>u.order==='repair').length} 辆维修中 · 已交付 ${Math.floor(player.harvested).toLocaleString()}`;
   const pop=population(player,own);
   $('population').textContent=String(pop.used);
-  $('population-capacity').textContent=` / ${pop.capacity}${pop.reserved?`（预留 ${pop.reserved}）`:''}`;$('time').textContent=time(view.time);$('kills').innerHTML=`${player.kills} <em>/</em> ${player.lost}`;$('zoom').textContent=`${Math.round(renderer.zoom*100)}%`;$('coordinates').textContent=`SECTOR ${Math.floor(renderer.camera.x/TILE)} · ${Math.floor(renderer.camera.y/TILE)}`;
+  $('population-capacity').textContent=` / ${pop.capacity}`;
+  const reservedPopulation=$('population-reserved');
+  reservedPopulation.hidden=!pop.reserved;reservedPopulation.textContent=pop.reserved?`+${pop.reserved}`:'';
+  reservedPopulation.title=`预留 ${pop.reserved}`;
+  $('population-stat').title=`作战人口 ${pop.used} / ${pop.capacity}${pop.reserved?`（预留 ${pop.reserved}）`:''}`;
+  $('population-stat').setAttribute('aria-label',$('population-stat').title);
+  $('time').textContent=time(view.time);$('kills').innerHTML=`${player.kills} <em>/</em> ${player.lost}`;$('zoom').textContent=`${Math.round(renderer.zoom*100)}%`;$('coordinates').textContent=`SECTOR ${Math.floor(renderer.camera.x/TILE)} · ${Math.floor(renderer.camera.y/TILE)}`;
   $('mission-steps').innerHTML=`<span class="${player.harvested?'done':''}">01 资源采集 ${player.harvested?'✓':''}</span><span class="${own.some(u=>u.kind===(view.oilWells?'oilwell':'refinery')&&complete(u))?'done':''}">02 精炼补给</span><span class="${player.tech.length?'done':''}">03 科技研发 ${player.tech.length?'✓':''}</span>`;
   const waitingForGold=workers.filter(u=>u.waitingForGold).length;
   if(waitingForGold)$('economy-status').textContent+=` · ${waitingForGold} 辆金矿枯竭待指派`;
@@ -715,8 +776,10 @@ function updateUI(force=false){const now=performance.now();if(!force&&now-lastUI
   for(const id of ['attack-move','hold','stop'])$(id).toggleAttribute('disabled',!selected.some(isMobile));
   const canRepair=selected.some(u=>u.kind==='worker')||workers.length>0&&selected.some(u=>!isMobile(u)&&complete(u)&&u.hp<u.maxHp);
   $('repair').toggleAttribute('disabled',!canRepair);
+  const canResume=!!resumeConstruction(view.units,side,renderer.selected);
+  $('resume-build').toggleAttribute('disabled',!canResume);$('touch-resume-build').toggleAttribute('disabled',!canResume);
   updateGroupButtons(ownIds);
-  touchHUD.update(selected,node?{title:RESOURCE_INFO[node.kind].name,status:`剩余资源 ${Math.ceil(node.amount)} / ${node.max}`,health:node.amount,maxHealth:node.max,stats:[]}:details,canRepair,player.queue.length,skillMode?ABILITIES[skillMode.id].name:stationMode?'选择装配站目标位置':repairMode?'点击己方建筑维修':attackMode?'点击目标攻击移动':rallyMode?'点击设置集结点':buildKind?`放置${STATS[buildKind].name}`:null,workers.filter(u=>u.order==='idle').length,groups);
+  touchHUD.update(selected,node?{title:RESOURCE_INFO[node.kind].name,status:`剩余资源 ${Math.ceil(node.amount)} / ${node.max}`,health:node.amount,maxHealth:node.max,stats:[]}:details,canRepair,player.queue.length,skillMode?ABILITIES[skillMode.id].name:stationMode?'选择装配站目标位置':repairMode?'点击己方建筑维修':attackMode?'点击目标攻击移动':rallyMode?'点击设置集结点':buildKind?`放置${STATS[buildKind].name}`:null,idleWorkers,groups);
   $('queue-count').textContent=String(player.queue.length).padStart(2,'0');const qkey=player.queue.map(q=>q.kind+':'+Math.ceil(q.remaining*3)).join(',');
   if(force||qkey!==renderQueueKey){renderQueueKey=qkey;$('queue').innerHTML=player.queue.length?player.queue.map((q,i)=>`<button class="queue-item" data-cancel="${i}" title="${q.research?TECHS[q.kind as Tech].name:STATS[q.kind as MobileKind].name} · ${Math.ceil(q.remaining)} 秒 · 点击全额退款"><i class="queue-progress" style="width:${(1-q.remaining/q.duration)*100}%"></i>${q.research?`<b class="queue-tech">${uiIcon('gear')}</b>`:spriteMarkup(q.kind as MobileKind,player.race)}<span>${Math.ceil(q.remaining)}s</span></button>`).join(''):'<span class="empty-queue">生产建筑可以并行工作 <i>—</i></span>';}
   renderProduction(player,force);
@@ -725,7 +788,7 @@ function updateUI(force=false){const now=performance.now();if(!force&&now-lastUI
 // Interface actions
 $('start').onclick=setupBattle;$('multiplayer').onclick=multiplayer;$('nav-battle').onclick=()=>{if(dialog.open)closeDialog();canvas.focus();};$('nav-codex').onclick=codex;$('help').onclick=help;$('menu').onclick=menu;$('pause').onclick=togglePause;$('resume').onclick=togglePause;$('sound').onclick=toggleSound;$('focus').onclick=focusBase;$('select-all').onclick=selectAll;
 $('attack-move').onclick=()=>{if(!renderer.selected.size){toast('先选择作战部队');return;}setMode(attackMode?null:'attack');};$('hold').onclick=()=>command({type:'hold',ids:[...renderer.selected]});$('stop').onclick=()=>command({type:'stop',ids:[...renderer.selected]});
-$('repair').onclick=beginRepair;
+$('repair').onclick=beginRepair;$('resume-build').onclick=beginResumeConstruction;$('idle-workers').onclick=()=>selectIdleWorker();
 function setDispatch(expanded:boolean){dispatchExpanded=expanded;hideCommandTooltip();app.classList.toggle('production-expanded',expanded);touchHUD.setDispatch(expanded);$('expand-production').innerHTML=expanded?'收起 <kbd>B</kbd>':'展开 <kbd>B</kbd>';$('expand-production').setAttribute('aria-expanded',String(expanded));$('dispatch-toggle').classList.toggle('active',expanded);$('dispatch-toggle').setAttribute('aria-expanded',String(expanded));$('dispatch-toggle').setAttribute('aria-label',expanded?'收起调度面板':'展开调度面板');}
 function toggleHud(){hudVisible=!hudVisible;app.classList.toggle('hud-hidden',!hudVisible);$('toggle-hud').setAttribute('aria-pressed',String(hudVisible));$('toggle-hud').setAttribute('aria-label',hudVisible?'隐藏控制台':'显示控制台');$('toggle-hud').title=`${hudVisible?'隐藏':'显示'}控制台 (V)`;$('hud-label').textContent=hudVisible?'面板':'显示';if(!hudVisible)setDispatch(false);}
 app.addEventListener('gamefullscreenchange',()=>renderer.resize());
@@ -738,7 +801,7 @@ function updateRendererMode(){
   $('system-state').textContent=renderer.is3D?'Blender 3D 战场已就绪':'3D 战场正在加载';
 }
 document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(b=>b.onclick=()=>{productionTab=b.dataset.tab as typeof productionTab;renderProduction(view.players.find(p=>p.side===side)!,true);});
-$('production-content').onclick=e=>{const b=(e.target as Element).closest<HTMLButtonElement>('button');if(!b)return;if(b.dataset.train)command({type:'train',kind:b.dataset.train as MobileKind});if(b.dataset.build)beginBuilding(b.dataset.build as BuildingKind);if(b.dataset.research)command({type:'research',tech:b.dataset.research as Tech});};
+$('production-content').onclick=e=>{const b=(e.target as Element).closest<HTMLButtonElement>('button');if(!b)return;if(b.dataset.train)trainUnit(b.dataset.train as MobileKind);if(b.dataset.build)beginBuilding(b.dataset.build as BuildingKind,e.shiftKey||appendTasks);if(b.dataset.research)command({type:'research',tech:b.dataset.research as Tech});};
 $('production-content').onpointerover=e=>{const b=(e.target as Element).closest<HTMLButtonElement>('.dispatch-card');if(b&&e.pointerType!=='touch'&&!b.contains(e.relatedTarget as Node|null))showCommandTooltip(b);};
 $('production-content').onpointerleave=hideCommandTooltip;
 $('production-content').addEventListener('focusin',e=>{const b=(e.target as Element).closest<HTMLButtonElement>('.dispatch-card');if(b)showCommandTooltip(b);});
@@ -759,22 +822,29 @@ function unitAt(point:Point,pick:ReturnType<Renderer['pick']>,filter:(unit:ViewS
   }
   if(!pick)return [...view.units].reverse().find(u=>filter(u)&&distance(u,point)<STATS[u.kind].radius+10);
 }
-function issueAt(point:Point,pick:ReturnType<Renderer['pick']>){
+function issueAt(point:Point,pick:ReturnType<Renderer['pick']>,append=false){
   const selected=view.units.filter(u=>renderer.selected.has(u.id)),node=nodeAt(point,pick);
   if(node&&selected.some(u=>u.kind==='worker')){
     if(node.kind==='oil'&&view.oilWells){
-      beginBuilding('oilwell');
+      beginBuilding('oilwell',append);
       if(renderer.placement?.kind==='oilwell')renderer.placement.point=snapPoint(node);
       return;
     }
-    if(command({type:'gather',ids:selected.map(u=>u.id),node:node.id})){
+    if(command({type:'gather',ids:selected.filter(u=>u.kind==='worker').map(u=>u.id),node:node.id,append})){
       renderer.marker={p:node,time:performance.now(),attack:false};toast(`已指派采集${RESOURCE_INFO[node.kind].name}`);
     }
     return;
   }
   const target=unitAt(point,pick,u=>!sameTeam(u.side,side,view.players)||u.side===side&&(u.construction<1||!isMobile(u)&&u.hp<u.maxHp)),destination=target??point;
   if(!validPoint(destination,renderer.camera.world))return;
-  if(command({type:'order',ids:[...renderer.selected],point:{x:destination.x,y:destination.y},target:target?.id,assault:attackMode})){
+  if(target?.side===side&&!isMobile(target)&&!complete(target)){
+    const worker=selected.find(u=>u.kind==='worker');
+    if(worker)command({type:'resume-build',worker:worker.id,target:target.id,append});return;
+  }
+  if(target?.side===side&&!isMobile(target)&&complete(target)&&target.hp<target.maxHp){
+    command({type:'repair',ids:selected.filter(u=>u.kind==='worker').map(u=>u.id),target:target.id,append});return;
+  }
+  if(command({type:'order',ids:[...renderer.selected],point:{x:destination.x,y:destination.y},target:target?.id,assault:attackMode,append})){
     renderer.marker={p:destination,time:performance.now(),attack:!!target&&!sameTeam(target.side,side,view.players)||attackMode};setMode(null);
   }
 }
@@ -812,8 +882,13 @@ const controls=new BattleControls(canvas,renderer,{
     if(!started||view.winner)return;
     if(button===2&&buildKind){setMode(null);return;}
     if(button===0&&buildKind){if(!validPoint(p,renderer.camera.world))return;
+      const append=shift||appendTasks;
+      // 预览到落点确认之间，车辆可能已接到其他任务或被摧毁，按最新状态重新分配。
+      const worker=append?view.units.find(u=>u.side===side&&u.kind==='worker'&&u.id===buildWorker):constructionWorker(view.units,side,new Set([buildWorker]));
+      if(!worker){toast('没有可用的工程采集车，请等待完工或手动停止当前任务',true);return;}
+      buildWorker=worker.id;renderer.selected=new Set([worker.id]);
       const oil=buildKind==='oilwell'?nodeAt(p,renderer.pick(screen)):undefined;
-      if(command({type:'build',kind:buildKind,point:oil?.kind==='oil'?oil:p,worker:buildWorker,facing:renderer.placement?.facing})){toast(STATS[buildKind].name+'建造指令已下达');setMode(null);}return;}
+      if(command({type:'build',kind:buildKind,point:oil?.kind==='oil'?oil:p,worker:buildWorker,facing:renderer.placement?.facing,append})){toast(STATS[buildKind].name+'建造指令已下达');if(!preferences.continuousBuild&&!append)setMode(null);}return;}
     const pick=renderer.pick(screen);
     if(skillMode||stationMode){
       if(button===2){setMode(null);return;}
@@ -844,7 +919,7 @@ const controls=new BattleControls(canvas,renderer,{
     }
     if(repairMode){
       const target=unitAt(p,pick,u=>u.side===side&&!isMobile(u),screen);
-      if(target&&command({type:'repair',ids:[...renderer.selected],target:target.id})){toast('建筑维修指令已下达');setMode(null);}
+      if(target&&command({type:'repair',ids:[...renderer.selected],target:target.id,append:shift||appendTasks})){toast('建筑维修指令已下达');setMode(null);}
       else if(!target)toast('只能维修己方已完工建筑',true);
       return;
     }
@@ -852,19 +927,48 @@ const controls=new BattleControls(canvas,renderer,{
       if(validPoint(p,renderer.camera.world)&&command({type:'rally',point:p})){toast('生产集结点已设置');setMode(null);}
       return;
     }
-    if(button===2){issueAt(p,pick);return;}
+    if(button===2){issueAt(p,pick,shift||appendTasks);return;}
     if(button!==0)return;
-    if(attackMode){issueAt(p,pick);return;}
+    if(attackMode){issueAt(p,pick,shift||appendTasks);return;}
     const u=unitAt(p,pick,()=>true,screen);
     const node=nodeAt(p,pick);
     if(touch&&u?.side===side&&!isMobile(u)&&(u.construction<1||u.hp<u.maxHp)&&view.units.some(w=>renderer.selected.has(w.id)&&w.kind==='worker')){issueAt(p,pick);return;}
     if(u?.side===side){renderer.selectedNode=null;if(!shift)renderer.selected.clear();if(shift&&renderer.selected.has(u.id))renderer.selected.delete(u.id);else renderer.selected.add(u.id);soundscape.select(view,side,renderer.selected);}
     else if(node&&!view.units.some(w=>renderer.selected.has(w.id)&&w.kind==='worker')){renderer.selected.clear();renderer.selectedNode=node.id;soundscape.resource(node.kind);}
-    else if(renderer.selected.size)issueAt(p,pick);
+    else if(renderer.selected.size)issueAt(p,pick,shift||appendTasks);
     else{renderer.selected.clear();renderer.selectedNode=null;}
     updateUI(true);
   },
 });
+applyPreferences();
+function operationsPanel(){
+  const selected=view.units.filter(u=>u.side===side&&renderer.selected.has(u.id)&&isMobile(u));
+  const label=(task:NonNullable<typeof selected[number]['tasks']>[number])=>{
+    if(task.type==='order')return opText('移动','Move')+` (${Math.round(task.point.x)}, ${Math.round(task.point.y)})`;
+    if(task.type==='gather'){const node=view.nodes.find(n=>n.id===task.node);return opText('采集','Gather')+' '+(node?getLanguage()==='en'?node.kind:RESOURCE_INFO[node.kind].name:'#'+task.node);}
+    const building=view.units.find(u=>u.id===task.target);
+    return (task.type==='repair'?opText('维修','Repair'):opText('施工','Build'))+' '+(building?getLanguage()==='en'?STATS[building.kind].en:STATS[building.kind].name:'#'+task.target);
+  };
+  showDialog(opText('采集车与任务','Harvesters and tasks'),`
+    <label class="toggle-label">${opText('追加任务（触屏 / 鼠标）','Append tasks (touch / mouse)')}<input id="append-tasks" type="checkbox" ${appendTasks?'checked':''}></label>
+    <label class="toggle-label">${opText('持续建造','Continuous building')}<input id="continuous-build" type="checkbox" ${preferences.continuousBuild?'checked':''}></label>
+    <div class="dialog-actions"><button class="secondary-button" id="assign-gold">${opText('空闲车采金矿','Idle harvesters → gold')}</button><button class="secondary-button" id="assign-wood">${opText('空闲车采木材','Idle harvesters → wood')}</button></div>
+    <p class="room-note">${opText('停止会清空队列。排队建筑已锁定落点并预留资源，取消后退款。建造完成后恢复原采集。','Stop clears tasks. Queued buildings reserve their location and resources; cancellation refunds them. Construction resumes previous harvesting.')}</p>
+    <div id="operation-task-list"></div><button class="secondary-button" id="operations-close">${opText('返回战场','Return to battle')}</button>`);
+  $<HTMLInputElement>('append-tasks').onchange=e=>appendTasks=(e.target as HTMLInputElement).checked;
+  $<HTMLInputElement>('continuous-build').onchange=e=>{preferences.continuousBuild=(e.target as HTMLInputElement).checked;savePreferences(preferences);};
+  const render=()=>{$('operation-task-list').innerHTML=selected.map(original=>{
+    const u=view.units.find(u=>u.id===original.id);if(!u)return '';
+    return `<div class="operation-task-unit"><strong>${getLanguage()==='en'?STATS[u.kind].en:STATS[u.kind].name} #${u.id}</strong><p>${opText('当前任务','Current task')}: ${opText(({idle:'空闲',gather:'采集',build:'施工',repair:'维修',move:'移动',assault:'攻击移动',attack:'攻击',hold:'驻守'} as const)[u.order],u.order)}${u.resumeResource?' · '+opText('完成后恢复采集','Resume harvesting afterwards'):''}</p>${u.tasks?.length?u.tasks.map((task,i)=>`<button class="task-row" data-task-unit="${u.id}" data-task-index="${i}">${i+1}. ${escape(label(task))}<span>${opText('取消','Cancel')} ×</span></button>`).join(''):`<p>${opText('没有排队任务','No queued tasks')}</p>`}</div>`;
+  }).join('')||`<p>${opText('选中单位后查看任务队列','Select a unit to inspect its tasks')}</p>`;};
+  renderOperationTasks=render;render();$('operation-task-list').onclick=e=>{const b=(e.target as Element).closest<HTMLButtonElement>('[data-task-unit]');if(b&&command({type:'cancel-task',id:Number(b.dataset.taskUnit),index:Number(b.dataset.taskIndex)}))render();};
+  for(const resource of ['gold','wood'] as const)$('assign-'+resource).onclick=()=>{closeDialog();command({type:'assign-idle',resource});};
+  $('operations-close').onclick=closeDialog;
+}
+for(const parent of [document.querySelector('.selection-tools'),document.querySelector('.touch-actions')]){
+  const button=document.createElement('button');button.className='text-button';button.id=parent?.classList.contains('touch-actions')?'touch-operations':'operations-tasks';
+  button.textContent=opText('任务','Tasks');button.onclick=operationsPanel;parent?.append(button);
+}
 function selectSameKind(point:Point,screen:Point){
   const unit=unitAt(point,renderer.pick(screen),u=>u.side===side,screen);
   if(!unit||!isMobile(unit))return;
@@ -904,11 +1008,22 @@ window.addEventListener('keydown',e=>{
     return;
   }
   if(e.defaultPrevented||e.ctrlKey||e.metaKey||e.altKey)return;
-  const k=e.key.toLowerCase();
+  let k=e.key.toLowerCase();
+  const action=Object.entries(preferences.bindings).find(([,key])=>key===k)?.[0] as Binding|undefined;
   if(k===' '&&e.target instanceof HTMLButtonElement)return;
   if(['arrowup','arrowdown','arrowleft','arrowright',' ','f2','f3','p','q','e','r','a','h','x','g','f','v','b','z','c','t','j','i','o','l','+','=','-','−'].includes(k))e.preventDefault();
   keys.add(k);
   if(e.repeat)return;
+  if(action)e.preventDefault();
+  if(action?.startsWith('train')||action==='refinery'||action==='oilwell'||action==='lumbermill'){
+    const player=view.players.find(p=>p.side===side);
+    if(player){const mapping=productionBindings(player,view.units,renderer.selected,preferences),kind=Object.entries(mapping).find(([,key])=>key===k.toUpperCase())?.[0] as Kind|undefined;
+      if(kind){if(isMobile({kind}))trainUnit(kind as MobileKind);else beginBuilding(kind as BuildingKind,e.shiftKey||appendTasks);}
+    }return;
+  }
+  const configurable=['army','idle','pause','attack','repair','stop','hold','rally','resume'] as const;
+  if(action&&configurable.some(a=>a===action))k=DEFAULT_BINDINGS[action];
+  else if(configurable.some(a=>DEFAULT_BINDINGS[a]===k))return;
   if(k==='t'&&buildKind){rotateBuilding();return;}
   if(k==='?'){help();return;}
   if(k==='u'||k==='y'){const button=skillPanel.querySelectorAll<HTMLButtonElement>('button[data-skill]')[k==='u'?0:1];if(button){e.preventDefault();button.click();}return;}
@@ -929,14 +1044,10 @@ window.addEventListener('keydown',e=>{
   if(k==='v'){toggleHud();return;}
   if(k==='b'){if(!hudVisible)toggleHud();setDispatch(!dispatchExpanded);return;}
   if(k==='f2'){selectAll();return;}
-  if(k==='f3'){if(started)selectIdleWorker(true);return;}
+  if(k==='f3'){if(started)selectIdleWorker();return;}
+  if(k==='n'){beginResumeConstruction();return;}
   if(!started)return;
-  if(k==='q'||k==='e'||k==='r')command({type:'train',kind:trainingShortcuts[k]});
-  else if(k==='i'||k==='o'||k==='l'){
-    if(k==='o'&&!view.oilWells){toast('此战局使用采集车采油');return;}
-    beginBuilding(buildingShortcuts[k]);
-  }
-  else if(k==='a'){if(renderer.selected.size)setMode('attack');else toast('先选择作战部队');}
+  if(k==='a'){if(renderer.selected.size)setMode('attack');else toast('先选择作战部队');}
   else if(k==='j')beginRepair();
   else if(k==='g')setMode('rally');
   else if(k==='h'||k==='x')command({type:k==='h'?'hold':'stop',ids:[...renderer.selected]});
@@ -955,7 +1066,7 @@ function frame(now:number){
     soundscape.tick(view,side,renderer.camera,operationOpen?'menu':'quiet',now);
     renderer.performance.reset();queueFrame();return;
   }
-  if(!dialog.open){const speed=560*delta;renderer.pan((Number(keys.has('arrowright'))-Number(keys.has('arrowleft')))*speed,(Number(keys.has('arrowdown'))-Number(keys.has('arrowup')))*speed);}
+  if(!dialog.open){const speed=preferences.panSpeed*delta;renderer.pan((Number(keys.has('arrowright'))-Number(keys.has('arrowleft')))*speed,(Number(keys.has('arrowdown'))-Number(keys.has('arrowup')))*speed);controls.tick(delta,preferences.panSpeed);}
   if(started&&!network&&!paused&&!view.winner){
     accumulator+=delta;
     let steps=0;
@@ -967,6 +1078,7 @@ function frame(now:number){
   }
   soundscape.tick(view,side,renderer.camera,started&&!(paused&&!network)&&(!network||socket?.readyState===WebSocket.OPEN)?'battle':'quiet',now,renderer.selected);
   const live=started&&!view.winner&&(network||!paused);
+  if(live)operationNotices.tick(view,side,preferences,noticeSound);
   renderer.samplePerformance(gap,lastRenderCost,now,live&&!dialog.open);
   const interval=1000/(live?renderer.performance.fps:24);
   if(!mapEditor&&!document.hidden&&now-lastRender>=interval-.9){
@@ -981,6 +1093,9 @@ $('home-help').onclick=help;
 window.addEventListener('storage',e=>{if(home&&e.key===LOCAL_SAVE_KEY)refreshHomeSave();});
 function syncLanguage(){
   hideCommandTooltip();
+  for(const id of ['operations-tasks','touch-operations']){const button=document.getElementById(id);if(button)button.textContent=opText('任务','Tasks');}
+  if(document.querySelector('#dialog-content .operation-settings'))bindOperationSettings($('dialog-content'),preferences,applyPreferences);
+  renderOperationTasks?.();
   const select=document.querySelector<GameSelect>('#game-language');if(select)select.value=getLanguage();
   productionKey=renderDetailsKey=renderSelectedKey=renderQueueKey='';updateUI(true);refreshHomeSave();
 }

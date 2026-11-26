@@ -92,6 +92,7 @@ export class AudioEvents {
 }
 
 export class AudioDirector {
+  baseAttackSound=true;
   private events=new AudioEvents();
   private active=false;
   private combatUntil=0;
@@ -130,6 +131,7 @@ export class AudioDirector {
     if(!this.active){this.events.reset(view,side);this.active=true;}
     if(this.pendingStart&&this.audio.ready){this.pendingStart=false;this.announce(race,'start',3,0);}
     for(const event of this.events.collect(view,side)){
+      if(event.voice==='baseAttack'&&!this.baseAttackSound)continue;
       const distance=event.point?Math.hypot(event.point.x-camera.x,event.point.y-camera.y):0;
       const attenuation=Math.max(0,1-distance/1150),alarm=event.voice==='baseAttack';
       if(event.effect&&(!event.point||attenuation>.04))this.audio.effect(
@@ -176,6 +178,10 @@ export class AudioDirector {
     if(command.type==='stop'||command.type==='hold'){confirm(race?order:'ui-confirm');return;}
     if(command.type==='build'){
       confirm(construct(command.kind));this.response(race,'worker','build','orders');return;
+    }
+    if(command.type==='resume-build'){
+      const target=view.units.find(u=>u.id===command.target);
+      confirm(construct((target?.kind??'base') as BuildingKind));this.response(race,'worker','build','orders');return;
     }
     if(command.type==='station'){
       confirm(command.action==='deploy'||command.action==='pack'?construct('assembly'):order);

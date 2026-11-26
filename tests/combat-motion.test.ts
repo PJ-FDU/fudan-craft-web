@@ -1,10 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Engine } from '../src/game/engine.js';
-import { Movement,circleFree,segmentFree } from '../src/game/movement.js';
+import { Movement,circleFree,segmentFree,groundPath } from '../src/game/movement.js';
 import { UnitMotion,unitPose } from '../src/game/animation.js';
 import { SIZE,TILE,findPath,nearestFree,distance } from '../src/game/pathfinding.js';
-import { STATS,type Unit } from '../src/game/types.js';
+import { STATS,type Unit,type Point } from '../src/game/types.js';
 const ticks=(e:Engine,n:number)=>{for(let i=0;i<n;i++)e.step(.05);};
 function field(){
   const e=new Engine([{name:'A',ai:false},{name:'B',ai:false}]);
@@ -49,7 +49,7 @@ test('windups and flying shells round-trip in v2 saves; malformed new fields are
   const restored=Engine.restore(e.save());assert.deepEqual(restored.state,e.state);ticks(e,5);ticks(restored,5);assert.deepEqual(restored.state,e.state);
   const flying=Engine.restore(e.save());ticks(e,20);ticks(flying,20);assert.deepEqual(flying.state,e.state);
   const bad=JSON.parse(e.save());bad.units[0].velocity={x:null,y:Infinity};assert.throws(()=>Engine.restore(JSON.stringify(bad)));
-  for(const [key,value] of [['navigationProgress',-1],['yieldPoint',{x:-1,y:0}],['travel',-1]]){const invalid=JSON.parse(e.save());invalid.units[0][key as string]=value;assert.throws(()=>Engine.restore(JSON.stringify(invalid)));}
+  for(const [key,value] of [['navigationProgress',-1],['navigationStalled',-1],['navigationRetries',-1],['yieldPoint',{x:-1,y:0}],['travel',-1]]){const invalid=JSON.parse(e.save());invalid.units[0][key as string]=value;assert.throws(()=>Engine.restore(JSON.stringify(invalid)));}
   const old=JSON.parse(e.save());delete old.windups;assert.doesNotThrow(()=>Engine.restore(JSON.stringify(old)));
 });
 test('step poses follow distance rather than wall time; stops settle with a fixed ground contact',()=>{
@@ -170,4 +170,51 @@ test('eighty mixed vehicles and infantry cross a shared corridor and reach separ
     }
   }
   assert.equal(units.filter((u,i)=>distance(u,goals[i])<45).length,80,JSON.stringify(units.flatMap((u,i)=>distance(u,goals[i])<45?[]:[{id:u.id,kind:u.kind,x:Math.round(u.x),y:Math.round(u.y),gap:Math.round(distance(u,goals[i])),blocked:u.blockedFor,next:u.path[0],length:u.path.length}])));
+});
+
+test('large ground units take the wide forest passage instead of entering a one-cell lane',()=>{
+  const blocked=new Uint8Array(SIZE*SIZE).fill(1);
+  for(let y=8;y<30;y++)for(let x=5;x<65;x++)if(x<25||x>40||y===15||y>=22&&y<=25)blocked[y*SIZE+x]=0;
+  const point=(x:number,y:number)=>({x:(x+.5)*TILE,y:(y+.5)*TILE});
+  const {e}=field(),unit=e.spawn('behemoth',1,point(10,15)),goal=point(55,15);
+  unit.order='move';unit.destination=goal;unit.path=groundPath(unit,goal,blocked);
+  assert.ok(unit.path.length);
+  let previous:Point=unit;
+  for(const waypoint of unit.path){assert.ok(segmentFree(previous,waypoint,STATS.behemoth.radius,blocked));previous=waypoint;}
+  for(let n=0;n<1600&&unit.path.length;n++){
+    new Movement([unit],blocked).move(unit,.05);
+    assert.ok(circleFree(unit,STATS.behemoth.radius,blocked));
+  }
+  assert.ok(distance(unit,goal)<1);
+});
+
+test('a moving unit routes around a parked crowd without disturbing hold orders',()=>{
+  const blocked=new Uint8Array(SIZE*SIZE),point=(x:number,y:number)=>({x:(x+.5)*TILE,y:(y+.5)*TILE});
+  const {e}=field(),unit=e.spawn('soldier',1,point(10,15)),goal=point(35,15),units=[unit];
+  unit.order='move';unit.destination=goal;unit.path=groundPath(unit,goal,blocked);
+  for(let y=10;y<=20;y++)for(let x=16;x<=18;x++){const parked=e.spawn('soldier',1,point(x,y));parked.order='hold';units.push(parked);}
+  const parked=units.slice(1).map(u=>({x:u.x,y:u.y}));
+  for(let n=0;n<1600&&unit.path.length;n++){
+    new Movement(units,blocked).move(unit,.05);
+    for(const other of units.slice(1))assert.ok(distance(unit,other)>=28.49);
+  }
+  assert.ok(distance(unit,goal)<1);
+  units.slice(1).forEach((u,i)=>{assert.equal(u.order,'hold');assert.deepEqual({x:u.x,y:u.y},parked[i]);});
+});
+
+test('sixty-four tightly packed units settle near enclosed landings without overlap or endless oscillation',()=>{
+  const blocked=new Uint8Array(SIZE*SIZE),point=(x:number,y:number)=>({x:(x+.5)*TILE,y:(y+.5)*TILE});
+  const {e}=field(),units:Unit[]=[];
+  for(let i=0;i<64;i++){
+    const u=e.spawn(i%2?'tank':'soldier',1,point(8+i%8,10+Math.floor(i/8)));
+    u.order='move';u.destination=point(40+i%8,10+Math.floor(i/8));u.path=groundPath(u,u.destination,blocked);units.push(u);
+  }
+  for(let n=0;n<1600&&units.some(u=>u.path.length);n++){
+    const movement=new Movement(units,blocked);
+    for(const u of units){movement.move(u,.05);if(!u.path.length)u.order='idle';}
+    if(n%20===0)for(const [i,u] of units.entries())for(const v of units.slice(i+1))
+      assert.ok(distance(u,v)>=STATS[u.kind].radius+STATS[v.kind].radius+.45);
+  }
+  assert.ok(units.every(u=>!u.path.length&&u.order==='idle'));
+  assert.ok(units.every(u=>u.x>1200&&u.x<1650&&u.y>240&&u.y<700));
 });

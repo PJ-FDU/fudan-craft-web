@@ -335,10 +335,11 @@ export class Renderer {
       if(!onScreen(p))continue;
       if(selected){
         if(unit.path.length){
-          const start=project(point);
+          const routePoint=(point:Point)=>project(point,heightAt(this.world,point.x,point.y)+.45);
+          const start=routePoint(point);
           c.strokeStyle=unit.kind==='worker'?'#f0cb7c96':'#c4ffe288';c.lineWidth=1;
           c.setLineDash([4,6]);c.beginPath();c.moveTo(start.x,start.y);
-          for(const waypoint of unit.path){const next=project(waypoint);c.lineTo(next.x,next.y);}
+          for(const waypoint of unit.path){const next=routePoint(waypoint);c.lineTo(next.x,next.y);}
           c.stroke();c.setLineDash([]);
         }
       }

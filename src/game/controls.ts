@@ -17,6 +17,10 @@ interface Options {
 /** Pointer capture, explicit drag thresholds, and shared mouse/touch camera math. */
 export class BattleControls {
   trackpad=false;
+  zoomSensitivity=1;
+  reverseZoom=false;
+  edgeScroll=false;
+  private mouse:Point|null=null;
   private pointers=new Map<number,Point>();
   private primary:PointerState|null=null;
   private pinch:{distance:number;zoom:number;anchor:Point}|null=null;
@@ -27,6 +31,7 @@ export class BattleControls {
     canvas.addEventListener('contextmenu',e=>e.preventDefault());
     canvas.addEventListener('pointerdown',e=>this.down(e));
     canvas.addEventListener('pointermove',e=>this.move(e));
+    canvas.addEventListener('pointerleave',()=>this.mouse=null);
     canvas.addEventListener('pointerup',e=>this.up(e));
     canvas.addEventListener('pointercancel',()=>this.clear());
     canvas.addEventListener('lostpointercapture',e=>{if(this.pointers.has(e.pointerId))this.clear();});
@@ -54,7 +59,7 @@ export class BattleControls {
     else if(e.button===0&&e.pointerType!=='touch'&&this.options.canBoxSelect())this.renderer.drag={start:screen,end:screen};
   }
   private move(e:PointerEvent) {
-    const screen=this.point(e);if(this.pointers.has(e.pointerId))this.pointers.set(e.pointerId,screen);
+    const screen=this.point(e);this.mouse=e.pointerType==='touch'?null:screen;if(this.pointers.has(e.pointerId))this.pointers.set(e.pointerId,screen);
     if(this.pinch&&this.pointers.size>=2){e.preventDefault();const[a,b]=[...this.pointers.values()],center={x:(a.x+b.x)/2,y:(a.y+b.y)/2},distance=Math.max(1,Math.hypot(a.x-b.x,a.y-b.y));this.renderer.camera.setAnchoredZoom(this.pinch.zoom*distance/this.pinch.distance,center,this.pinch.anchor,true);return;}
     const p=this.primary;
     if(!p){this.options.hover(this.renderer.screenToWorld(screen),screen);return;}
@@ -90,8 +95,13 @@ export class BattleControls {
     if(!e.ctrlKey&&(this.trackpad||e.shiftKey||e.altKey||Math.abs(d.x)>Math.abs(d.y)*1.2)){
       this.renderer.pan(e.shiftKey?(d.x||d.y):d.x,e.shiftKey?0:d.y);return;
     }
-    this.renderer.zoomAt(Math.exp(-d.y*(e.ctrlKey?.006:.0019)),point);
+    this.renderer.zoomAt(Math.exp(-d.y*(e.ctrlKey?.006:.0019)*this.zoomSensitivity*(this.reverseZoom?-1:1)),point);
+  }
+  tick(delta:number,speed:number){
+    if(!this.edgeScroll||!this.mouse||this.primary||this.pinch||this.options.blocked())return;
+    const {x,y}=this.mouse,r=this.canvas.getBoundingClientRect(),margin=18;
+    this.renderer.pan((x<margin?-1:x>r.width-margin?1:0)*speed*delta,(y<margin?-1:y>r.height-margin?1:0)*speed*delta);
   }
   private cancelHold(){if(this.holdTimer!==null)clearTimeout(this.holdTimer);this.holdTimer=null;}
-  clear() {this.cancelHold();this.lastTap=null;this.pointers.clear();this.primary=null;this.pinch=null;this.suppressTap=false;this.renderer.drag=null;this.canvas.classList.remove('camera-grabbing','camera-grab','box-selecting');}
+  clear() {this.mouse=null;this.cancelHold();this.lastTap=null;this.pointers.clear();this.primary=null;this.pinch=null;this.suppressTap=false;this.renderer.drag=null;this.canvas.classList.remove('camera-grabbing','camera-grab','box-selecting');}
 }

@@ -34,11 +34,39 @@ export function landingNear(goal:Point,radius:number,blocked:Uint8Array,availabl
   }
 }
 
-export function groundPath(unit:Unit,goal:Point,blocked:Uint8Array,others:Unit[]=[],closest=false):Point[]{
+const clearanceMasks=new WeakMap<Uint8Array,Map<number,Uint8Array>>();
+export function groundPath(unit:Unit,goal:Point,blocked:Uint8Array,others:Unit[]=[],closest=false,avoidParked=false):Point[]{
   const radius=STATS[unit.kind].radius;
   if(!others.length&&segmentFree(unit,goal,radius,blocked))return [{x:goal.x,y:goal.y}];
   // A unit occupying a choke increases its cost, but the passage stays available to the queue behind it.
   const traffic=new Map<number,number>(),size=gridSize(blocked);
+  let routeLand=blocked;
+  // 大型单位不能按单个空格寻路：格心还必须留出实际碰撞半径。
+  if(radius>TILE/2){
+    const masks=clearanceMasks.get(blocked)??new Map<number,Uint8Array>();
+    clearanceMasks.set(blocked,masks);
+    const cached=masks.get(radius);
+    if(cached)routeLand=cached;
+    else{
+      routeLand=blocked.slice();
+      for(let y=0;y<size;y++)for(let x=0;x<size;x++)if(!blocked[y*size+x]
+        &&!circleFree({x:(x+.5)*TILE,y:(y+.5)*TILE},radius,blocked))routeLand[y*size+x]=1;
+      masks.set(radius,routeLand);
+    }
+  }
+  const clearanceLand=routeLand;
+  if(unit.kind==='worker'&&unit.tasks!==undefined&&(unit.order==='build'||unit.order==='repair')&&others.some(u=>u.hp>0&&!u.path.length)){
+    routeLand=routeLand.slice();
+    // 施工绕路时将停靠单位的实际占地作为障碍，避免软拥挤代价仍把路径排进无法穿过的间隙。
+    for(const other of others)if(other.id!==unit.id&&other.hp>0&&isMobile(other)&&!STATS[other.kind].air&&!other.path.length){
+      const r=radius+STATS[other.kind].radius+4;
+      for(let y=Math.max(0,Math.floor((other.y-r)/TILE));y<=Math.min(size-1,Math.floor((other.y+r)/TILE));y++)
+        for(let x=Math.max(0,Math.floor((other.x-r)/TILE));x<=Math.min(size-1,Math.floor((other.x+r)/TILE));x++){
+          if(x===Math.floor(unit.x/TILE)&&y===Math.floor(unit.y/TILE))continue;
+          if(Math.hypot((x+.5)*TILE-other.x,(y+.5)*TILE-other.y)<r)routeLand[y*size+x]=1;
+        }
+    }
+  }
   for(const other of others)if(other.id!==unit.id&&other.hp>0&&isMobile(other)&&!STATS[other.kind].air&&distance(unit,other)<196){
     const r=radius+STATS[other.kind].radius+8;
     for(let y=Math.max(0,Math.floor((other.y-r)/TILE));y<=Math.min(size-1,Math.floor((other.y+r)/TILE));y++)
@@ -47,7 +75,19 @@ export function groundPath(unit:Unit,goal:Point,blocked:Uint8Array,others:Unit[]
         if(d<r)traffic.set(key,Math.max(traffic.get(key)??0,(other.path.length?1.75:3.5)*(1-d/r)));
       }
   }
-  const path=findPath(unit,goal,blocked,{traffic,closest});
+  const parked=avoidParked?others.filter(other=>other.id!==unit.id&&other.hp>0&&isMobile(other)&&!STATS[other.kind].air&&!other.path.length):[];
+  // 逐段检查停靠单位的圆形占地，保留格子之间仍足够宽的空隙。
+  const canTraverse=parked.length?(a:Point,b:Point)=>{
+    const dx=b.x-a.x,dy=b.y-a.y,length=dx*dx+dy*dy;
+    return parked.every(other=>{
+      const t=length?Math.max(0,Math.min(1,((other.x-a.x)*dx+(other.y-a.y)*dy)/length)):0;
+      return Math.hypot(a.x+dx*t-other.x,a.y+dy*t-other.y)>=radius+STATS[other.kind].radius+.5;
+    });
+  }:undefined;
+  // 堵满唯一通路时仍保留原路等待，避免误判任务不可达。
+  let path=findPath(unit,goal,routeLand,{traffic,closest:closest||!!canTraverse,canTraverse,maxVisited:canTraverse?1024:undefined});
+  if(canTraverse&&!path.length&&distance(unit,goal)<128)return [{x:unit.x,y:unit.y}];
+  if(canTraverse&&(!path.length||distance(path.at(-1)!,goal)>128))path=findPath(unit,goal,clearanceLand,{traffic,closest});
   const first=path[0];
   if(first&&!segmentFree(unit,first,radius,blocked)){
     const center={x:(Math.floor(unit.x/TILE)+.5)*TILE,y:(Math.floor(unit.y/TILE)+.5)*TILE};
@@ -55,7 +95,7 @@ export function groundPath(unit:Unit,goal:Point,blocked:Uint8Array,others:Unit[]
     path.unshift(center);
   }
   const last=path.at(-1);
-  if(last&&distance(last,goal)>.7&&segmentFree(last,goal,radius,blocked))path.push({x:goal.x,y:goal.y});
+  if(last&&distance(last,goal)>.7&&segmentFree(last,goal,radius,blocked)&&(!canTraverse||canTraverse(last,goal)))path.push({x:goal.x,y:goal.y});
   return path;
 }
 
@@ -178,33 +218,49 @@ export class Movement {
   }
   move(u:Unit,dt:number){
     if(u.yieldPoint&&u.order==='idle'&&!u.action){if(distance(u,u.yieldPoint)<1){delete u.yieldPoint;u.path=[];}else u.path=[u.yieldPoint];}
-    while(u.path.length&&distance(u,u.path[0])<.7)u.path.shift();
+    while(u.path.length&&distance(u,u.path[0])<.7){u.path.shift();delete u.navigationProgress;u.navigationStalled=0;u.navigationRetries=0;}
     if(!u.path.length){
       u.velocity={x:0,y:0};
       if(u.yieldTo!==undefined){delete u.yieldTo;delete u.yieldPoint;}
       return;
     }
     const others=this.neighbors(u);
-    // 小幅往返会不断降低 blockedFor；用独立的重寻路冷却保证绕行一定发生。
+    // 记录当前路点的最佳距离，往返抖动不能被当作持续前进。
+    const remaining=distance(u,u.path[0]);
+    if(u.navigationProgress===undefined||remaining<u.navigationProgress-1){
+      u.navigationProgress=remaining;u.navigationStalled=0;
+    }else u.navigationStalled=(u.navigationStalled??0)+dt;
+    const plain=(u.order==='move'||u.order==='assault')&&!u.target;
+    const noProgress=plain&&(u.navigationStalled??0)>1.5&&u.yieldTo===undefined;
     const stalled=(u.blockedFor??0)>.55&&Math.floor((u.blockedFor??0)*2)!==Math.floor(((u.blockedFor??0)-dt)*2);
     const haul=u.kind==='worker'&&(!segmentFree(u,u.path[0],STATS[u.kind].radius,this.blocked)
       ||(u.blockedFor??0)>.55&&u.repath<=0);
-    if(!STATS[u.kind].air&&(stalled||haul)){
+    if(!STATS[u.kind].air&&(!plain&&stalled||haul||noProgress)){
       const end=u.path.at(-1)!;
-      const goal=distance(u,end)<64&&(u.order==='move'||u.order==='assault')&&!u.target&&(u.blockedFor??0)>1.35
+      if(noProgress){
+        u.navigationRetries=(u.navigationRetries??0)+1;
+        // 目标周围封满后，连续绕行仍无进展便在附近空位停靠，不能无限往返。
+        if(u.navigationRetries>=5&&distance(u,end)<128&&circleFree(u,STATS[u.kind].radius,this.blocked)){
+          u.destination={x:u.x,y:u.y};u.path=[];u.velocity={x:0,y:0};delete u.navigationProgress;u.navigationStalled=0;u.navigationRetries=0;
+          return;
+        }
+      }
+      const goal=distance(u,end)<64&&(u.order==='move'||u.order==='assault')&&!u.target&&((u.blockedFor??0)>1.35||(u.navigationStalled??0)>1.35)
         ?this.clearLanding(u,end,others):end;
-      const detour=groundPath(u,goal,this.blocked,others);
+      const detour=groundPath(u,goal,this.blocked,plain?this.units:others,false,plain);
       if(detour.length){
-        u.path=detour;
-        if(goal!==end){u.destination=goal;u.blockedFor=0;}
+        u.path=detour;delete u.navigationProgress;u.navigationStalled=0;
+        const landing=plain?detour.at(-1)!:goal;
+        if(goal!==end||plain&&distance(landing,end)>.7){u.destination=landing;u.blockedFor=0;}
       }
       if(u.kind==='worker')u.repath=.8;
     }
     // Skip visible grid corners; keep the same static-obstacle checks as actual movement.
-    for(let n=Math.min(u.path.length-1,4);n>0;n--)if(distance(u,u.path[n])<128&&this.clear(u,u.path[n],others)){u.path.splice(0,n);break;}
+    for(let n=Math.min(u.path.length-1,4);n>0;n--)if(distance(u,u.path[n])<128&&this.clear(u,u.path[n],others)){u.path.splice(0,n);delete u.navigationProgress;u.navigationStalled=0;break;}
     const goal=u.path[0],d=distance(u,goal),step=Math.min(d,STATS[u.kind].speed*dt),desired=Math.atan2(goal.y-u.y,goal.x-u.x);
     if(this.yieldToTraffic(u,others,goal,dt))return;
-    if((u.blockedFor??0)>.35)for(const other of others){
+    // 移动队形绕过停靠单位，避免先到者被后续单位反复推散。
+    if(!plain&&(u.blockedFor??0)>.35)for(const other of others){
       if(!this.allied(other.side,u.side)||other.order!=='idle'||other.action||other.path.length||other.yieldPoint||distance(u,other)>STATS[u.kind].radius+STATS[other.kind].radius+22)continue;
       const dx=other.x-u.x,dy=other.y-u.y,radius=STATS[u.kind].radius+STATS[other.kind].radius;
       const toward=dx*Math.cos(desired)+dy*Math.sin(desired);
@@ -240,9 +296,9 @@ export class Movement {
       if((u.kind==='tank'||u.kind==='worker')&&Math.abs(bestAngle)<.1&&Math.abs(wrap(heading-u.angle))>.75){u.angle=wrap(u.angle+Math.max(-rate*dt,Math.min(rate*dt,wrap(heading-u.angle))));u.velocity={x:0,y:0};u.blockedFor=(u.blockedFor??0)+dt;return;}
       this.stepTo(u,best,dt);
       const remaining=distance(u,goal);
-      if(remaining<d-.09){u.navigationProgress=remaining;u.blockedFor=Math.max(0,(u.blockedFor??0)-dt*2);}
+      if(remaining<d-.09){u.blockedFor=Math.max(0,(u.blockedFor??0)-dt*2);}
       else u.blockedFor=(u.blockedFor??0)+dt;
-      if(distance(u,goal)<.7)u.path.shift();
+      if(distance(u,goal)<.7){u.path.shift();delete u.navigationProgress;u.navigationStalled=0;u.navigationRetries=0;}
     }else{u.velocity={x:0,y:0};u.blockedFor=(u.blockedFor??0)+dt;}
   }
   private clearLanding(u:Unit,goal:Point,others:Unit[]){

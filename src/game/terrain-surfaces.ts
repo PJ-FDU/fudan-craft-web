@@ -35,6 +35,25 @@ export function loadTerrainSurfaces(progress?:ResourceLoad):Promise<TerrainSurfa
 
 const layer=(name:typeof TERRAIN_LAYERS[number])=>`${TERRAIN_LAYERS.indexOf(name)}.0`;
 
+// 两种地表材质共用世界坐标扰动，草泥边缘不会随地图大小或镜头缩放变化。
+export const terrainRoadUniforms=/* glsl */`
+  uniform sampler2D roads;
+  float terrainEdgeNoise(vec2 p){
+    vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
+    vec4 n=fract(sin(vec4(dot(i,vec2(127.1,311.7)),
+      dot(i+vec2(1,0),vec2(127.1,311.7)),dot(i+vec2(0,1),vec2(127.1,311.7)),
+      dot(i+vec2(1,1),vec2(127.1,311.7))))*43758.5453);
+    return mix(mix(n.x,n.y,f.x),mix(n.z,n.w,f.x),f.y);
+  }
+  float terrainRoadCoverage(vec2 worldPoint,float detail){
+    vec2 bend=vec2(terrainEdgeNoise(worldPoint/92.0),terrainEdgeNoise(worldPoint/92.0+vec2(37,19)))-.5;
+    vec2 fringe=vec2(sin(worldPoint.y*.17+sin(worldPoint.x*.11)),
+      sin(worldPoint.x*.15+sin(worldPoint.y*.13)));
+    vec2 roadUv=(worldPoint+bend*36.0+fringe*4.0)/battleExtent;
+    return smoothstep(.10,.80,texture2D(roads,roadUv).r+detail*.10);
+  }
+`;
+
 export const terrainSurfaceUniforms=/* glsl */`
   uniform highp sampler2DArray terrainAlbedo, terrainDetail;
 `;
@@ -64,7 +83,7 @@ export const terrainColor=/* glsl */`
     +texture(terrainDetail,rockY).rgb*weights.y+texture(terrainDetail,rockZ).rgb*weights.z;
 
   float coarse=sin(surfacePoint.x*.061+sin(surfacePoint.z*.048))*cos(surfacePoint.z*.054);
-  float road=smoothstep(.13,.88,texture2D(roads,battleUv).r+coarse*.11+(grassDetail.r-.5)*.20);
+  float road=terrainRoadCoverage(surfacePoint.xz,grassDetail.r-.5);
   float slope=1.0-clamp(surfaceNormal.y,0.0,1.0);
   float shore=1.0-smoothstep(-1.55,-.05,surfacePoint.y);
   float cliff=smoothstep(.13,.38,slope)*(1.0-shore*.85);

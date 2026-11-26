@@ -20,7 +20,7 @@ class Heap {
   pop() {const top=this.a[0],v=this.a.pop()!;if(this.a.length){let n=0;while(n*2+1<this.a.length){let c=n*2+1;if(c+1<this.a.length && this.a[c+1].f<this.a[c].f)c++;if(this.a[c].f>=v.f)break;this.a[n]=this.a[c];n=c;}this.a[n]=v;}return top;}
 }
 // Octile A*, with a binary heap and no diagonal corner cutting.
-export function findPath(start: Point, end: Point, blocked = terrain, options:{traffic?:ReadonlyMap<number,number>;closest?:boolean}={}): Point[] {
+export function findPath(start: Point, end: Point, blocked = terrain, options:{traffic?:ReadonlyMap<number,number>;closest?:boolean;canTraverse?:(a:Point,b:Point)=>boolean;maxVisited?:number}={}): Point[] {
   const size=gridSize(blocked);
   const goal=nearestFree(end,blocked);if(!goal)return[];
   const sx=Math.floor(start.x/TILE),sy=Math.floor(start.y/TILE),gx=Math.floor(goal.x/TILE),gy=Math.floor(goal.y/TILE);
@@ -34,7 +34,7 @@ export function findPath(start: Point, end: Point, blocked = terrain, options:{t
     for(let k=goalIndex;k!==si;k=prev[k])result.push({x:(k%size+.5)*TILE,y:(Math.floor(k/size)+.5)*TILE});
     return result.reverse();
   };
-  let closest=si,remaining=Infinity;
+  let closest=si,remaining=Infinity,visited=0;
   g[si]=0;heap.push(si,h(sx,sy));
   while(heap.a.length){const {i}=heap.pop();if(closed[i])continue;if(i===gi)return unpack(gi);
     closed[i]=1;const x=i%size,y=Math.floor(i/size);
@@ -42,9 +42,11 @@ export function findPath(start: Point, end: Point, blocked = terrain, options:{t
       const d=((x+.5)*TILE-end.x)**2+((y+.5)*TILE-end.y)**2;
       if(d<remaining||(d===remaining&&g[i]<g[closest])){remaining=d;closest=i;}
     }
+    if(++visited>=(options.maxVisited??Infinity))break;
     for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
       if(!dx&&!dy)continue;const nx=x+dx,ny=y+dy;if(!inBounds(nx,ny,size))continue;const ni=ny*size+nx;
       if(blocked[ni]||closed[ni]||(dx&&dy&&(blocked[y*size+nx]||blocked[ny*size+x])))continue;
+      if(options.canTraverse&&!options.canTraverse(i===si?start:{x:(x+.5)*TILE,y:(y+.5)*TILE},{x:(nx+.5)*TILE,y:(ny+.5)*TILE}))continue;
       const ng=g[i]+(dx&&dy?Math.SQRT2:1)+(options.traffic?.get(ni)??0);if(ng<g[ni]){g[ni]=ng;prev[ni]=i;heap.push(ni,ng+h(nx,ny));}
     }
   }
