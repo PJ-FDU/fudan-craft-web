@@ -7,8 +7,8 @@ import { DataLink } from './data-link.js';
 import { validControl } from './map-control.js';
 
 const CONTROL='fudancraft-control-v1',SNAPSHOT='fudancraft-snapshot-v1';
-const REQUESTS=new Set(['join','resume','leave','start','select-map','select-race','rematch','command','map-request','map-ready']);
-const RESPONSES=new Set(['lobby','started','state','error','resume-error','notice','left','map-data']);
+const REQUESTS=new Set(['join','resume','leave','start','select-map','select-race','rematch','command','map-request','map-ready','chat','quick-chat','map-ping','voice-state','voice-signal']);
+const RESPONSES=new Set(['lobby','started','state','error','resume-error','notice','left','map-data','chat','map-ping','voice-peers','voice-signal','comms-error']);
 const JOIN_DEADLINE_MS=30_000,RETRY_DELAY_MS=600,NUDGE_INTERVAL_MS=5000,MAX_PENDING_REQUESTS=32;
 type Remote={
   peer:RemotePeer;link?:DataLink;updates?:DataLink;control?:RTCDataChannel;snapshot?:RTCDataChannel;
@@ -80,6 +80,14 @@ export class P2PConnection implements GameConnection {
     }
   }
   close():void {this.finish(1000,'主动离开');}
+  voiceIceServers():RTCIceServer[]{
+    // 复用信令服务签发的临时 TURN 凭据，语音仍通过独立媒体连接传输。
+    for(const remote of this.remotes.values()){
+      const servers=(remote.peer.pc as RTCPeerConnection).getConfiguration().iceServers;
+      if(servers?.length)return servers;
+    }
+    return [];
+  }
   private async enter(message:RoomMessage):Promise<void> {
     this.role=message.type==='create'?'host':'guest';
     const invite=this.role==='guest'?parseInvite(message.code):null;

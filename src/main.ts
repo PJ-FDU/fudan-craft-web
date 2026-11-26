@@ -11,6 +11,9 @@ import './improvements.css';
 import './map-editor.css';
 import './resource-loading.css';
 import './mobile-ui.css';
+import './battle-chat.css';
+import { BattleChat } from './game/battle-chat.js';
+import type { CommsMessage } from './network/room-comms.js';
 import { getLanguage,onLanguageChange,t } from './game/locale.js';
 import { dropdownMarkup,type GameSelect } from './game/dropdown.js';
 import { uiIcon } from './game/icons.js';
@@ -90,6 +93,23 @@ const touchHUD=new TouchHUD(app,{
   resize:()=>renderer.resize(),
   idle:()=>selectIdleWorker(),resumeBuild:beginResumeConstruction,group:(key,save)=>{const number=groupKey(key);if(number)controlGroup(number,save?'save':'recall');},filter:filterSelection,
 });
+const battleChat=new BattleChat(battleUI,message=>{
+  if(socket?.readyState!==WebSocket.OPEN)return false;
+  socket.send(JSON.stringify(message));return true;
+},()=>{
+  const supplied=socket?.voiceIceServers?.();if(supplied?.length)return supplied;
+  try{
+    const servers=JSON.parse(import.meta.env.VITE_VOICE_ICE_SERVERS||'[]');
+    if(Array.isArray(servers)&&servers.length)return servers;
+  }catch{/* 未配置 TURN 时仍尝试 STUN 直连。 */}
+  return [{urls:'stun:stun.cloudflare.com:3478'}];
+},(message,blocked)=>renderer.teamPing(message,blocked));
+function syncChat(){
+  const me=lastLobby?.side??side;
+  const teammates=lastLobby?.players.filter(p=>p.side!==me&&p.connected!==false&&
+    (network&&started?sameTeam(me,p.side,view.players):lastLobby?.mode==='coop')).length??0;
+  battleChat.configure(roomCode,me,network&&started&&!home&&!operationOpen,socket?.readyState===WebSocket.OPEN,teammates,lastLobby?.mode==='coop');
+}
 function readLocalBattle(raw:string){
   const saved=JSON.parse(raw);
   if(!saved||!Object.hasOwn(saved,'controlGroups'))return {engine:Engine.restore(raw),groups:readGroups(undefined)};
@@ -141,6 +161,7 @@ async function prepareBattle(action:()=>void,races:readonly Race[]=RACES){
   finally{load.dispose();if(battleLoad===load)battleLoad=undefined;}
 }
 function returnHome(){
+  battleChat.disconnect();battleChat.configure('',1,false,false,0);
   if(mapEditor){mapEditor.destroy();mapEditor=null;app.classList.remove('map-editor-active');}
   closeOperation(false);
   ++entryId;
@@ -307,6 +328,7 @@ function filterSelection(kind:Kind|'army'){
   renderer.selectedNode=null;setMode(null);updateUI(true);
 }
 function showDialog(title:string,content:string,tag='COMMAND CENTER',pause=true){
+  battleChat.close();
   if(!dialog.open){beforeDialog=paused;dialogPauses=pause&&!network&&started&&!view.winner;if(dialogPauses)paused=true;}
   galleryCleanup?.();galleryCleanup=null;
   dialog.classList.toggle('animation-dialog',tag==='LIVING BATTLEFIELD');
@@ -574,6 +596,7 @@ function connect(){
         if(Number.isSafeInteger(m.reconnectMs)&&m.reconnectMs>0)reconnectWindow=m.reconnectMs;
         try{if(reconnectTicket)sessionStorage.setItem(SEAT_KEY,JSON.stringify(reconnectTicket));else sessionStorage.removeItem(SEAT_KEY);}catch{/* 隐私模式可在当前页面恢复。 */}
         lastLobby={players:m.players,side:m.side,mapId:m.mapId,mode:m.mode,mapVersion:m.mapVersion};
+        syncChat();
         if(!m.started||m.mapVersion&&!m.players.find((p:LobbyPlayers[number])=>p.side===m.side)?.mapReady){
           if(!m.started){network=false;started=false;paused=true;showingResult=false;}
           roomLobby(m.players,m.side,m.mapId,m.mode,m.mapVersion);
@@ -597,14 +620,15 @@ function connect(){
         updateUI();
       }
       else if(m.type==='transport'){$('connection').textContent=m.message;}
+      else if(['chat','map-ping','voice-peers','voice-signal','comms-error'].includes(m.type))battleChat.receive(m as CommsMessage);
       else if(m.type==='notice')toast(m.message);
-    };ws.onclose=e=>{clearTimeout(timeout);reject(Error('连接已关闭'));if(socket!==ws)return;sync.reset();socket=null;const joinBtn=$('join-room') as HTMLButtonElement|null;if(joinBtn)joinBtn.disabled=false;const createBtn=$('create-room') as HTMLButtonElement|null;if(createBtn)createBtn.disabled=false;if(e.code===4001){clearReconnect();toast('席位已在另一个连接恢复',true);return;}if(PAGES_BUILD&&e.code===4004){clearReconnect();returnHome();toast('房主已离开，房间结束',true);return;}if(reconnectTicket){$('system-state').textContent='画面暂停更新 · 正在重连';retryNetwork();}else if(PAGES_BUILD&&roomCode){toast('房主页面已关闭，房间结束',true);returnHome();}};});
+    };ws.onclose=e=>{clearTimeout(timeout);reject(Error('连接已关闭'));if(socket!==ws)return;battleChat.disconnect();sync.reset();socket=null;const joinBtn=$('join-room') as HTMLButtonElement|null;if(joinBtn)joinBtn.disabled=false;const createBtn=$('create-room') as HTMLButtonElement|null;if(createBtn)createBtn.disabled=false;if(e.code===4001){clearReconnect();toast('席位已在另一个连接恢复',true);return;}if(PAGES_BUILD&&e.code===4004){clearReconnect();returnHome();toast('房主已离开，房间结束',true);return;}if(reconnectTicket){$('system-state').textContent='画面暂停更新 · 正在重连';retryNetwork();}else if(PAGES_BUILD&&roomCode){toast('房主页面已关闭，房间结束',true);returnHome();}};});
   })();
   const shared=pending.finally(()=>{if(connectionPromise===shared)connectionPromise=null;});
   connectionPromise=shared;
   return shared;
 }
-function leaveNetwork(){clearReconnect();mapSync?.reset();mapChoiceSerial++;if(socket?.readyState===WebSocket.OPEN)socket.send(JSON.stringify({type:'leave'}));const old=socket;socket=null;old?.close();roomCode='';lastLobby=null;network=false;lastReady=0;}
+function leaveNetwork(){battleChat.disconnect();battleChat.configure('',1,false,false,0);clearReconnect();mapSync?.reset();mapChoiceSerial++;if(socket?.readyState===WebSocket.OPEN)socket.send(JSON.stringify({type:'leave'}));const old=socket;socket=null;old?.close();roomCode='';lastLobby=null;network=false;lastReady=0;}
 function customMapOptions(){
   return [['','选择已保存的自定义地图…'],...listCustomMaps().map(d=>[`draft:${d.id}`,`${d.name} · 本地草稿`]),...cachedVersions.map(v=>[`cache:${v.contentHash}`,`${v.name} · 缓存版本 ${v.contentHash.slice(0,8)}`])] as [string,string][];
 }
@@ -732,7 +756,7 @@ function renderSupplyAlerts(player:Player){
     `<button type="button" data-alert="${i}" title="点击定位"><span aria-hidden="true">⌖</span>${MATCH_EVENT_NAMES[event.kind]}</button>`).join('')+
     notices.map(n=>`<button type="button" data-operation-alert="${operationNotices.notices.indexOf(n)}" title="${opText('点击定位','Focus location')}">⌖ ${escape(n.label)}</button>`).join('');
 }
-function updateUI(force=false){const now=performance.now();if(!force&&now-lastUI<160)return;lastUI=now;const player=view.players.find(p=>p.side===side);if(!player)return;
+function updateUI(force=false){const now=performance.now();if(!force&&now-lastUI<160)return;lastUI=now;syncChat();const player=view.players.find(p=>p.side===side);if(!player)return;
   if(dialog.open&&$('operation-task-list'))renderOperationTasks?.();
   renderSupplyAlerts(player);
   $('sector-map').textContent=$('radar-map').textContent=displayMapName(view.mapId);
@@ -1023,8 +1047,24 @@ canvas.ondblclick=e=>{
   const bounds=canvas.getBoundingClientRect(),screen={x:e.clientX-bounds.left,y:e.clientY-bounds.top};
   selectSameKind(renderer.screenToWorld(screen),screen);
 };
-let miniDragging=false;function miniFocus(e:PointerEvent){const r=mini.getBoundingClientRect();renderer.focus({x:(e.clientX-r.left)/r.width*renderer.camera.world,y:(e.clientY-r.top)/r.height*renderer.camera.world});}
-mini.onpointerdown=e=>{miniDragging=true;mini.setPointerCapture(e.pointerId);miniFocus(e);};mini.onpointermove=e=>{if(miniDragging)miniFocus(e);};mini.onpointerup=()=>miniDragging=false;mini.onpointercancel=()=>miniDragging=false;
+let miniDragging=false,miniHeld=false,miniOrigin:Point|null=null,miniTimer:ReturnType<typeof setTimeout>|undefined;
+function miniPoint(e:PointerEvent){const r=mini.getBoundingClientRect();return {x:Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*renderer.camera.world,y:Math.max(0,Math.min(1,(e.clientY-r.top)/r.height))*renderer.camera.world};}
+function miniFocus(e:PointerEvent){renderer.focus(miniPoint(e));}
+mini.onpointerdown=e=>{
+  if(e.button!==0)return;miniDragging=true;miniHeld=false;miniOrigin={x:e.clientX,y:e.clientY};mini.setPointerCapture(e.pointerId);
+  if(network&&started){
+    // 长按只打开标记菜单；移动超过阈值后恢复原有拖动镜头。
+    miniTimer=setTimeout(()=>{miniHeld=battleChat.showPings(miniPoint(e),{x:e.clientX,y:e.clientY});if(miniHeld)miniDragging=false;},450);
+  }else miniFocus(e);
+};
+mini.onpointermove=e=>{
+  if(!miniDragging)return;
+  if(miniOrigin&&Math.hypot(e.clientX-miniOrigin.x,e.clientY-miniOrigin.y)>8){clearTimeout(miniTimer);miniTimer=undefined;miniOrigin=null;}
+  if(!miniOrigin)miniFocus(e);
+};
+mini.onpointerup=e=>{clearTimeout(miniTimer);if(miniDragging&&!miniHeld)miniFocus(e);miniDragging=false;miniOrigin=null;};
+mini.onpointercancel=mini.onlostpointercapture=()=>{clearTimeout(miniTimer);miniDragging=false;miniOrigin=null;};
+mini.oncontextmenu=e=>{e.preventDefault();battleChat.showPings(miniPoint(e as PointerEvent),{x:e.clientX,y:e.clientY});};
 window.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&!home&&!operationOpen&&!dialog.open&&!attackMode&&!rallyMode&&!repairMode&&!buildKind&&!skillMode&&!stationMode&&!dispatchExpanded)renderer.selectedNode=null;
   if(!dialog.open&&!$('battle-loading').hidden){if(e.key==='Escape'){e.preventDefault();returnHome();}return;}

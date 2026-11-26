@@ -13,6 +13,7 @@ import { packFog } from '../src/game/protocol.js';
 import { RACES, isRace, type Side, type ViewState } from '../src/game/types.js';
 import { restoreRooms,saveRooms,expiredRoom,RECONNECT_MS,type Client,type Seat,type Room } from './rooms.js';
 import { allowedOrigin,clientAddress,positiveInteger,rejectUpgrade } from './admission.js';
+import { RoomComms } from '../src/network/room-comms.js';
 const production=process.env.NODE_ENV==='production'||process.argv[1]?.endsWith('.js');
 const port=Number(process.env.PORT)||4320;
 const listenHost=process.env.LISTEN_HOST||'0.0.0.0';
@@ -72,6 +73,14 @@ const send=(c:Client,data:unknown)=>{
 };
 const connected=(r:Room)=>r.seats.filter(s=>s.client);
 const host=(r:Room)=>connected(r)[0];
+const roomComms=new WeakMap<Room,RoomComms>();
+function comms(r:Room){
+  let service=roomComms.get(r);
+  if(!service){service=new RoomComms((side,message)=>{const s=r.seats.find(s=>s.side===side);if(s?.client)send(s.client,message);});roomComms.set(r,service);}
+  return service;
+}
+function updateComms(r:Room){comms(r).update(r.seats.map(s=>({side:s.side,name:s.name,connected:!!s.client,
+  team:r.engine?.state.players.find(p=>p.side===s.side)?.team??(r.mode==='coop'?1:s.side)})),r.engine?.extent);}
 let snapshotTimer:ReturnType<typeof setTimeout>|undefined;
 let snapshotRunning=false,snapshotPending=false;
 function persist(){
@@ -88,10 +97,11 @@ function persist(){
 }
 const mapReady=(r:Room,s:Seat)=>!r.mapSnapshot||s.mapReady===r.mapSnapshot.version.contentHash;
 const maxPlayers=(r:Room)=>r.mapSnapshot?.version.maxPlayers??mapInfo(r.mapId as MapId).maxPlayers;
-function lobby(r:Room){for(const s of connected(r))send(s.client!,{type:'lobby',code:r.code,mapId:r.mapId,mapVersion:r.mapSnapshot?.version,mode:r.mode,side:s.side,host:host(r)===s,token:s.token,reconnectMs:RECONNECT_MS,players:r.seats.map(s=>({name:s.name,side:s.side,race:s.race??'industrial',connected:!!s.client,mapReady:mapReady(r,s)})),started:!!r.engine});}
+function lobby(r:Room){for(const s of connected(r))send(s.client!,{type:'lobby',code:r.code,mapId:r.mapId,mapVersion:r.mapSnapshot?.version,mode:r.mode,side:s.side,host:host(r)===s,token:s.token,reconnectMs:RECONNECT_MS,players:r.seats.map(s=>({name:s.name,side:s.side,race:s.race??'industrial',connected:!!s.client,mapReady:mapReady(r,s)})),started:!!r.engine});updateComms(r);}
 function leave(c:Client,explicit=false){
   const s=c.seat;if(!s)return;const r=rooms.get(s.room);c.seat=undefined;c.unseatedSince=Date.now();s.client=undefined;if(!r)return;
   r.active=Date.now();s.deadline=r.active+RECONNECT_MS;
+  comms(r).disconnect(s.side);
   if(explicit)r.seats=r.seats.filter(x=>x!==s);
   if(r.engine){const p=r.engine.state.players.find(p=>p.side===s.side);if(p)p.ai=true;
     for(const peer of connected(r))send(peer.client!,{type:'notice',message:`${s.name} 已离线，AI 接管其部队${explicit?'':`，${Math.round(RECONNECT_MS/1000)} 秒内可重连`}`});}
@@ -116,6 +126,7 @@ function start(r:Room){
   }
   if(isMapId(r.mapId)&&!supportsPlayers(r.mapId,players.length))return '所选地图不支持当前人数';
   r.engine=new Engine(players,'normal',r.mapId,undefined,r.mapSnapshot?.version.contentHash);r.active=Date.now();
+  comms(r).resetVoice();
   humans.forEach((s,i)=>{s.side=(i+1) as Side;});
   lobby(r);for(const s of humans)started(s,r);persist();return null;
 }
@@ -151,6 +162,7 @@ wss.on('connection',(ws,req)=>{
       if(!r||!s||!s.client&&s.deadline<=now){send(c,{type:'resume-error',message:'重连席位已过期，请创建或加入新的房间'});return;}
       if(s.client){const old=s.client;old.seat=undefined;old.ws.close(4001,'Seat resumed');}
       s.client=c;s.deadline=0;s.mapReady=undefined;c.seat=s;r.active=now;
+      comms(r).disconnect(s.side);
       const p=r.engine?.state.players.find(p=>p.side===s.side);if(p)p.ai=!!r.mapSnapshot;
       lobby(r);if(r.engine&&!r.mapSnapshot)started(s,r,true);persist();
     }else if(m.type==='map-request'){
@@ -188,6 +200,8 @@ wss.on('connection',(ws,req)=>{
       if(host(r)!==c.seat){send(c,{type:'error',message:'只有房主可以发起再战'});return;}
       if(!r.engine.state.winner){send(c,{type:'error',message:'战役结束后才能再战'});return;}
       r.engine=null;lobby(r);persist();
+    }else if(['chat','quick-chat','map-ping','voice-state','voice-signal'].includes(m.type)){
+      const r=rooms.get(c.seat?.room||'');if(r&&c.seat)comms(r).receive(c.seat.side,m,now);
     }else if(m.type==='command'){
       const r=rooms.get(c.seat?.room||'');if(!r?.engine||!c.seat||!mapReady(r,c.seat)||!validCommand(m.command,r.engine.extent))return;const error=r.engine.command(c.seat.side,m.command);if(error)send(c,{type:'error',message:error});
     }

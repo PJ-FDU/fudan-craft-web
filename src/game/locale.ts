@@ -5,6 +5,7 @@ let language:Language='zh';
 try{if(localStorage.getItem(LANGUAGE_KEY)==='en')language='en';}catch{/* 无存储时默认为中文。 */}
 const listeners=new Set<()=>void>();
 export const getLanguage=()=>language;
+export const presetText=(value:readonly [string,string])=>value[language==='en'?1:0];
 export function setLanguage(value:Language){
   if(value===language)return;
   language=value;

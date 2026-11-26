@@ -742,6 +742,7 @@ Three.js 3D 战场已就绪|3D battlefield ready
 轻按空格|Tap Space
 轻按空格返回基地|Tap Space to focus base
 点击小地图切换视野|Click the minimap to move the camera
+点击切换视野，长按或右键发送队友标记|Tap to move the camera; hold or right click to send a team ping
 显示|Show
 隐藏|Hide
 定位|Focus

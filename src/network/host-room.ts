@@ -3,6 +3,7 @@ import { validCommand } from '../game/command-validation.js';
 import { DEFAULT_MAP_ID,isMapId,mapInfo,supportsPlayers,type MapId } from '../game/maps.js';
 import { RACES,isRace,type Race,type Side } from '../game/types.js';
 import { resolveRoomMap, type MapSnapshot } from '../game/map-versions.js';
+import { RoomComms } from './room-comms.js';
 
 export const RECONNECT_MS=120_000;
 export type RoomMessage={type:string;[key:string]:unknown};
@@ -24,6 +25,9 @@ export class HostRoom {
   private created=false;
   private tickCount=0;
   private epoch=0;
+  private comms=new RoomComms((side,message)=>{
+    const seat=this.seats.find(s=>s.side===side);if(seat?.id)this.emit(seat.id,message);
+  });
   constructor(readonly code:string,readonly hostId:string,private readonly emit:(id:string,message:RoomMessage)=>void){}
 
   connect(id:string,now=Date.now()):void {
@@ -33,6 +37,7 @@ export class HostRoom {
     this.clients.delete(id);
     const seat=this.seats.find(s=>s.id===id);if(!seat)return;
     seat.id=null;seat.deadline=now+RECONNECT_MS;
+    this.comms.disconnect(seat.side);
     if(explicit)this.seats=this.seats.filter(s=>s!==seat);
     const player=this.engine?.state.players.find(p=>p.side===seat.side);if(player)player.ai=true;
     if(this.engine)this.broadcast({type:'notice',message:`${seat.name} 已离线，AI 接管其部队${explicit?'':'，120 秒内可重连'}`});
@@ -68,10 +73,12 @@ export class HostRoom {
         this.emit(old,{type:'replaced'});
       }
       saved.id=id;saved.deadline=0;saved.mapReady=undefined;
+      this.comms.disconnect(saved.side);
       const player=this.engine?.state.players.find(p=>p.side===saved.side);if(player)player.ai=!!this.mapSnapshot;
       this.lobby();if(this.engine&&!this.mapSnapshot)this.started(saved,true);return;
     }
     if(!seat)return;
+    if(['chat','quick-chat','map-ping','voice-state','voice-signal'].includes(message.type)){this.comms.receive(seat.side,message,now);return;}
     if(message.type==='map-request'){
       if(this.mapSnapshot&&message.contentHash===this.mapSnapshot.version.contentHash&&message.mapId===this.mapId)
         this.emit(id,{type:'map-data',snapshot:this.mapSnapshot});
@@ -136,6 +143,8 @@ export class HostRoom {
       token:seat.token,reconnectMs:RECONNECT_MS,
       players:this.seats.map(s=>({name:s.name,side:s.side,race:s.race??'industrial',connected:!!s.id,mapReady:this.ready(s)})),started:!!this.engine,
     });
+    this.comms.update(this.seats.map(s=>({side:s.side,name:s.name,connected:!!s.id,
+      team:this.engine?.state.players.find(p=>p.side===s.side)?.team??(this.mode==='coop'?1:s.side)})),this.engine?.extent);
   }
   private broadcast(message:RoomMessage):void {for(const seat of this.seats)if(seat.id)this.emit(seat.id,message);}
   private error(id:string,message:string):void {this.emit(id,{type:'error',message});}
@@ -157,6 +166,7 @@ export class HostRoom {
     }
     if(isMapId(this.mapId)&&!supportsPlayers(this.mapId,players.length))return '所选地图不支持当前人数';
     this.engine=new Engine(players,'normal',this.mapId,undefined,this.mapSnapshot?.version.contentHash);
+    this.comms.resetVoice();
     this.epoch++;
     this.seats.forEach((s,i)=>{s.side=(i+1) as Side;});this.lobby();
     for(const seat of this.seats)this.started(seat);

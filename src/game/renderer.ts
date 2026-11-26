@@ -19,13 +19,20 @@ import type { TerrainSurfaces } from './terrain-surfaces.js';
 import type { BlenderAssets } from './blender-assets.js';
 import type { LightingQuality } from './battle-gi.js';
 import { harvestLand } from './resource-world.js';
-import { t } from './locale.js';
+import { t,presetText } from './locale.js';
 import { PerformanceController,type PerformanceMode } from './performance.js';
 import { generatedImage } from './runtime-assets.js';
 import type { ResourceLoad } from './resource-loading.js';
 import { battleModelKeys } from './model-resources.js';
 import { RACES,type Race } from './types.js';
+import type { PingMessage } from '../network/room-comms.js';
+import { PINGS } from './comms-presets.js';
 export class Renderer {
+  private pings:{message:PingMessage;expires:number}[]=[];
+  teamPing(message:PingMessage|null,blocked?:Side){
+    if(message)this.pings=[...this.pings,{message,expires:performance.now()+8000}].slice(-12);
+    else this.pings=blocked?this.pings.filter(p=>p.message.side!==blocked):[];
+  }
   canvas:HTMLCanvasElement;ctx:CanvasRenderingContext2D;mini:HTMLCanvasElement;mctx:CanvasRenderingContext2D;
   private terrain!:DetailedTerrain;
   private world=getWorld();
@@ -396,6 +403,11 @@ export class Renderer {
       ring(this.marker.p,8+20*t,this.marker.attack?'#ff9789':'#c1ffcf',2);c.globalAlpha=1;
     }
     this.drawDrag();
+    this.pings=this.pings.filter(p=>p.expires>performance.now());
+    for(const {message} of this.pings){
+      ring(message,24,message.kind==='danger'?'#ff9789':'#c1ffcf',3);
+      const point=project(message);text(presetText(PINGS[message.kind]),{x:point.x,y:point.y-24*zoom},'#c1ffcf');
+    }
   }
   drawMini(v:ViewState){const c=this.mctx,w=this.mini.width,h=this.mini.height;c.drawImage(this.miniTerrain,0,0,w,h);c.drawImage(this.fog,0,0,w,h);
     const pilot=v.oilWells&&isOutpostMap(v.mapId);
@@ -427,5 +439,13 @@ export class Renderer {
     c.strokeStyle='#e7f6d8b0';c.lineWidth=1;c.beginPath();
     this.camera.corners.forEach((p,i)=>{if(i)c.lineTo(p.x/this.camera.world*w,p.y/this.camera.world*h);else c.moveTo(p.x/this.camera.world*w,p.y/this.camera.world*h);});
     c.closePath();c.stroke();
+    for(const {message,expires} of this.pings){
+      const x=message.x/this.camera.world*w,y=message.y/this.camera.world*h,scale=w/Math.max(1,this.mini.clientWidth);
+      c.save();c.globalAlpha=Math.min(1,(expires-performance.now())/1000);c.strokeStyle=message.kind==='danger'?'#ff9789':'#c1ffcf';c.lineWidth=2*scale;
+      c.beginPath();c.arc(x,y,7*scale,0,Math.PI*2);c.stroke();
+      c.font=`bold ${10*scale}px sans-serif`;c.textAlign='center';c.fillStyle=c.strokeStyle;
+      c.fillText(presetText(PINGS[message.kind]),Math.max(28*scale,Math.min(w-28*scale,x)),Math.max(12*scale,y-10*scale));
+      c.restore();
+    }
   }
 }

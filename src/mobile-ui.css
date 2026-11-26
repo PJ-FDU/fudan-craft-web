@@ -59,6 +59,16 @@
   #app.touch-ui .skill-panel output{flex:1 0 100%;overflow-wrap:anywhere}
   #app.touch-ui .skill-panel button{min-width:44px;min-height:44px}
   #app.touch-ui #cancel-command,#app.touch-ui #rotate-building{min-width:44px;min-height:44px}
+  /* 小地图独占左下两行，右侧排列选中信息与指令，保持地图自身为正方形。 */
+  #app.touch-ui .touch-hud{grid-template-columns:clamp(84px,24vw,104px) minmax(0,1fr)}
+  #app.touch-ui .touch-tools{grid-row:1}
+  #app.touch-ui .touch-skill-slot{grid-row:2}
+  #app.touch-ui .touch-radar{grid-column:1;grid-row:3 / span 2;align-self:stretch;display:flex;align-items:center;min-width:0}
+  #app.touch-ui .touch-radar .minimap-wrap{width:100%;height:auto;aspect-ratio:1}
+  #app.touch-ui .touch-command-area{grid-column:2;grid-row:3}
+  #app.touch-ui .touch-actions{grid-column:2;grid-row:4;grid-template-columns:repeat(4,minmax(0,1fr))}
+  #app.touch-ui .touch-actions button{height:48px;min-height:44px}
+  #app.touch-ui .touch-actions button>small{white-space:normal;line-height:11px;font-size:9px;overflow-wrap:anywhere;text-align:center}
   #app.touch-ui .hud-actions #pause,#app.touch-ui .hud-actions #menu{width:44px;min-width:44px}
   #app.touch-ui .compact-header .economy-stat small{font-size:8px}
   #app.touch-ui .field-alerts{max-width:calc(100% - 16px)}

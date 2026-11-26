@@ -7,4 +7,5 @@ export interface GameConnection {
   onclose:((event:CloseEvent)=>void)|null;
   send(data:string):void;
   close():void;
+  voiceIceServers?():RTCIceServer[];
 }
