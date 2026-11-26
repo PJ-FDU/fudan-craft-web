@@ -182,9 +182,10 @@ export class Renderer {
     this.fogPixels=this.fctx.createImageData(size,size);
     this.fogView=undefined;
   }
-  setWorld(v:Pick<ViewState,'mapId'|'mapRevision'>){
-    if(this.world.id===v.mapId&&this.world.revision===(v.mapRevision??1))return;
-    this.world=getWorld(v.mapId,v.mapRevision??1);
+  setWorld(v:Pick<ViewState,'mapId'|'mapRevision'|'mapHash'>){
+    const world=getWorld(v.mapId,v.mapRevision??1,v.mapHash);
+    if(this.world===world)return;
+    this.world=world;
     this.camera.world=gridSize(this.world.land)*TILE;
     this.camera.resize(this.camera.width,this.camera.height);
     this.resizeFog();

@@ -145,7 +145,7 @@ export class AudioDirector {
     }
     if(now>=this.nextEnvironment){
       this.nextEnvironment=now+750;
-      const water=getWorld(view.mapId,view.mapRevision).features.filter(f=>f.kind==='water');
+      const water=getWorld(view.mapId,view.mapRevision,view.mapHash).features.filter(f=>f.kind==='water');
       this.water=Math.max(0,...water.map(f=>1-Math.hypot(f.x-camera.x,f.y-camera.y)/800))*.7;
       this.buildingMix=buildingSounds(view,camera,selected);
     }

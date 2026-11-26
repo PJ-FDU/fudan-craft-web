@@ -6,7 +6,8 @@ import { randomBytes } from 'node:crypto';
 import { networkInterfaces } from 'node:os';
 import { WebSocketServer, WebSocket } from 'ws';
 import { Engine } from '../src/game/engine.js';
-import { DEFAULT_MAP_ID,isMapId,mapInfo,supportsPlayers } from '../src/game/maps.js';
+import { DEFAULT_MAP_ID,isMapId,mapInfo,supportsPlayers,type MapId } from '../src/game/maps.js';
+import { MAX_MAP_BYTES,resolveRoomMap } from '../src/game/map-versions.js';
 import { validCommand } from '../src/game/command-validation.js';
 import { packFog } from '../src/game/protocol.js';
 import { RACES, isRace, type Side, type ViewState } from '../src/game/types.js';
@@ -52,7 +53,7 @@ const server=createServer(async(req,res)=>{
   }catch{res.writeHead(404);res.end('Not found');}
 });
 const rooms=await restoreRooms();
-const wss=new WebSocketServer({noServer:true,maxPayload:16384,perMessageDeflate:{
+const wss=new WebSocketServer({noServer:true,maxPayload:MAX_MAP_BYTES+4096,perMessageDeflate:{
   serverNoContextTakeover:true,clientNoContextTakeover:true,threshold:1024,concurrencyLimit:4,
 }});
 server.on('upgrade',(req,socket,head)=>{
@@ -85,7 +86,9 @@ function persist(){
     finally{snapshotRunning=false;if(snapshotPending)persist();}
   },200);
 }
-function lobby(r:Room){for(const s of connected(r))send(s.client!,{type:'lobby',code:r.code,mapId:r.mapId,mode:r.mode,side:s.side,host:host(r)===s,token:s.token,reconnectMs:RECONNECT_MS,players:r.seats.map(s=>({name:s.name,side:s.side,race:s.race??'industrial',connected:!!s.client})),started:!!r.engine});}
+const mapReady=(r:Room,s:Seat)=>!r.mapSnapshot||s.mapReady===r.mapSnapshot.version.contentHash;
+const maxPlayers=(r:Room)=>r.mapSnapshot?.version.maxPlayers??mapInfo(r.mapId as MapId).maxPlayers;
+function lobby(r:Room){for(const s of connected(r))send(s.client!,{type:'lobby',code:r.code,mapId:r.mapId,mapVersion:r.mapSnapshot?.version,mode:r.mode,side:s.side,host:host(r)===s,token:s.token,reconnectMs:RECONNECT_MS,players:r.seats.map(s=>({name:s.name,side:s.side,race:s.race??'industrial',connected:!!s.client,mapReady:mapReady(r,s)})),started:!!r.engine});}
 function leave(c:Client,explicit=false){
   const s=c.seat;if(!s)return;const r=rooms.get(s.room);c.seat=undefined;c.unseatedSince=Date.now();s.client=undefined;if(!r)return;
   r.active=Date.now();s.deadline=r.active+RECONNECT_MS;
@@ -98,20 +101,21 @@ function seat(c:Client,r:Room,name:unknown){
   const s:Seat={name:cleanName(name),side:([1,2,3,4] as Side[]).find(side=>!r.seats.some(s=>s.side===side))!,token:randomBytes(32).toString('hex'),deadline:0,client:c,room:r.code};
   c.seat=s;r.seats.push(s);r.active=Date.now();lobby(r);persist();
 }
-const capacity=(r:Room)=>r.mode==='coop'?Math.min(2,mapInfo(r.mapId).maxPlayers-1):mapInfo(r.mapId).maxPlayers;
+const capacity=(r:Room)=>r.mode==='coop'?Math.min(2,maxPlayers(r)-1):maxPlayers(r);
 function started(s:Seat,r:Room,resumed=false){send(s.client!,{type:'started',side:s.side,code:r.code,mapId:r.mapId,mode:r.mode,resumed});if(r.engine)sendView(s.client!,r.engine);}
 function start(r:Room){
   const humans=connected(r);
   if(humans.length!==(r.seats.length))return '请等待离线指挥官重连或席位超时';
+  if(humans.some(s=>!mapReady(r,s)))return '请等待所有指挥官完成地图同步';
   if(r.mode==='ffa'&&humans.length<2)return '至少需要两位指挥官';
   if(!humans.length||humans.length>capacity(r))return '所选地图不支持当前人数';
   const players=humans.map((s,i)=>({name:s.name,ai:false,race:s.race??'industrial' as const,team:r.mode==='coop'?1 as Side:(i+1) as Side}));
   if(r.mode==='coop'){
     const aiTeam=(humans.length+1) as Side;
-    for(let i=humans.length;i<mapInfo(r.mapId).maxPlayers;i++)players.push({name:`AI 军团 ${i-humans.length+1}`,ai:true,race:RACES[i%RACES.length],team:aiTeam});
+    for(let i=humans.length;i<maxPlayers(r);i++)players.push({name:`AI 军团 ${i-humans.length+1}`,ai:true,race:RACES[i%RACES.length],team:aiTeam});
   }
-  if(!supportsPlayers(r.mapId,players.length))return '所选地图不支持当前人数';
-  r.engine=new Engine(players,'normal',r.mapId);r.active=Date.now();
+  if(isMapId(r.mapId)&&!supportsPlayers(r.mapId,players.length))return '所选地图不支持当前人数';
+  r.engine=new Engine(players,'normal',r.mapId,undefined,r.mapSnapshot?.version.contentHash);r.active=Date.now();
   humans.forEach((s,i)=>{s.side=(i+1) as Side;});
   lobby(r);for(const s of humans)started(s,r);persist();return null;
 }
@@ -124,10 +128,12 @@ wss.on('connection',(ws,req)=>{
   ws.on('message',raw=>{try{
     const now=Date.now();if(now-c.last>1000){c.last=now;c.count=0;}if(++c.count>40){if(c.count===41)send(c,{type:'error',message:'指令过于频繁'});return;}
     const m=JSON.parse(raw.toString());if(!m||typeof m.type!=='string')return;
+    if(Buffer.byteLength(raw.toString())>16384&&!['create','select-map'].includes(m.type))throw Error('消息过大');
     if(c.seat){const r=rooms.get(c.seat.room);if(r)r.active=now;}
     if(m.type==='create'){
       if(c.seat){send(c,{type:'error',message:'请先离开当前房间'});return;}if(rooms.size>=100){send(c,{type:'error',message:'服务器房间已满'});return;}
-      if(m.mapId!==undefined&&!isMapId(m.mapId)){send(c,{type:'error',message:'未知战场'});return;}
+      let selected;
+      try{selected=resolveRoomMap(m.mapId,m.mapSnapshot);}catch(error){send(c,{type:'error',message:(error as Error).message});return;}
       if(m.mode!==undefined&&!['ffa','coop'].includes(m.mode)){send(c,{type:'error',message:'未知对战模式'});return;}
       let window=roomCreates.get(c.address);
       if(!window||window.until<=now){
@@ -137,14 +143,23 @@ wss.on('connection',(ws,req)=>{
       if(window.count>=roomCreatesPerMinute){send(c,{type:'error',message:'建房请求过多，请稍后重试'});return;}
       window.count++;
       let code:string;do{code=randomBytes(3).toString('hex').toUpperCase();}while(rooms.has(code));
-      const r:Room={code,seats:[],mapId:m.mapId??DEFAULT_MAP_ID,mode:m.mode??'ffa',engine:null,created:now,active:now};rooms.set(code,r);seat(c,r,m.name);
+      const r:Room={code,seats:[],...selected,mode:m.mode??'ffa',engine:null,created:now,active:now};rooms.set(code,r);seat(c,r,m.name);
     }else if(m.type==='join'){
       if(c.seat){send(c,{type:'error',message:'请先离开当前房间'});return;}const r=rooms.get(String(m.code).toUpperCase());if(!r||r.engine||r.seats.length>=capacity(r)){send(c,{type:'error',message:'房间不存在、已开始或所选地图人数已满'});return;}seat(c,r,m.name);
     }else if(m.type==='resume'){
       if(c.seat)return;const r=rooms.get(String(m.code).toUpperCase()),s=r?.seats.find(s=>s.token===m.token&&typeof m.token==='string');
       if(!r||!s||!s.client&&s.deadline<=now){send(c,{type:'resume-error',message:'重连席位已过期，请创建或加入新的房间'});return;}
       if(s.client){const old=s.client;old.seat=undefined;old.ws.close(4001,'Seat resumed');}
-      s.client=c;s.deadline=0;c.seat=s;r.active=now;
+      s.client=c;s.deadline=0;s.mapReady=undefined;c.seat=s;r.active=now;
+      const p=r.engine?.state.players.find(p=>p.side===s.side);if(p)p.ai=!!r.mapSnapshot;
+      lobby(r);if(r.engine&&!r.mapSnapshot)started(s,r,true);persist();
+    }else if(m.type==='map-request'){
+      const r=rooms.get(c.seat?.room||'');if(!r?.mapSnapshot)return;
+      if(m.contentHash===r.mapSnapshot.version.contentHash&&m.mapId===r.mapId)send(c,{type:'map-data',snapshot:r.mapSnapshot});
+    }else if(m.type==='map-ready'){
+      const s=c.seat,r=rooms.get(s?.room||'');if(!r?.mapSnapshot||!s)return;
+      if(m.contentHash!==r.mapSnapshot.version.contentHash||m.mapId!==r.mapId||mapReady(r,s))return;
+      s.mapReady=m.contentHash;
       const p=r.engine?.state.players.find(p=>p.side===s.side);if(p)p.ai=false;
       lobby(r);if(r.engine)started(s,r,true);persist();
     }else if(m.type==='select-race'){
@@ -156,10 +171,15 @@ wss.on('connection',(ws,req)=>{
       const r=rooms.get(c.seat?.room||'');if(!r)return;
       if(host(r)!==c.seat){send(c,{type:'error',message:'只有房主可以选择地图'});return;}
       if(r.engine){send(c,{type:'error',message:'战役开始后不能更换地图'});return;}
-      if(!isMapId(m.mapId)){send(c,{type:'error',message:'未知战场'});return;}
-      const max=r.mode==='coop'?Math.min(2,mapInfo(m.mapId).maxPlayers-1):mapInfo(m.mapId).maxPlayers;
-      if(r.seats.length>max){send(c,{type:'error',message:`${mapInfo(m.mapId).name}最多支持 ${max} 位指挥官，请选择人数足够的地图`});lobby(r);return;}
-      r.mapId=m.mapId;lobby(r);persist();
+      let selected;
+      try{selected=resolveRoomMap(m.mapId,m.mapSnapshot);}catch(error){send(c,{type:'error',message:(error as Error).message});return;}
+      const count=selected.mapSnapshot?.version.maxPlayers??mapInfo(selected.mapId as MapId).maxPlayers;
+      const max=r.mode==='coop'?Math.min(2,count-1):count;
+      if(r.seats.length>max){send(c,{type:'error',message:`所选地图最多支持 ${max} 位指挥官，请选择人数足够的地图`});lobby(r);return;}
+      if(r.mapId===selected.mapId&&r.mapSnapshot?.version.contentHash===selected.mapSnapshot?.version.contentHash){lobby(r);return;}
+      Object.assign(r,selected);r.mapSnapshot=selected.mapSnapshot;
+      for(const s of r.seats)s.mapReady=undefined;
+      lobby(r);persist();
     }else if(m.type==='leave'){leave(c,true);send(c,{type:'left'});
     }else if(m.type==='start'){
       const r=rooms.get(c.seat?.room||'');if(!r||host(r)!==c.seat||r.engine)return;const error=start(r);if(error)send(c,{type:'error',message:error});
@@ -169,7 +189,7 @@ wss.on('connection',(ws,req)=>{
       if(!r.engine.state.winner){send(c,{type:'error',message:'战役结束后才能再战'});return;}
       r.engine=null;lobby(r);persist();
     }else if(m.type==='command'){
-      const r=rooms.get(c.seat?.room||'');if(!r?.engine||!c.seat||!validCommand(m.command,r.engine.extent))return;const error=r.engine.command(c.seat.side,m.command);if(error)send(c,{type:'error',message:error});
+      const r=rooms.get(c.seat?.room||'');if(!r?.engine||!c.seat||!mapReady(r,c.seat)||!validCommand(m.command,r.engine.extent))return;const error=r.engine.command(c.seat.side,m.command);if(error)send(c,{type:'error',message:error});
     }
   }catch{send(c,{type:'error',message:'无效消息'});}});
   ws.on('close',()=>{
@@ -184,6 +204,7 @@ function cleanName(n:unknown){return(typeof n==='string'?n:'指挥官').trim().s
 // 视野掩码在同一轮视野计算内复用。地图更大时也只封包一次。
 const wireFog=new WeakMap<ViewState['visible'],{visible:string;explored:string}>();
 function sendView(c:Client,engine:Engine){
+  const room=rooms.get(c.seat?.room||'');if(!room||!c.seat||!mapReady(room,c.seat))return;
   if(!c.seat||c.sendingState||c.ws.readyState!==WebSocket.OPEN||c.ws.bufferedAmount>=256*1024)return;
   const state=engine.view(c.seat.side);
   let fog=wireFog.get(state.visible);

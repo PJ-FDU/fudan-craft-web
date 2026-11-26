@@ -1,10 +1,14 @@
 import { FRAME_BYTES,StateAssembler,decodeState,fragmentState } from './snapshot-codec.js';
+import { validControl } from './map-control.js';
 
 export type LinkKind='control'|'snapshot';
 const MAX_CONTROLS=32;
 /** 指令可靠有序；快照可靠无序，每位玩家同时只传一份，确认后发送最新状态。 */
 export class DataLink {
-  private controls:string[]=[];
+  private controls:(string|ArrayBuffer[])[]=[];
+  private controlFrames:ArrayBuffer[]=[];
+  private controlSequence=0;
+  private controlAssembler=new StateAssembler();
   private controlBytes=0;
   private active:ArrayBuffer[]=[];
   private nextState:Uint8Array|null=null;
@@ -23,8 +27,16 @@ export class DataLink {
       try{
         const data=event.data;
         if(this.kind==='control'){
-          if(typeof data!=='string'||new TextEncoder().encode(data).length>FRAME_BYTES)throw Error('无效控制消息');
-          JSON.parse(data);this.message(data);return;
+          let text:string;
+          if(typeof data==='string'){
+            if(new TextEncoder().encode(data).length>FRAME_BYTES)throw Error('无效控制消息');
+            text=data;
+          }else if(data instanceof ArrayBuffer){
+            const complete=this.controlAssembler.push(data);if(!complete)return;
+            text=new TextDecoder('utf-8',{fatal:true}).decode(complete.bytes);
+          }else throw Error('无效控制消息');
+          if(!validControl(text))throw Error('无效控制消息');
+          this.message(text);return;
         }
         if(!(data instanceof ArrayBuffer))throw Error('无效快照消息');
         const complete=this.assembler.push(data);
@@ -36,8 +48,11 @@ export class DataLink {
   control(text:string):void {
     const size=new TextEncoder().encode(text).length;
     if(this.closed)return;
-    if(this.kind!=='control'||size>FRAME_BYTES||this.controls.length>=MAX_CONTROLS||this.controlBytes+size>64*1024){this.fail();return;}
-    this.controls.push(text);this.controlBytes+=size;this.pump();
+    try{
+      if(this.kind!=='control'||!validControl(text)||this.controls.length>=MAX_CONTROLS||this.controlBytes+size>4*1024*1024){this.fail();return;}
+      this.controls.push(size>FRAME_BYTES?fragmentState(new TextEncoder().encode(text),++this.controlSequence):text);
+      this.controlBytes+=size;this.pump();
+    }catch{this.fail();}
   }
   snapshot(bytes:Uint8Array):void {if(this.closed||this.kind!=='snapshot')return;this.nextState=bytes;this.pump();}
   ack(sequence:number):void {
@@ -49,7 +64,7 @@ export class DataLink {
   close():void {
     if(this.closed)return;this.closed=true;
     clearTimeout(this.ackTimer);this.ackTimer=undefined;
-    this.controls=[];this.active=[];this.nextState=null;this.latest=null;
+    this.controls=[];this.controlFrames=[];this.active=[];this.nextState=null;this.latest=null;
     this.channel.onmessage=this.channel.onclose=this.channel.onerror=this.channel.onbufferedamountlow=null;
     this.channel.close();
   }
@@ -72,8 +87,15 @@ export class DataLink {
       // 少量缓冲即可维持吞吐；不把数秒的旧战场提前交给 SCTP。
       while(channel.bufferedAmount<(this.kind==='snapshot'?32*1024:64*1024)){
         if(this.kind==='control'){
+          if(this.controlFrames.length){channel.send(this.controlFrames.shift()!);continue;}
           const control=this.controls.shift();if(control===undefined)return;
-          this.controlBytes-=new TextEncoder().encode(control).length;channel.send(control);continue;
+          if(typeof control==='string'){
+            this.controlBytes-=new TextEncoder().encode(control).length;channel.send(control);
+          }else{
+            this.controlBytes-=control.reduce((size,frame)=>size+frame.byteLength-16,0);
+            this.controlFrames=control;
+          }
+          continue;
         }
         if(!this.active.length){
           if(this.inFlight||!this.nextState)return;

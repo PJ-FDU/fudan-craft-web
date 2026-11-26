@@ -2,10 +2,11 @@ import { Engine } from '../game/engine.js';
 import { validCommand } from '../game/command-validation.js';
 import { DEFAULT_MAP_ID,isMapId,mapInfo,supportsPlayers,type MapId } from '../game/maps.js';
 import { RACES,isRace,type Race,type Side } from '../game/types.js';
+import { resolveRoomMap, type MapSnapshot } from '../game/map-versions.js';
 
 export const RECONNECT_MS=120_000;
 export type RoomMessage={type:string;[key:string]:unknown};
-type Seat={race?:Race;id:string|null;name:string;side:Side;token:string;deadline:number;host:boolean};
+type Seat={mapReady?:string;race?:Race;id:string|null;name:string;side:Side;token:string;deadline:number;host:boolean};
 type Client={since:number;last:number;count:number};
 const cleanName=(value:unknown)=>(typeof value==='string'?value:'指挥官').trim().slice(0,16)||'指挥官';
 export function randomHex(bytes:number):string {
@@ -17,7 +18,8 @@ export class HostRoom {
   engine:Engine|null=null;
   private seats:Seat[]=[];
   private clients=new Map<string,Client>();
-  private mapId:MapId=DEFAULT_MAP_ID;
+  private mapId:string=DEFAULT_MAP_ID;
+  private mapSnapshot?:MapSnapshot;
   private mode:'ffa'|'coop'='ffa';
   private created=false;
   private tickCount=0;
@@ -43,9 +45,10 @@ export class HostRoom {
     const seat=this.seats.find(s=>s.id===id);
     if(message.type==='create'){
       if(id!==this.hostId||this.created){this.error(id,'请先离开当前房间');return;}
-      if(message.mapId!==undefined&&!isMapId(message.mapId)){this.error(id,'未知战场');return;}
+      let selected;
+      try{selected=resolveRoomMap(message.mapId,message.mapSnapshot);}catch(error){this.error(id,(error as Error).message);return;}
       if(message.mode!==undefined&&message.mode!=='ffa'&&message.mode!=='coop'){this.error(id,'未知对战模式');return;}
-      this.mapId=isMapId(message.mapId)?message.mapId:DEFAULT_MAP_ID;
+      this.mapId=selected.mapId;this.mapSnapshot=selected.mapSnapshot;
       this.mode=message.mode==='coop'?'coop':'ffa';this.created=true;
       this.addSeat(id,message.name,true);return;
     }
@@ -64,11 +67,23 @@ export class HostRoom {
         const old=saved.id;this.clients.delete(old);saved.id=null;
         this.emit(old,{type:'replaced'});
       }
-      saved.id=id;saved.deadline=0;
-      const player=this.engine?.state.players.find(p=>p.side===saved.side);if(player)player.ai=false;
-      this.lobby();if(this.engine)this.started(saved,true);return;
+      saved.id=id;saved.deadline=0;saved.mapReady=undefined;
+      const player=this.engine?.state.players.find(p=>p.side===saved.side);if(player)player.ai=!!this.mapSnapshot;
+      this.lobby();if(this.engine&&!this.mapSnapshot)this.started(saved,true);return;
     }
     if(!seat)return;
+    if(message.type==='map-request'){
+      if(this.mapSnapshot&&message.contentHash===this.mapSnapshot.version.contentHash&&message.mapId===this.mapId)
+        this.emit(id,{type:'map-data',snapshot:this.mapSnapshot});
+      return;
+    }
+    if(message.type==='map-ready'){
+      if(!this.mapSnapshot||message.contentHash!==this.mapSnapshot.version.contentHash||message.mapId!==this.mapId)return;
+      if(seat.mapReady===message.contentHash)return;
+      seat.mapReady=message.contentHash as string;
+      const player=this.engine?.state.players.find(p=>p.side===seat.side);if(player)player.ai=false;
+      this.lobby();if(this.engine)this.started(seat,true);return;
+    }
     if(message.type==='leave'){this.disconnect(id,true,now);this.emit(id,{type:'left'});return;}
     if(message.type==='select-race'){
       if(this.engine||!isRace(message.race)){this.error(id,'只能在战役开始前选择有效种族');return;}
@@ -77,9 +92,14 @@ export class HostRoom {
     if(message.type==='select-map'){
       if(!seat.host){this.error(id,'只有房主可以选择地图');return;}
       if(this.engine){this.error(id,'战役开始后不能更换地图');return;}
-      if(!isMapId(message.mapId)){this.error(id,'未知战场');return;}
-      if(this.seats.length>this.capacity(message.mapId)){this.error(id,'所选地图不支持当前人数');return;}
-      this.mapId=message.mapId;this.lobby();return;
+      let selected;
+      try{selected=resolveRoomMap(message.mapId,message.mapSnapshot);}catch(error){this.error(id,(error as Error).message);return;}
+      const max=selected.mapSnapshot?.version.maxPlayers??mapInfo(selected.mapId as MapId).maxPlayers;
+      if(this.seats.length>(this.mode==='coop'?Math.min(2,max-1):max)){this.error(id,'所选地图不支持当前人数');return;}
+      if(this.mapId===selected.mapId&&this.mapSnapshot?.version.contentHash===selected.mapSnapshot?.version.contentHash){this.lobby();return;}
+      this.mapId=selected.mapId;this.mapSnapshot=selected.mapSnapshot;
+      for(const s of this.seats)s.mapReady=undefined;
+      this.lobby();return;
     }
     if(message.type==='start'){
       if(!seat.host||this.engine)return;
@@ -90,7 +110,7 @@ export class HostRoom {
       if(!this.engine?.state.winner){this.error(id,'战役结束后才能再战');return;}
       this.engine=null;this.lobby();return;
     }
-    if(message.type==='command'&&this.engine&&validCommand(message.command,this.engine.extent)){
+    if(message.type==='command'&&this.ready(seat)&&this.engine&&validCommand(message.command,this.engine.extent)){
       const error=this.engine.command(seat.side,message.command);if(error)this.error(id,error);
     }
   }
@@ -103,21 +123,23 @@ export class HostRoom {
       this.clients.delete(id);this.emit(id,{type:'rejected',message:'加入房间超时'});
     }
   }
-  private capacity(map=this.mapId){return this.mode==='coop'?Math.min(2,mapInfo(map).maxPlayers-1):mapInfo(map).maxPlayers;}
+  private maxPlayers(){return this.mapSnapshot?.version.maxPlayers??mapInfo(this.mapId as MapId).maxPlayers;}
+  private capacity(){return this.mode==='coop'?Math.min(2,this.maxPlayers()-1):this.maxPlayers();}
+  private ready(seat:Seat){return !this.mapSnapshot||seat.mapReady===this.mapSnapshot.version.contentHash;}
   private addSeat(id:string,name:unknown,host:boolean):void {
     const side=([1,2,3,4] as Side[]).find(side=>!this.seats.some(s=>s.side===side))!;
     this.seats.push({id,name:cleanName(name),side,host,token:randomHex(32),deadline:0});this.lobby();
   }
   private lobby():void {
     for(const seat of this.seats)if(seat.id)this.emit(seat.id,{
-      type:'lobby',code:this.code,mapId:this.mapId,mode:this.mode,side:seat.side,host:seat.host,
+      type:'lobby',code:this.code,mapId:this.mapId,mapVersion:this.mapSnapshot?.version,mode:this.mode,side:seat.side,host:seat.host,
       token:seat.token,reconnectMs:RECONNECT_MS,
-      players:this.seats.map(s=>({name:s.name,side:s.side,race:s.race??'industrial',connected:!!s.id})),started:!!this.engine,
+      players:this.seats.map(s=>({name:s.name,side:s.side,race:s.race??'industrial',connected:!!s.id,mapReady:this.ready(s)})),started:!!this.engine,
     });
   }
   private broadcast(message:RoomMessage):void {for(const seat of this.seats)if(seat.id)this.emit(seat.id,message);}
   private error(id:string,message:string):void {this.emit(id,{type:'error',message});}
-  private sendState(seat:Seat):void {if(this.engine&&seat.id)this.emit(seat.id,{type:'state',epoch:this.epoch,state:this.engine.view(seat.side)});}
+  private sendState(seat:Seat):void {if(this.engine&&seat.id&&this.ready(seat))this.emit(seat.id,{type:'state',epoch:this.epoch,state:this.engine.view(seat.side)});}
   private started(seat:Seat,resumed=false):void {
     if(!seat.id)return;
     this.emit(seat.id,{type:'started',epoch:this.epoch,side:seat.side,code:this.code,mapId:this.mapId,mode:this.mode,resumed});
@@ -125,15 +147,16 @@ export class HostRoom {
   }
   private start():string|null {
     if(this.seats.some(s=>!s.id))return '请等待离线指挥官重连或席位超时';
+    if(this.seats.some(s=>!this.ready(s)))return '请等待所有指挥官完成地图同步';
     if(this.mode==='ffa'&&this.seats.length<2)return '至少需要两位指挥官';
     if(!this.seats.length||this.seats.length>this.capacity())return '所选地图不支持当前人数';
     const players=this.seats.map((s,i)=>({name:s.name,ai:false,race:s.race??'industrial' as const,team:this.mode==='coop'?1 as Side:(i+1) as Side}));
     if(this.mode==='coop'){
       const aiTeam=(players.length+1) as Side;
-      while(players.length<mapInfo(this.mapId).maxPlayers)players.push({name:`AI 军团 ${players.length-this.seats.length+1}`,ai:true,race:RACES[players.length%RACES.length],team:aiTeam});
+      while(players.length<this.maxPlayers())players.push({name:`AI 军团 ${players.length-this.seats.length+1}`,ai:true,race:RACES[players.length%RACES.length],team:aiTeam});
     }
-    if(!supportsPlayers(this.mapId,players.length))return '所选地图不支持当前人数';
-    this.engine=new Engine(players,'normal',this.mapId);
+    if(isMapId(this.mapId)&&!supportsPlayers(this.mapId,players.length))return '所选地图不支持当前人数';
+    this.engine=new Engine(players,'normal',this.mapId,undefined,this.mapSnapshot?.version.contentHash);
     this.epoch++;
     this.seats.forEach((s,i)=>{s.side=(i+1) as Side;});this.lobby();
     for(const seat of this.seats)this.started(seat);

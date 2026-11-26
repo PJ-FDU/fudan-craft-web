@@ -1,18 +1,18 @@
-import { MAPS,mapInfo,type MapId } from './maps.js';
+import { MAPS,mapInfo,isMapId,type MapId } from './maps.js';
 import { getWorld,initialNodes } from './world.js';
 import { COLORS } from './types.js';
 import { traceWater } from './terrain-shapes.js';
 import { gridSize,TILE } from './pathfinding.js';
 import { heightAt } from './terrain-height.js';
 
-export function mapPickerMarkup(selected:MapId,locked=false,playerCount=2){
+export function mapPickerMarkup(selected:MapId|string,locked=false,playerCount=2){
   return `<fieldset class="map-picker"><legend>选择战场 <span>${MAPS.length} 张地图 · ${locked?'由房主选择':'含 4 张魔兽经典布局'}</span></legend>
     <div class="map-grid">${MAPS.map((map,i)=>`<label class="map-option">
       <input type="radio" name="battle-map" value="${map.id}" ${map.id===selected?'checked':''} ${locked||map.maxPlayers<playerCount?'disabled':''}/>
       <canvas width="256" height="256" data-map-preview="${map.id}" aria-hidden="true"></canvas>
       <span class="map-number">0${i+1}</span><span class="map-capacity">${map.maxPlayers===2?'2 人':'2–4 人'}</span><strong>${map.name}</strong><small>${map.tag}</small>
     </label>`).join('')}</div>
-    <p class="map-brief" aria-live="polite">${mapInfo(selected).description}</p></fieldset>`;
+    <p class="map-brief" aria-live="polite">${isMapId(selected)?mapInfo(selected).description:'已选择自定义战场；选择上方内置地图可更换战场。'}</p></fieldset>`;
 }
 
 /** 大地图与房间缩略图共用权威地形、资源点与出生位，不维护另一套预览数据。 */

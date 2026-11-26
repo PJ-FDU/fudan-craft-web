@@ -4,10 +4,11 @@ import type { GameConnection } from './connection.js';
 import { randomHex,type RoomMessage } from './host-room.js';
 import type { HostInput,HostOutput } from './host-worker.js';
 import { DataLink } from './data-link.js';
+import { validControl } from './map-control.js';
 
 const CONTROL='fudancraft-control-v1',SNAPSHOT='fudancraft-snapshot-v1';
-const REQUESTS=new Set(['join','resume','leave','start','select-map','select-race','rematch','command']);
-const RESPONSES=new Set(['lobby','started','state','error','resume-error','notice','left']);
+const REQUESTS=new Set(['join','resume','leave','start','select-map','select-race','rematch','command','map-request','map-ready']);
+const RESPONSES=new Set(['lobby','started','state','error','resume-error','notice','left','map-data']);
 const JOIN_DEADLINE_MS=30_000,RETRY_DELAY_MS=600,NUDGE_INTERVAL_MS=5000,MAX_PENDING_REQUESTS=32;
 type Remote={
   peer:RemotePeer;link?:DataLink;updates?:DataLink;control?:RTCDataChannel;snapshot?:RTCDataChannel;
@@ -59,7 +60,7 @@ export class P2PConnection implements GameConnection {
     if(this.readyState!==1)return;
     let message:RoomMessage;
     try{
-      if(new TextEncoder().encode(text).length>16*1024)throw Error('指令超过大小限制');
+      if(!validControl(text))throw Error('指令超过大小限制');
       message=JSON.parse(text);if(!message||typeof message.type!=='string')throw Error('无效消息');
     }catch{this.deliver({type:'error',message:'无效消息'});return;}
     if(!this.role){

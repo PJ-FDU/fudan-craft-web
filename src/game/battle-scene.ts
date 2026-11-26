@@ -34,7 +34,6 @@ interface UnitVisual extends BattleModel {
   shadow: Mesh;
   selection:Mesh<BufferGeometry,MeshBasicMaterial>;
   range:Mesh<BufferGeometry,MeshBasicMaterial>;
-  activityLamp?: Mesh<BufferGeometry,MeshBasicMaterial>;
 }
 interface NodeVisual extends BattleModel { node: ResourceNode; empty: boolean; selection:Mesh<BufferGeometry,MeshBasicMaterial>; }
 interface BattleEffect {root:Group;flare:ShotMesh;particle?:ShotMesh;wreck?:BattleModel}
@@ -482,8 +481,7 @@ export class BattleScene {
 
   private removeUnit(visual:UnitVisual){
     visual.rig?.skeleton.dispose();
-    visual.activityLamp?.material.dispose();
-    this.scene.remove(visual.root,visual.shadow,visual.selection,visual.range, ...(visual.activityLamp?[visual.activityLamp]:[]));
+    this.scene.remove(visual.root,visual.shadow,visual.selection,visual.range);
   }
 
   private updateUnits(view:ViewState,camera:Camera,dt:number,time:number,animate:boolean,selected:ReadonlySet<number>,showRanges:boolean) {
@@ -516,13 +514,6 @@ export class BattleScene {
         this.scene.add(object.root,shadow,selection,range);
         visual={...object,unit,shadow,selection,range,point:{x:unit.x,y:unit.y},angle:unit.angle,altitude:0};
         this.units.set(unit.id,visual);
-        if(!isMobile(unit)){
-          const material=new MeshBasicMaterial({transparent:true,depthWrite:false});
-          this.addHaze(material,{hideInFog:true});
-          const activityLamp=new Mesh(this.shotCore,material);
-          this.scene.add(activityLamp);
-          visual.activityLamp=activityLamp;
-        }
       }
       const snap=distance(visual.point,unit)>=160, mix=snap?1:1-Math.exp(-30*dt);
       visual.point.x+=(unit.x-visual.point.x)*mix;
@@ -576,19 +567,6 @@ export class BattleScene {
         arm.rotation.x=recoil*.18;
         if(unit.kind==='oilwell')arm.rotation.z=animate&&unit.activity==='produce'?Math.sin(time*2.4)*.18:0;
         arm.rotation.y=unit.kind==='tower'?Math.PI/2-visual.angle-yaw:animate&&(unit.kind==='research'||unit.kind==='base')?time*.35:0;
-      }
-      const lamp=visual.activityLamp;
-      if(lamp){
-        const damaged=unit.hp/unit.maxHp<.5,building=unit.construction<1,producing=unit.activity==='produce';
-        lamp.visible=animate&&(damaged||building||producing);
-        if(lamp.visible){
-          const beat=(Math.sin(time*(damaged?9:5)+unit.id)+1)/2;
-          lamp.position.set(visual.point.x+stat.radius*.28,groundY+visual.height*Math.max(.17,unit.construction)+2,visual.point.y+stat.radius*.24);
-          lamp.quaternion.copy(this.camera.quaternion);
-          lamp.scale.setScalar(3+beat*3);
-          lamp.material.color.setHex(damaged?0xff6e32:building?0xffc877:0xafffdc);
-          lamp.material.opacity=.42+beat*.51;
-        }
       }
     }
   }

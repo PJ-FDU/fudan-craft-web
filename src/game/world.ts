@@ -7,6 +7,7 @@ import { templeWoodland } from './temple-woodland.js';
 import { woodlandWorld } from './woodland.js';
 import { applyBuiltinElevation } from './terrain-height.js';
 import type { Point, ResourceNode, ResourceKind, Side } from './types.js';
+import type { SerializedCustomMap } from './custom-maps.js';
 export interface Feature extends Point { kind:'pine'|'oak'|'birch'|'bush'|'ruin'|'rock'|'rockLarge'|'water'|'grass'|'flower'|'stump'|'fern'; size:number; cell:number; block:boolean; waterRadii?:Point; outline?:readonly Point[]; river?:boolean }
 export interface WorldData {
   readonly id:MapId|string;
@@ -25,6 +26,7 @@ export interface WorldData {
   readonly cliffs?:Uint8Array;
   readonly waterMask?:Uint8Array;
   readonly customName?:string;
+  readonly customDocument?:SerializedCustomMap;
 }
 const W=MAP.width,T=MAP.tile;
 const original=MAP.layers.find(l=>l.name==='InfoLayer')!;
@@ -101,10 +103,10 @@ export const latestMapRevision=(id:MapId)=>flatWoodlandRevision(id)+1;
 export const validMapRevision=(id:MapId,value:unknown)=>Number.isInteger(value)&&Number(value)>=1&&Number(value)<=latestMapRevision(id);
 const worlds=new Map<string,WorldData>([[`${DEFAULT_MAP_ID}:1`,temple]]);
 const customWorlds=new Map<string,WorldData>();
-export function registerCustomWorld(world:WorldData):void {customWorlds.set(world.id,world);}
+export function registerCustomWorld(world:WorldData,hash?:string):void {customWorlds.set(hash?`${world.id}@${hash}`:world.id,world);}
 export function unregisterCustomWorld(id:string):void {customWorlds.delete(id);}
-export function getWorld(id:MapId|string=DEFAULT_MAP_ID,revision?:number):WorldData {
-  const custom=customWorlds.get(id);
+export function getWorld(id:MapId|string=DEFAULT_MAP_ID,revision?:number,hash?:string):WorldData {
+  const custom=customWorlds.get(hash?`${id}@${hash}`:id);
   if(custom)return custom;
   const resolved=revision??(isMapId(id)?latestMapRevision(id):1);
   if(!isMapId(id)||!validMapRevision(id,resolved))throw Error('未知战场或地形版本');

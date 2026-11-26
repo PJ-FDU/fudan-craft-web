@@ -1,4 +1,6 @@
 import { ABILITIES, abilitiesFor, isAbility, statusLabels, sustainedAreas, type AbilityId } from './abilities.js';
+import { createMapSnapshot, registerMapSnapshot, validateMapSnapshot } from './map-versions.js';
+import { deserializeCustomMap, isCustomMapId } from './custom-maps.js';
 import { SkillEngine, attackScale, hasEffect, motionScale } from './ability-engine.js';
 import { ROSTERS, covered, groundOnly, maxShield, needsCoverage, population, producersFor, raceRequirement, technologyAllowed, researchBuilding } from './races.js';
 import { getWorld,initialNodes,validMapRevision,type WorldData } from './world.js';
@@ -79,8 +81,10 @@ export class Engine {
   visible = new Map<Side, Uint8Array>();
   private movement!:Movement;
   readonly skills=new SkillEngine(this);
-  constructor(players:{name:string;ai:boolean;team?:Side;aiStyle?:AiStyle;race?:Race}[] = [{name:'指挥官',ai:false},{name:'赤焰军团',ai:true}], difficulty: Difficulty = 'normal',mapId:MapId|string=DEFAULT_MAP_ID,mapRevision?:number) {
-    this.world=getWorld(mapId,mapRevision);
+  constructor(players:{name:string;ai:boolean;team?:Side;aiStyle?:AiStyle;race?:Race}[] = [{name:'指挥官',ai:false},{name:'赤焰军团',ai:true}], difficulty: Difficulty = 'normal',mapId:MapId|string=DEFAULT_MAP_ID,mapRevision?:number,mapHash?:string) {
+    this.world=getWorld(mapId,mapRevision,mapHash);
+    const customMap=this.world.customDocument?registerMapSnapshot(createMapSnapshot(deserializeCustomMap(this.world.customDocument))):undefined;
+    if(customMap)this.world=getWorld(mapId,1,customMap.version.contentHash);
     this.size=gridSize(this.world.land);
     this.extent=this.size*TILE;
     this.outposts=isMapId(mapId)&&isOutpostMap(mapId)?this.world.deposits?.filter(isOutpost)??[]:[];
@@ -92,7 +96,7 @@ export class Engine {
       throw Error(`自定义地图支持 2–${this.world.bases.length} 位指挥官`);
     }
     const bank=this.world.deposits?STARTING_RESOURCES:{gold:3600,wood:1600,oil:400};
-    this.state = {version:2,...(this.world.deposits?{oilWells:true as const}:{}),mapId:mapId as MapId,mapRevision:this.world.revision,time:0,units:[],nodes:initialNodes(this.world),players:players.map((p,i)=>({...p,side:(i+1) as Side,team:p.team??(i+1) as Side,stats:newMatchStats(),credits:bank.gold,wood:bank.wood,oil:bank.oil,tech:[],queue:[],rally:null,kills:0,lost:0,harvested:0})),nextId:1,shots:[],windups:[],events:[],nextEventId:1,winner:null,difficulty,aiTimer:2,explored:{},aiPlans:{}};
+    this.state = {version:2,...(customMap?{customMap,mapHash:customMap.version.contentHash}:{}),...(this.world.deposits?{oilWells:true as const}:{}),mapId:mapId as MapId,mapRevision:this.world.revision,time:0,units:[],nodes:initialNodes(this.world),players:players.map((p,i)=>({...p,side:(i+1) as Side,team:p.team??(i+1) as Side,stats:newMatchStats(),credits:bank.gold,wood:bank.wood,oil:bank.oil,tech:[],queue:[],rally:null,kills:0,lost:0,harvested:0})),nextId:1,shots:[],windups:[],events:[],nextEventId:1,winner:null,difficulty,aiTimer:2,explored:{},aiPlans:{}};
     if(new Set(this.state.players.map(p=>p.team)).size<2||this.state.players.some(p=>!this.state.players.some(q=>q.side===p.team)))throw Error('需要至少两个有效队伍');
     for (const p of this.state.players) {
       this.state.explored[p.side] = Array(this.world.land.length).fill(0);
@@ -756,7 +760,7 @@ export class Engine {
     const vis=this.visible.get(side)||new Uint8Array(this.world.land.length),explored=this.state.explored[side];
     const revealed=this.state.units.filter(u=>this.allied(u.side,side)||vis[this.indexAt(u)]);
     return {
-      ...(this.state.oilWells?{oilWells:true as const}:{}),mapId:this.world.id as MapId,mapRevision:this.world.revision,time:this.state.time,
+      ...(this.state.mapHash?{mapHash:this.state.mapHash}:{}),...(this.state.oilWells?{oilWells:true as const}:{}),mapId:this.world.id as MapId,mapRevision:this.world.revision,time:this.state.time,
       events:this.state.events.filter(e=>(e.audience&(1<<side))!==0&&(this.allied(e.side,side)||vis[this.indexAt(e)])).map(({audience,...e})=>e),
       units:revealed.map(u=>({...u,ability:u.ability&&(u.side===side?u.ability:{
         energy:0,cooldowns:{},effects:u.ability.effects.map(({source,...status})=>({...status,source:0})),
@@ -778,7 +782,7 @@ export class Engine {
     // 旧版 v2 存档没有地图字段，始终还原到原始神庙布局。
     state.mapId??=DEFAULT_MAP_ID;
     state.mapRevision??=1;
-    const engine=new Engine(state.players,state.difficulty,state.mapId,state.mapRevision);
+    const engine=new Engine(state.players,state.difficulty,state.mapId,state.mapRevision,state.mapHash);
     state.events??=[];state.nextEventId??=1;state.windups??=[];state.aiPlans??={};for(const p of state.players){p.team??=p.side;p.stats??=newMatchStats(state.time);}engine.state=state;engine.updateVision(false);return engine;
   }
 }
@@ -786,11 +790,20 @@ export function validPoint(p: unknown,extent=WORLD): p is Point {return !!p&&typ
 function validSave(s: unknown): s is GameState {
   if(!s||typeof s!=='object')return false;const v=s as GameState;
   if(v.oilWells!==undefined&&v.oilWells!==true)return false;
-  if(v.mapId!==undefined&&!isMapId(v.mapId))return false;
-  if(v.mapRevision!==undefined&&!validMapRevision(v.mapId??DEFAULT_MAP_ID,v.mapRevision))return false;
+  if(isCustomMapId(v.mapId)){
+    try{
+      const snapshot=validateMapSnapshot(v.customMap);
+      if(snapshot.version.mapId!==v.mapId||snapshot.version.contentHash!==v.mapHash||v.mapRevision!==1)return false;
+      registerMapSnapshot(snapshot);
+    }catch{return false;}
+  }else{
+    if(v.mapId!==undefined&&!isMapId(v.mapId)||v.customMap!==undefined||v.mapHash!==undefined)return false;
+    if(v.mapRevision!==undefined&&!validMapRevision(v.mapId??DEFAULT_MAP_ID,v.mapRevision))return false;
+  }
   if(v.version!==2||!Number.isFinite(v.time)||v.time<0||!Number.isInteger(v.nextId)||!['easy','normal','hard'].includes(v.difficulty)||!Number.isFinite(v.aiTimer)||!Array.isArray(v.players)||v.players.length<2||v.players.length>4||!Array.isArray(v.units)||v.units.length>(v.players.some(p=>p.race)?720:500)||!Array.isArray(v.nodes)||v.nodes.length>4096||!Array.isArray(v.shots)||v.shots.length>2000||!v.explored)return false;
-  if(!supportsPlayers(v.mapId??DEFAULT_MAP_ID,v.players.length))return false;
-  const world=getWorld(v.mapId??DEFAULT_MAP_ID,v.mapRevision??1);
+  if(isMapId(v.mapId??DEFAULT_MAP_ID)&&!supportsPlayers(v.mapId??DEFAULT_MAP_ID,v.players.length))return false;
+  const world=getWorld(v.mapId??DEFAULT_MAP_ID,v.mapRevision??1,v.mapHash);
+  if(v.players.length>world.bases.length)return false;
   const extent=gridSize(world.land)*TILE;
   const point=(p:unknown)=>validPoint(p,extent);
   if(v.nextEventId!==undefined&&(!Number.isSafeInteger(v.nextEventId)||v.nextEventId<1))return false;
@@ -829,7 +842,7 @@ function validSave(s: unknown): s is GameState {
   if(v.players.some(p=>p.race!==undefined&&!isRace(p.race)||p.team!==undefined&&!sides.has(p.team)||p.aiStyle!==undefined&&!['balanced','rush','economic','defensive'].includes(p.aiStyle)||p.stats!==undefined&&!validMatchStats(p.stats,v.time,extent)))return false;
   if(new Set(v.players.map(p=>p.team??p.side)).size<2)return false;
   if(v.aiPlans!==undefined&&(!v.aiPlans||typeof v.aiPlans!=='object'||Object.entries(v.aiPlans).some(([side,plan])=>!sides.has(Number(side) as Side)||!plan||!['balanced','rush','economic','defensive'].includes(plan.style)||!finite(plan.nextAttack)||plan.nextAttack<0||!finite(plan.lastPlan)||plan.lastPlan<0||plan.lastPlan>v.time||(plan.target!==undefined&&!point(plan.target))||!Array.isArray(plan.contacts)||plan.contacts.length>128||!plan.contacts.every(c=>point(c)&&Number.isSafeInteger(c.id)&&c.id>0&&Object.hasOwn(STATS,c.kind)&&sides.has(c.side)&&finite(c.seen)&&c.seen>=0&&c.seen<=v.time&&finite(c.hp)&&c.hp>0))))return false;
-  if(v.players.some(p=>p.side>mapInfo(v.mapId??DEFAULT_MAP_ID).maxPlayers))return false;
+  if(v.players.some(p=>p.side>world.bases.length))return false;
   if(!v.players.every(p=>[1,2,3,4].includes(p.side)&&typeof p.name==='string'&&[p.credits,p.wood,p.oil,p.harvested,p.kills,p.lost].every(n=>Number.isFinite(n)&&n>=0)&&Array.isArray(p.tech)&&p.tech.every(t=>Object.hasOwn(TECHS,t))&&Array.isArray(p.queue)&&p.queue.length<=24&&p.queue.every(q=>q&&typeof q.research==='boolean'&&(q.research?Object.hasOwn(TECHS,q.kind):ALL_MOBILE_KINDS.includes(q.kind as MobileKind))&&Number.isFinite(q.remaining)&&q.remaining>=0&&Number.isFinite(q.duration)&&q.duration>0&&Number.isInteger(q.producer))&&typeof p.ai==='boolean'&&(p.rally===null||point(p.rally))&&Array.isArray(v.explored[p.side])&&v.explored[p.side].length===world.land.length&&v.explored[p.side].every(n=>n===0||n===1)))return false;
   const ids=new Set<number>();for(const u of v.units){if(!point(u)||!Object.hasOwn(STATS,u.kind)||!sides.has(u.side)||!Number.isInteger(u.id)||u.id<=0||ids.has(u.id)||u.id>=v.nextId||!Number.isFinite(u.hp)||u.hp<=0||u.hp>maxHp(u,v.players.find(p=>p.side===u.side)!)+1||!Number.isFinite(u.angle)||!Number.isFinite(u.cooldown)||!Number.isFinite(u.repath)||!Number.isFinite(u.cargo)||u.cargo<0||u.cargo>150.001||!Number.isFinite(u.construction)||u.construction<=0||u.construction>1||!Array.isArray(u.path)||u.path.length>world.land.length||!u.path.every(point)||!['idle','move','attack','assault','hold','gather','build','repair'].includes(u.order)||(u.order==='repair'&&u.kind!=='worker')||(u.destination!==undefined&&!point(u.destination))||(u.cargoKind!==null&&!['gold','wood','oil'].includes(u.cargoKind))||typeof u.returning!=='boolean'||(u.target!==null&&!Number.isInteger(u.target))||(u.resource!==null&&!Number.isInteger(u.resource))||(u.builder!==null&&!Number.isInteger(u.builder)))return false;ids.add(u.id);}
   if(!v.nodes.every(n=>point(n)&&Number.isInteger(n.id)&&['gold','wood','oil'].includes(n.kind)&&Number.isFinite(n.amount)&&n.amount>=0&&Number.isFinite(n.max)&&n.max>=n.amount&&Number.isFinite(n.radius)&&n.radius>0))return false;

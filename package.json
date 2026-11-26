@@ -36,6 +36,7 @@
   },
   "dependencies": {
     "@metered-ca/realtime": "1.2.1",
+    "@noble/hashes": "^2.4.0",
     "three": "^0.187.0",
     "three-gpu-pathtracer": "0.0.28",
     "three-mesh-bvh": "0.9.17",

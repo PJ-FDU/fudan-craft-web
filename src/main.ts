@@ -17,7 +17,10 @@ import { AudioDirector } from './game/audio.js';
 import { audioSettingsMarkup,bindAudioSettings } from './game/audio-settings.js';
 import { isMapId,mapInfo,type MapId } from './game/maps.js';
 import { MapEditor } from './game/map-editor.js';
-import { syncCustomWorlds,type CustomMapDocument } from './game/custom-maps.js';
+import { syncCustomWorlds,listCustomMaps,type CustomMapDocument } from './game/custom-maps.js';
+import { createMapSnapshot,type MapVersion } from './game/map-versions.js';
+import { cacheMapVersion,cachedMapVersion,listCachedMapVersions } from './game/map-version-cache.js';
+import { MapSynchronizer } from './network/map-sync.js';
 import { mapPickerMarkup,bindMapPicker } from './game/map-picker.js';
 import { OperationMenu } from './game/operation-menu.js';
 import { BattleControls } from './game/controls.js';
@@ -52,8 +55,10 @@ syncCustomWorlds();
 const displayMapName=(id:string)=>isMapId(id)?mapInfo(id).name:renderer.currentWorld.customName??'自定义战场';
 let engine=new Engine(),view=engine.view(1),side:Side=1,started=false,paused=true,network=false,attackMode=false,rallyMode=false,repairMode=false,showingResult=false;
 let waitingForState=false;
-type LobbyPlayers={name:string;side:Side;race?:Race;connected?:boolean}[];
-let lastLobby:{players:LobbyPlayers;side:Side;mapId:MapId;mode:'ffa'|'coop'}|null=null;
+type LobbyPlayers={name:string;side:Side;race?:Race;connected?:boolean;mapReady?:boolean}[];
+let lastLobby:{players:LobbyPlayers;side:Side;mapId:string;mode:'ffa'|'coop';mapVersion?:MapVersion}|null=null;
+let mapSync:MapSynchronizer|undefined,cachedVersions:MapVersion[]=[];
+let mapChoiceSerial=0;
 let reconnectTicket:{code:string;token:string}|null=null,reconnectTimer:ReturnType<typeof setTimeout>|null=null,reconnectUntil=0,reconnectAttempt=0;
 let reconnectWindow=120_000,connectionPromise:Promise<GameConnection>|null=null;
 let socket:GameConnection|null=null,roomCode='',roomHost=false,lastUI=0,accumulator=0,lastFrame=0,lastReady=0;
@@ -489,15 +494,23 @@ function connect(){
       key:import.meta.env.VITE_METERED_PUBLISHABLE_KEY,relayOnly:import.meta.env.VITE_P2P_RELAY_ONLY==='true',
     }):new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}/ws`);
     socket=ws;
+    mapSync?.reset();
+    const sync=new MapSynchronizer(message=>{if(socket===ws)ws.send(JSON.stringify(message));},updateMapSyncUI);
+    mapSync=sync;
     return new Promise<GameConnection>((resolve,reject)=>{const timeout=setTimeout(()=>{ws.close();reject(Error('连接超时'));},8000);ws.onopen=()=>{clearTimeout(timeout);resolve(ws);};ws.onerror=()=>{clearTimeout(timeout);reject(Error('无法连接联机服务器'));};ws.onmessage=e=>{if(socket!==ws)return;let m;try{m=JSON.parse(e.data);}catch{return;}if(m.type==='error'){toast(m.message,true);const button=$('join-room') as HTMLButtonElement|null;if(button)button.disabled=false;const create=$('create-room') as HTMLButtonElement|null;if(create)create.disabled=false;}
       else if(m.type==='resume-error'){clearReconnect();leaveNetwork();toast(m.message,true);if(!home)returnHome();else multiplayer();}
       else if(m.type==='lobby'){
         roomCode=m.code;roomHost=m.host;reconnectTicket=PAGES_BUILD&&m.host?null:{code:m.code,token:m.token};reconnectUntil=0;reconnectAttempt=0;
         if(Number.isSafeInteger(m.reconnectMs)&&m.reconnectMs>0)reconnectWindow=m.reconnectMs;
         try{if(reconnectTicket)sessionStorage.setItem(SEAT_KEY,JSON.stringify(reconnectTicket));else sessionStorage.removeItem(SEAT_KEY);}catch{/* 隐私模式可在当前页面恢复。 */}
-        lastLobby={players:m.players,side:m.side,mapId:m.mapId,mode:m.mode};
-        if(!m.started){network=false;started=false;paused=true;showingResult=false;roomLobby(m.players,m.side,m.mapId,m.mode);}
+        lastLobby={players:m.players,side:m.side,mapId:m.mapId,mode:m.mode,mapVersion:m.mapVersion};
+        if(!m.started||m.mapVersion&&!m.players.find((p:LobbyPlayers[number])=>p.side===m.side)?.mapReady){
+          if(!m.started){network=false;started=false;paused=true;showingResult=false;}
+          roomLobby(m.players,m.side,m.mapId,m.mode,m.mapVersion);
+        }
+        sync.select(m.mapVersion);updateMapSyncUI();
       }
+      else if(m.type==='map-data'){void sync.receive(m.snapshot);}
       else if(m.type==='started'){const recovering=m.resumed&&!home;network=true;side=m.side;renderer.side=side;waitingForState=!recovering;paused=false;showingResult=false;if(!recovering){started=false;renderer.selected.clear();clearGroups();}$('pause-overlay').hidden=true;$('game-mode').textContent=`${m.mode==='coop'?'合作对抗 AI':PAGES_BUILD?'P2P 对战':'联机对战'} · ${displayRoom(m.code)}`;$('connection').textContent='实时连接中';$('objective-state').textContent='联合作战网络已接入';closeDialog();if(recovering)toast('已恢复原席位');}
       else if(m.type==='state'&&network){
         const newSession=waitingForState;
@@ -515,36 +528,78 @@ function connect(){
       }
       else if(m.type==='transport'){$('connection').textContent=m.message;}
       else if(m.type==='notice')toast(m.message);
-    };ws.onclose=e=>{clearTimeout(timeout);reject(Error('连接已关闭'));if(socket!==ws)return;socket=null;const joinBtn=$('join-room') as HTMLButtonElement|null;if(joinBtn)joinBtn.disabled=false;const createBtn=$('create-room') as HTMLButtonElement|null;if(createBtn)createBtn.disabled=false;if(e.code===4001){clearReconnect();toast('席位已在另一个连接恢复',true);return;}if(PAGES_BUILD&&e.code===4004){clearReconnect();returnHome();toast('房主已离开，房间结束',true);return;}if(reconnectTicket){$('system-state').textContent='画面暂停更新 · 正在重连';retryNetwork();}else if(PAGES_BUILD&&roomCode){toast('房主页面已关闭，房间结束',true);returnHome();}};});
+    };ws.onclose=e=>{clearTimeout(timeout);reject(Error('连接已关闭'));if(socket!==ws)return;sync.reset();socket=null;const joinBtn=$('join-room') as HTMLButtonElement|null;if(joinBtn)joinBtn.disabled=false;const createBtn=$('create-room') as HTMLButtonElement|null;if(createBtn)createBtn.disabled=false;if(e.code===4001){clearReconnect();toast('席位已在另一个连接恢复',true);return;}if(PAGES_BUILD&&e.code===4004){clearReconnect();returnHome();toast('房主已离开，房间结束',true);return;}if(reconnectTicket){$('system-state').textContent='画面暂停更新 · 正在重连';retryNetwork();}else if(PAGES_BUILD&&roomCode){toast('房主页面已关闭，房间结束',true);returnHome();}};});
   })();
   const shared=pending.finally(()=>{if(connectionPromise===shared)connectionPromise=null;});
   connectionPromise=shared;
   return shared;
 }
-function leaveNetwork(){clearReconnect();if(socket?.readyState===WebSocket.OPEN)socket.send(JSON.stringify({type:'leave'}));const old=socket;socket=null;old?.close();roomCode='';lastLobby=null;network=false;lastReady=0;}
-function multiplayer(){if(roomCode&&!network&&lastLobby){roomLobby(lastLobby.players,lastLobby.side,lastLobby.mapId,lastLobby.mode);return;}if(network){showDialog('当前联机战役',`<p class="dialog-description">房间 ${escape(displayRoom(roomCode))} · 联机战役正在进行。${PAGES_BUILD&&roomHost?'房主离开会结束整个房间。':'离开后将由 AI 接管你的部队。'}</p><div class="dialog-actions"><button id="return-online" class="primary-button">返回战场</button><button id="leave-online" class="secondary-button">离开并返回主菜单</button></div>`);$('return-online').onclick=closeDialog;$('leave-online').onclick=returnHome;return;}
-  showDialog('与指挥官并肩交锋',`<p class="dialog-description">支持 2–4 人自由对战，或 1–2 位朋友合作对抗 AI。两人合作请选择四人地图；共享视野，资源与指挥权独立。</p>${PAGES_BUILD?'<p class="room-note">P2P 静态版 · 房主创建房间后复制邀请链接。房主需保持页面打开；离开或刷新会结束房间。</p>':''}<label class="field">指挥官代号<input id="player-name" maxlength="16" value="${t('指挥官')}" autocomplete="nickname"/></label><div class="field">房间模式${dropdownMarkup('room-mode','房间模式',[['ffa','自由对战'],['coop','朋友合作对抗 AI']])}</div><div class="dialog-actions"><button id="create-room" class="primary-button">创建房间 <span>${uiIcon('plus')}</span></button></div><label class="field">加入已有房间<input id="room-input" maxlength="${PAGES_BUILD?2048:6}" placeholder="${PAGES_BUILD?'粘贴邀请链接或完整房间标识':'输入 6 位房间码'}" ${PAGES_BUILD?'':'style="text-transform:uppercase;font-family:var(--mono);letter-spacing:3px"'}/></label><div class="dialog-actions"><button id="join-room" class="secondary-button">加入作战房间 <span>${uiIcon('arrow-up-right')}</span></button></div>`,'MULTIPLAYER NETWORK');
+function leaveNetwork(){clearReconnect();mapSync?.reset();mapChoiceSerial++;if(socket?.readyState===WebSocket.OPEN)socket.send(JSON.stringify({type:'leave'}));const old=socket;socket=null;old?.close();roomCode='';lastLobby=null;network=false;lastReady=0;}
+function customMapOptions(){
+  return `<option value="">选择已保存的自定义地图…</option>${listCustomMaps().map(d=>`<option value="draft:${escape(d.id)}">${escape(d.name)} · 本地草稿</option>`).join('')}${cachedVersions.map(v=>`<option value="cache:${v.contentHash}">${escape(v.name)} · 缓存版本 ${v.contentHash.slice(0,8)}</option>`).join('')}`;
+}
+function customMapSelector(){return `<label class="field">自定义地图<select id="room-custom-map">${customMapOptions()}</select></label>`;}
+function refreshMapOptions(){
+  void listCachedMapVersions().then(versions=>{
+    cachedVersions=versions;const select=$<HTMLSelectElement>('room-custom-map');
+    if(select){const value=select.value;select.innerHTML=customMapOptions();select.value=value;}
+  }).catch(()=>{});
+}
+async function selectedCustomMap(value:string){
+  if(!value)return undefined;
+  let snapshot;
+  if(value.startsWith('draft:')){
+    const doc=listCustomMaps().find(d=>d.id===value.slice(6));if(!doc)throw Error('本地地图已删除，请重新选择');
+    snapshot=createMapSnapshot(doc);
+  }else{
+    const version=cachedVersions.find(v=>v.contentHash===value.slice(6));
+    snapshot=version?await cachedMapVersion(version):null;
+    if(!snapshot)throw Error('地图缓存不可用，请重新同步');
+  }
+  await cacheMapVersion(snapshot);
+  return snapshot;
+}
+function updateMapSyncUI(){
+  const status=$('room-map-sync');if(!status||!mapSync)return;
+  status.textContent=mapSync.message||'正在等待地图版本同步…';
+  const retry=$('retry-map-sync');if(retry)retry.hidden=mapSync.status!=='error';
+}
+function multiplayer(){if(roomCode&&!network&&lastLobby){roomLobby(lastLobby.players,lastLobby.side,lastLobby.mapId,lastLobby.mode,lastLobby.mapVersion);return;}if(network){showDialog('当前联机战役',`<p class="dialog-description">房间 ${escape(displayRoom(roomCode))} · 联机战役正在进行。${PAGES_BUILD&&roomHost?'房主离开会结束整个房间。':'离开后将由 AI 接管你的部队。'}</p><div class="dialog-actions"><button id="return-online" class="primary-button">返回战场</button><button id="leave-online" class="secondary-button">离开并返回主菜单</button></div>`);$('return-online').onclick=closeDialog;$('leave-online').onclick=returnHome;return;}
+  showDialog('与指挥官并肩交锋',`<p class="dialog-description">支持 2–4 人自由对战，或 1–2 位朋友合作对抗 AI。两人合作请选择四人地图；共享视野，资源与指挥权独立。</p>${PAGES_BUILD?'<p class="room-note">P2P 静态版 · 房主创建房间后复制邀请链接。房主需保持页面打开；离开或刷新会结束房间。</p>':''}<label class="field">指挥官代号<input id="player-name" maxlength="16" value="${t('指挥官')}" autocomplete="nickname"/></label><div class="field">房间模式${dropdownMarkup('room-mode','房间模式',[['ffa','自由对战'],['coop','朋友合作对抗 AI']])}</div>${customMapSelector()}<div class="dialog-actions"><button id="create-room" class="primary-button">创建房间 <span>${uiIcon('plus')}</span></button></div><label class="field">加入已有房间<input id="room-input" maxlength="${PAGES_BUILD?2048:6}" placeholder="${PAGES_BUILD?'粘贴邀请链接或完整房间标识':'输入 6 位房间码'}" ${PAGES_BUILD?'':'style="text-transform:uppercase;font-family:var(--mono);letter-spacing:3px"'}/></label><div class="dialog-actions"><button id="join-room" class="secondary-button">加入作战房间 <span>${uiIcon('arrow-up-right')}</span></button></div>`,'MULTIPLAYER NETWORK');
+  refreshMapOptions();
   if(PAGES_BUILD){const invite=parseInvite(location.href);if(invite)$<HTMLInputElement>('room-input').value=invite.code;}
-  async function act(join:boolean){const name=$<HTMLInputElement>('player-name').value,input=$<HTMLInputElement>('room-input').value.trim(),code=PAGES_BUILD?parseInvite(input)?.code??'':input.toUpperCase(),mode=$<GameSelect>('room-mode').value;if(join&&!(PAGES_BUILD?parseInvite(code):/^[A-F0-9]{6}$/.test(code))){toast(PAGES_BUILD?'请粘贴完整的 P2P 邀请链接或房间标识':'请输入正确的 6 位房间码',true);return;}const button=$<HTMLButtonElement>(join?'join-room':'create-room');button.disabled=true;try{const ws=await connect();ws.send(JSON.stringify({type:join?'join':'create',name,code,mode}));}catch(e){toast((e as Error).message,true);button.disabled=false;}}
+  async function act(join:boolean){const name=$<HTMLInputElement>('player-name').value,input=$<HTMLInputElement>('room-input').value.trim(),code=PAGES_BUILD?parseInvite(input)?.code??'':input.toUpperCase(),mode=$<GameSelect>('room-mode').value,custom=$<HTMLSelectElement>('room-custom-map').value;if(join&&!(PAGES_BUILD?parseInvite(code):/^[A-F0-9]{6}$/.test(code))){toast(PAGES_BUILD?'请粘贴完整的 P2P 邀请链接或房间标识':'请输入正确的 6 位房间码',true);return;}const button=$<HTMLButtonElement>(join?'join-room':'create-room');button.disabled=true;try{const mapSnapshot=join?undefined:await selectedCustomMap(custom),ws=await connect();ws.send(JSON.stringify({type:join?'join':'create',name,code,mode,...(mapSnapshot?{mapId:mapSnapshot.version.mapId,mapSnapshot}:{})}));}catch(e){toast((e as Error).message,true);button.disabled=false;}}
   $('create-room').onclick=()=>void act(false);$('join-room').onclick=()=>void act(true);
 }
-function roomLobby(players:LobbyPlayers,ownSide:Side,mapId:MapId,mode:'ffa'|'coop'='ffa'){
-  const ready=players.every(p=>p.connected!==false)&&(mode==='coop'||players.length>=2),max=mode==='coop'?Math.min(2,mapInfo(mapId).maxPlayers-1):mapInfo(mapId).maxPlayers;
+function roomLobby(players:LobbyPlayers,ownSide:Side,mapId:string,mode:'ffa'|'coop'='ffa',mapVersion?:MapVersion){
+  const ready=players.every(p=>p.connected!==false&&p.mapReady!==false)&&(mode==='coop'||players.length>=2),count=mapVersion?.maxPlayers??(isMapId(mapId)?mapInfo(mapId).maxPlayers:2),max=mode==='coop'?Math.min(2,count-1):count;
   const hostSide=(PAGES_BUILD?players[0]:players.find(p=>p.connected!==false))?.side;
   const description=mode==='coop'?'朋友合作 · 人类同队，共享视野，对抗 AI 军团。':PAGES_BUILD?'P2P 自由对战 · 复制邀请链接，发送给其他指挥官加入。':'自由对战 · 邀请同一服务器上的指挥官，输入房间码加入战局。';
-  lastLobby={players,side:ownSide,mapId,mode};
+  lastLobby={players,side:ownSide,mapId,mode,mapVersion};
   showDialog('作战室已建立',`
     <p class="dialog-description">${description}</p>
     <div class="room-code"><strong>${escape(displayRoom(roomCode))}</strong><button id="copy-code">${PAGES_BUILD?'复制邀请链接':'复制房间码'} ${uiIcon('arrow-up-right')}</button></div>
     ${PAGES_BUILD?`<label class="field">邀请链接<input id="room-invite" readonly value="${escape(inviteURL(roomCode))}"/></label><p class="room-note">房主需保持页面打开；离开或刷新会结束房间。</p>`:''}
-    ${players.map(p=>`<div class="room-member"><i style="background:${COLORS[p.side]}"></i><span><span data-i18n-ignore>${escape(p.name)}</span>${p.side===ownSide?'（你）':''} · ${RACE_NAMES[p.race??'industrial']}</span><small>${p.connected===false?'等待重连':p.side===hostSide?'房主':'已就绪'}</small></div>`).join('')}
+    ${players.map(p=>`<div class="room-member"><i style="background:${COLORS[p.side]}"></i><span><span data-i18n-ignore>${escape(p.name)}</span>${p.side===ownSide?'（你）':''} · ${RACE_NAMES[p.race??'industrial']}</span><small>${p.connected===false?'等待重连':p.mapReady===false?'地图同步中':p.side===hostSide?'房主 · 已就绪':'已就绪'}</small></div>`).join('')}
     <div class="field">你的种族${dropdownMarkup('room-race','你的种族',RACES.map(race=>[race,RACE_NAMES[race]]),players.find(p=>p.side===ownSide)?.race??'industrial')}</div>
     ${mapPickerMarkup(mapId,!roomHost,players.length+(mode==='coop'?1:0))}
-    <p class="room-note">${players.length} / ${max} 位指挥官 · ${ready?'可以开始战役':'等待指挥官加入或重连'}${mode==='coop'?' · 两人合作需要四人地图':''}</p>
+    ${roomHost?customMapSelector():''}
+    ${mapVersion?`<p class="room-note" data-i18n-ignore>锁定地图：${escape(mapVersion.name)} · 版本 ${mapVersion.contentHash.slice(0,12)}</p><p id="room-map-sync" class="room-note" role="status"></p><button id="retry-map-sync" class="secondary-button" hidden>重试地图同步</button><p class="room-note">本房间固定使用此版本。编辑器保存新版不会改变当前房间；房主重新选择地图后全员重新同步。</p>`:''}
+    <p class="room-note">${players.length} / ${max} 位指挥官 · ${ready?'可以开始战役':'等待指挥官加入、重连或完成地图同步'}${mode==='coop'?' · 两人合作需要四人地图':''}</p>
     <div class="dialog-actions">${roomHost?`<button id="launch-room" class="primary-button" ${!ready?'disabled':''}>开始联机战役 <span>${uiIcon('arrow-up-right')}</span></button>`:'<span class="room-note">等待房主开始战役…</span>'}<button id="leave-room" class="secondary-button">离开房间</button></div>
   `,'ROOM / '+displayRoom(roomCode));
   const raceSelect=$<GameSelect>('room-race');raceSelect.onchange=()=>socket?.send(JSON.stringify({type:'select-race',race:raceSelect.value}));
-  bindMapPicker($('dialog-content'),id=>socket?.send(JSON.stringify({type:'select-map',mapId:id})));
+  bindMapPicker($('dialog-content'),id=>{mapChoiceSerial++;socket?.send(JSON.stringify({type:'select-map',mapId:id}));});
+  if(roomHost){
+    refreshMapOptions();
+    $<HTMLSelectElement>('room-custom-map').onchange=async event=>{
+      const value=(event.target as HTMLSelectElement).value,ws=socket,serial=++mapChoiceSerial;if(!value)return;
+      try{const mapSnapshot=await selectedCustomMap(value);if(socket===ws&&serial===mapChoiceSerial&&mapSnapshot)ws?.send(JSON.stringify({type:'select-map',mapId:mapSnapshot.version.mapId,mapSnapshot}));}
+      catch(error){toast((error as Error).message,true);}
+    };
+  }
+  const retry=$('retry-map-sync');if(retry)retry.onclick=()=>mapSync?.retry();
+  updateMapSyncUI();
   $('copy-code').onclick=()=>{void navigator.clipboard.writeText(PAGES_BUILD?inviteURL(roomCode):roomCode).then(()=>toast(PAGES_BUILD?'邀请链接已复制':'房间码已复制')).catch(()=>toast(PAGES_BUILD?'请选中邀请链接手动复制':`房间码：${roomCode}`));};if(roomHost)$('launch-room').onclick=()=>socket?.send(JSON.stringify({type:'start'}));$('leave-room').onclick=()=>{leaveNetwork();closeDialog();};
 }
 function result(){if(showingResult)return;showingResult=true;const won=view.winner!==null&&sameTeam(view.winner,side,view.players),p=view.players.find(p=>p.side===side)!;showDialog(won?'战场属于你。':'暂时撤退，重整旗鼓。',`<p class="dialog-description">${won?'敌方基地已被摧毁，团队战役目标达成。':'己方队伍已失去指挥基地，可继续观察战局。'}</p><div class="result-stats"><div><small>作战用时</small><strong>${time(view.time)}</strong></div><div><small>击毁单位</small><strong>${p.kills}</strong></div><div><small>部队损失</small><strong>${p.lost}</strong></div></div>${matchReportMarkup(view)}<div class="dialog-actions"><button id="play-again" class="primary-button" ${network&&(!roomHost||!view.winner)?'disabled':''}>${network?'同房间再战':'再来一局'} <span>${uiIcon('arrow-up-right')}</span></button><button id="export-match" class="secondary-button">导出战局数据</button><button id="inspect" class="secondary-button">查看战场</button></div>${network?'<p class="room-note">战役结束后由当前房主返回作战室，选择地图并开始下一局。</p>':''}`,won?'MISSION COMPLETE':'MISSION ENDED',false);$('play-again').onclick=()=>{if(network)socket?.send(JSON.stringify({type:'rematch'}));else setupBattle();};$('export-match').onclick=()=>exportMatch(view);$('inspect').onclick=closeDialog;}

@@ -328,6 +328,7 @@ export function compileCustomWorld(doc: CustomMapDocument): WorldData {
     cliffs,
     waterMask: new Uint8Array(doc.water),
     customName: doc.name,
+    customDocument: serializeCustomMap(doc),
   };
 }
 
@@ -403,7 +404,7 @@ function base64ToBytes(encoded: string): Uint8Array {
   return out;
 }
 
-interface SerializedCustomMap {
+export interface SerializedCustomMap {
   version: 1;
   id: string;
   name: string;
