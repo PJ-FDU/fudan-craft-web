@@ -9,6 +9,14 @@ export const CUSTOM_MAP_PREFIX = 'custom:';
 export const CUSTOM_MAPS_STORAGE_KEY = 'fudancraft-custom-maps-v1';
 export type SymmetryMode = 'none' | 'horizontal' | 'vertical' | 'rotational' | 'quad';
 
+export const MAP_SIZE_PRESETS = [
+  { size: 64, label: '64×64 · 小型' },
+  { size: 96, label: '96×96 · 中型' },
+  { size: 128, label: '128×128 · 标准' },
+  { size: 160, label: '160×160 · 大型' },
+  { size: 192, label: '192×192 · 超大' },
+] as const;
+
 export interface CustomDeposit {
   x: number;
   y: number;
@@ -89,6 +97,125 @@ export function createBlankMap(name = '新建 3D 战场', size = 128): CustomMap
     bases,
     towers: [],
     deposits,
+  };
+}
+
+/** 居中裁切或扩展自定义地图尺寸，保留中心区域已有地形、水体、道路与实体。 */
+export function resizeCustomMap(doc: CustomMapDocument, targetSize: number): {
+  doc: CustomMapDocument;
+  worldOffset: number;
+  trimmedCount: number;
+  clampedBases: number;
+} {
+  const newSize = Math.max(48, Math.min(192, Math.round(targetSize)));
+  if (newSize === doc.size) {
+    return {
+      doc: {
+        ...doc,
+        heights: new Float32Array(doc.heights),
+        roads: new Uint8Array(doc.roads),
+        water: new Uint8Array(doc.water),
+        ramps: new Uint8Array(doc.ramps),
+        features: doc.features.map(f => ({ ...f })),
+        bases: doc.bases.map(b => ({ ...b })),
+        towers: doc.towers.map(t => ({ ...t })),
+        deposits: doc.deposits.map(d => ({ ...d })),
+      },
+      worldOffset: 0,
+      trimmedCount: 0,
+      clampedBases: 0,
+    };
+  }
+
+  const oldSize = doc.size;
+  const oldStride = oldSize + 1;
+  const newStride = newSize + 1;
+  const tileOffset = Math.round((newSize - oldSize) / 2);
+  const worldOffset = tileOffset * TILE;
+
+  const heights = new Float32Array(newStride * newStride);
+  for (let nz = 0; nz < newStride; nz++) {
+    const oz = nz - tileOffset;
+    if (oz < 0 || oz >= oldStride) continue;
+    for (let nx = 0; nx < newStride; nx++) {
+      const ox = nx - tileOffset;
+      if (ox < 0 || ox >= oldStride) continue;
+      heights[nz * newStride + nx] = doc.heights[oz * oldStride + ox];
+    }
+  }
+
+  const roads = new Uint8Array(newSize * newSize);
+  const water = new Uint8Array(newSize * newSize);
+  const ramps = new Uint8Array(newSize * newSize);
+  for (let ny = 0; ny < newSize; ny++) {
+    const oy = ny - tileOffset;
+    if (oy < 0 || oy >= oldSize) continue;
+    for (let nx = 0; nx < newSize; nx++) {
+      const ox = nx - tileOffset;
+      if (ox < 0 || ox >= oldSize) continue;
+      const ni = ny * newSize + nx;
+      const oi = oy * oldSize + ox;
+      roads[ni] = doc.roads[oi];
+      water[ni] = doc.water[oi];
+      ramps[ni] = doc.ramps[oi];
+    }
+  }
+
+  const minCoord = 2 * TILE;
+  const maxCoord = (newSize - 2) * TILE;
+  const inBounds = (x: number, y: number) => x >= minCoord && x <= maxCoord && y >= minCoord && y <= maxCoord;
+
+  let trimmedCount = 0;
+  const features: Feature[] = [];
+  for (const f of doc.features) {
+    const x = f.x + worldOffset, y = f.y + worldOffset;
+    if (inBounds(x, y)) features.push({ ...f, x, y });
+    else trimmedCount++;
+  }
+  const towers: (Point & { side: Side })[] = [];
+  for (const t of doc.towers) {
+    const x = t.x + worldOffset, y = t.y + worldOffset;
+    if (inBounds(x, y)) towers.push({ ...t, x, y });
+    else trimmedCount++;
+  }
+  const deposits: CustomDeposit[] = [];
+  for (const d of doc.deposits) {
+    const x = d.x + worldOffset, y = d.y + worldOffset;
+    if (inBounds(x, y)) deposits.push({ ...d, x, y });
+    else trimmedCount++;
+  }
+
+  const baseMin = 4 * TILE + TILE * .5;
+  const baseMax = (newSize - 5) * TILE + TILE * .5;
+  const snapTileCenter = (v: number) => (Math.floor(v / TILE) + .5) * TILE;
+  let clampedBases = 0;
+  const bases: (Point & { side: Side })[] = doc.bases.map(b => {
+    const rx = b.x + worldOffset, ry = b.y + worldOffset;
+    const cx = Math.max(baseMin, Math.min(baseMax, rx));
+    const cy = Math.max(baseMin, Math.min(baseMax, ry));
+    if (cx !== rx || cy !== ry) {
+      clampedBases++;
+      return { ...b, x: snapTileCenter(cx), y: snapTileCenter(cy) };
+    }
+    return { ...b, x: rx, y: ry };
+  });
+
+  return {
+    doc: {
+      ...doc,
+      size: newSize,
+      heights,
+      roads,
+      water,
+      ramps,
+      features,
+      bases,
+      towers,
+      deposits,
+    },
+    worldOffset,
+    trimmedCount,
+    clampedBases,
   };
 }
 

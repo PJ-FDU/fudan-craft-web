@@ -160,13 +160,17 @@ export function expeditionUnit(m:FactionModel,kind:MobileKind|'assembly',packed:
   }
 }
 
-function feet(p:Parts,w:number,d:number){
-  for(const s of [-1,1])for(const z of [-d*.4,d*.4]){
-    strut(p,expedition,[s*w*.33,7,z],[s*w*.49,1,z],2.5);
-    p.add('panel',service,s*w*.49,1,z,9,1.5,8);
+function footplate(p:Parts,x:number,z:number,width:number,depth=width,y=0){
+  p.add('panel',service,x,y+.7,z,width,1.4,depth);
+}
+function outriggers(p:Parts,w:number,offsetZ:number,deckY:number){
+  for(const s of [-1,1])for(const z of [-offsetZ,offsetZ]){
+    const footX=s*(w/2+4);
+    strut(p,expedition,[s*w*.44,deckY,z],[footX,.8,z],2.5);
+    footplate(p,footX,z,9,8);
   }
 }
-function shelter(p:Parts,x:number,z:number,w:number,h:number,d:number){
+function shelter(p:Parts,x:number,z:number,w:number,h:number,d:number,deckY=0){
   // 双坡帆布与外露支架，底部留空，不复用联邦的封闭建筑盒体。
   for(const s of [-1,1]){
     p.add('scute',canvas,x+s*w*.25,h-3,z,w*.56,3.8,d,0,0,-s*.24);
@@ -176,8 +180,11 @@ function shelter(p:Parts,x:number,z:number,w:number,h:number,d:number){
       strut(p,i%2?canvas:expedition,[x,h,beamZ],[x+s*w*.49,h-6,beamZ],i%2?.7:1.27);
     }
     for(const end of [-1,1]){
-      strut(p,expedition,[x+s*w*.46,3,z+end*d*.43],[x+s*w*.46,h-6,z+end*d*.43],1.5);
-      strut(p,canvas,[x+s*w*.46,h-7,z+end*d*.43],[x+s*w*.67,1,z+end*d*.58],.65);
+      const postX=x+s*w*.46,postZ=z+end*d*.43,pegX=x+s*w*.67,pegZ=z+end*d*.58;
+      strut(p,expedition,[postX,deckY+1,postZ],[postX,h-6,postZ],1.5);
+      strut(p,canvas,[postX,h-7,postZ],[pegX,1,pegZ],.65);
+      footplate(p,postX,postZ,5,5,deckY);
+      p.add('panel',service,pegX,.6,pegZ,3.5,1.2,3.5);
     }
     p.add('panel',canvas,x+s*w*.47,h*.48,z,1,h*.65,d*.95);
   }
@@ -196,72 +203,95 @@ function cargo(p:Parts,x:number,y:number,z:number,w=14,d=16){
 
 export function expeditionBuilding(m:FactionModel,kind:BuildingKind){
   const base=kind==='base',mast=kind==='relayTower',tower=kind==='tower',well=kind==='oilwell';
-  const w=base?94:mast||tower||well?32:76,d=base?87:mast||tower||well?33:69;
   m.joint('root',[0,0,0],p=>{
-    feet(p,w,d);
     if(mast||tower||well){
       p.add('panel',expedition,0,5,0,25,3,26);
+      outriggers(p,25,26*.42,5);
       cargo(p,-6,10,-4,10,13);
       for(const x of [-10,10])p.add('panel',sand,x,3,7,3,2,12);
     }else if(base){
       p.add('panel',expedition,-15,7,-3,44,3,67);
-      shelter(p,-14,-5,42,37,61);
+      for(const x of [-31,1])p.add('bevel',expedition,x,3,-3,4,6,60);
+      shelter(p,-14,-5,42,37,61,8.5);
+      p.add('bevel',expedition,25,2.5,-17,26,5,32);
       p.add('bevel',sand,25,18,-17,22,27,29);
       p.add('panel',glass,25,22,-1,14,6,1);
       shelter(p,22,23,29,26,27);
-      for(const s of [-1,1])for(const z of [-24,19])p.add('drum',fieldRubber,-14+s*23,7,z,12,5,12,0,0,Math.PI/2);
-      cargo(p,-20,8,34);cargo(p,-2,8,35,12,13);
+      for(const s of [-1,1])for(const z of [-24,19])p.add('drum',fieldRubber,-14+s*23,6,z,12,5,12,0,0,Math.PI/2);
+      cargo(p,-20,5,34);cargo(p,-2,5,35,12,13);
       strut(p,expedition,[26,31,-17],[26,55,-17],1.7);
     }else if(kind==='assembly'){
       p.add('armorHull',expedition,0,5,0,61,5,59);
+      outriggers(p,61,11,5);
+      for(const z of [-24,24])p.add('panel',expedition,0,39,z,54,2,2.5);
       for(const s of [-1,1]){
         for(const z of [-24,24]){
           strut(p,expedition,[s*26,6,z],[s*26,39,z],2.5);
-          strut(p,service,[s*26,13,z],[s*17,34,z],1.45);
+          strut(p,service,[s*26,25,z],[s*17,39,z],1.45);
           p.add('armorHull',composite,s*26,11,z,7,9,8);
         }
         strut(p,expedition,[s*26,39,-24],[s*26,39,24],3);
-        for(const z of [-22,0,22])p.add('drum',fieldRubber,s*31,7,z,12,5,12,0,0,Math.PI/2);
-        cargo(p,s*19,13,-22,11,13);
+        for(const z of [-22,0,22])p.add('drum',fieldRubber,s*31,6,z,12,5,12,0,0,Math.PI/2);
+        cargo(p,s*19,12.5,-22,11,13);
       }
-      shelter(p,0,-15,54,44,26);
+      shelter(p,0,-15,54,44,26,7.5);
       p.add('armorPlate',composite,0,41,22,54,4,8);
       for(const x of [-18,18])p.box(service,x,8,4,2,1,41);
-      p.add('armorPlate',composite,0,5,34,40,2,17,.25);
-      for(const x of [-16,16])p.add('panel','lamp',x,6.3,32,1.5,.6,4,.25);
+      p.add('armorPlate',composite,0,3.9,34,40,2,17,.36);
+      for(const x of [-16,16])p.add('panel','lamp',x,5.6,32,1.5,.6,4,.36);
     }else if(kind==='routePost'){
       shelter(p,-8,-4,49,31,40);
-      cargo(p,23,8,-20);cargo(p,23,8,-2);
+      cargo(p,23,5,-20);cargo(p,23,5,-2);
       p.add('panel',expedition,0,12,12,25,2,13);
-      for(const x of [-10,10])strut(p,expedition,[x,2,12],[x,12,12],1.2);
+      for(const x of [-10,10])for(const z of [8,16]){
+        strut(p,expedition,[x,.8,z],[x,12,z],1.2);
+        footplate(p,x,z,2.5);
+      }
       p.add('panel',sand,0,13.3,12,19,.5,10);
-      strut(p,expedition,[-29,2,15],[-29,40,15],1.1);
+      strut(p,expedition,[-29,.8,15],[-29,40,15],1.1);
+      footplate(p,-29,15,3);
       p.add('panel','team',-23,35,15,12,8,.7);
     }else if(kind==='observatory'){
-      for(const x of [-1,1])strut(p,expedition,[x*24,2,13],[0,32,-5],3);
-      strut(p,expedition,[0,2,-28],[0,32,-5],3);
-      cargo(p,-22,9,21,20,18);
-      p.add('panel',glass,-22,14,22,12,1,9,.2);
+      for(const [x,z] of [[-24,13],[24,13],[0,-28]]){
+        strut(p,expedition,[x,.8,z],[0,32,-5],3);
+        footplate(p,x,z,8);
+      }
+      cargo(p,-22,5,26,20,18);
+      p.add('panel',glass,-22,10,27,12,1,9,.2);
       shelter(p,22,-10,23,24,28);
     }else if(kind==='escortDepot'){
       shelter(p,-7,-3,56,34,55);
-      for(const [x,z] of [[-22,-17],[-6,-17],[11,-17],[-22,3],[-6,3]])cargo(p,x,8,z);
-      cargo(p,-14,18,-17,17,16);
-      p.add('drum',fieldRubber,26,8,18,14,5,14,0,0,Math.PI/2);
+      for(const [x,z] of [[-22,-17],[-6,-17],[11,-17],[-22,3],[-6,3]])cargo(p,x,5,z);
+      cargo(p,-14,15,-17,17,16);
+      p.add('drum',fieldRubber,26,7,18,14,5,14,0,0,Math.PI/2);
       strut(p,expedition,[26,0,-20],[26,46,-20],1.3);
+      footplate(p,26,-20,4);
     }else if(kind==='refinery'){
       p.add('panel',expedition,0,6,0,57,3,53);
+      outriggers(p,57,53*.42,6);
       for(const x of [-15,15]){
         p.add('drum',service,x,16,-3,17,39,17,Math.PI/2);
-        for(const z of [-17,12])p.add('ring',expedition,x,16,z,18,18,2);
+        for(const z of [-17,12]){
+          p.add('ring',expedition,x,16,z,18,18,2);
+          p.add('bevel',expedition,x,9,z,18,4,5);
+        }
         strut(p,service,[x,16,19],[x,7,27],2.3);
       }
-      cargo(p,-17,10,28,19,12);
-      shelter(p,0,-22,51,33,16);
+      cargo(p,-17,12.5,22,19,9);
+      shelter(p,0,-18,51,33,16,7.5);
     }else if(kind==='lumbermill'){
       shelter(p,-14,-8,33,31,45);
-      for(const s of [-1,1])p.box(expedition,13+s*12,8,4,2,8,51);
+      for(const x of [1,25]){
+        p.box(expedition,x,8,4,2,8,51);
+        for(const z of [-16,21]){
+          p.add('panel',service,x,1,z,6,2,7);
+          p.box(expedition,x,3.5,z,3,5,4);
+        }
+        p.add('panel',expedition,x,15,-8,3.8,11,5);
+        p.add('drum',service,x,20,-8,5,3.8,5,0,0,Math.PI/2);
+      }
       for(const z of [-15,-4,7,18])p.add('drum',service,13,11,z,4,27,4,0,0,Math.PI/2);
+      p.add('drum',service,13,20,-8,3,25,3,0,0,Math.PI/2);
       p.add('drum',service,13,20,-8,17,2,17,0,0,Math.PI/2);
       p.add('carapace',sand,13,23,-8,4,13,21);
     }
@@ -272,6 +302,7 @@ export function expeditionBuilding(m:FactionModel,kind:BuildingKind){
         strut(p,expedition,[s*9,5,0],[s*3,57,0],2);
         strut(p,canvas,[s*3,48,0],[s*17,1,12],.65);
       }
+      p.add('panel',expedition,0,56.5,0,8,2,4);
       for(let i=0;i<4;i++){
         const y=12+i*10,a=8-i;
         strut(p,service,[-a,y,0],[a-1,y+10,0],1);
@@ -282,7 +313,11 @@ export function expeditionBuilding(m:FactionModel,kind:BuildingKind){
     });
     m.joint('dish',[0,58,0],p=>dish(p,23,sand),'root',(b,s)=>{b.rotation.y=s.time*.35;});
   }else if(tower){
-    m.at('root',p=>{for(const x of [-9,9])strut(p,expedition,[x,5,0],[x,25,0],2);});
+    m.at('root',p=>{
+      for(const x of [-9,9])strut(p,expedition,[x,5,0],[x,25,0],2);
+      p.add('panel',expedition,0,25,0,21,2,5);
+      p.add('drum',service,0,26.25,0,9,1.5,9);
+    });
     m.joint('turret',[0,27,0],p=>{
       p.add('panel',sand,0,1,0,23,3,19);
       for(const x of [-6,6]){
@@ -292,7 +327,11 @@ export function expeditionBuilding(m:FactionModel,kind:BuildingKind){
       p.box('team',0,3,-5,8,1,7);lens(p,0,5,5,3);
     },'root',(b,s)=>{b.rotation.y=s.aim;b.position.z-=s.recoil*2;});
   }else if(well){
-    m.at('root',p=>{for(const x of [-6,6])strut(p,expedition,[x,5,-6],[x,29,-4],2);});
+    m.at('root',p=>{
+      for(const x of [-6,6])strut(p,expedition,[x,5,-6],[x,29,-4],2);
+      p.add('panel',expedition,0,26,-4,14,2,4);
+      p.add('drum',service,0,29,-4,3,13,3,0,0,Math.PI/2);
+    });
     m.joint('pump',[0,29,-4],p=>{
       p.add('panel',sand,0,0,0,7,4,29);
       p.add('panel',expedition,0,-3,13,7,9,7);

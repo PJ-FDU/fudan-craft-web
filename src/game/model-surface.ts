@@ -1,7 +1,8 @@
 import { MeshStandardMaterial, ShaderChunk, Vector2, type Texture } from 'three';
 import { ATLAS_COLUMNS, atlasCell, type Surface } from './battle-materials.js';
 import { surfaceNormals } from './surface-normals.js';
-import type { BlenderSurface } from './blender-assets.js';
+import type { BlenderAssets, BlenderSurface } from './blender-assets.js';
+import { configureSculptMicroDetail } from './sculpt-micro-textures.js';
 import {
   weatherColor, weatherFragmentDeclarations, weatherMetalness, weatherRelief, weatherRoughness,
   weatherVertex, weatherVertexDeclarations,
@@ -30,11 +31,20 @@ export const surfaceFinish=(surface:Surface):Finish=>finishes[surface]??matte;
 
 /** 独立 UV 烘焙材质直接读美术颜色，避免旧图集与顶点染色重复覆盖。 */
 export function sculptSurface(surface:BlenderSurface){
-  return new MeshStandardMaterial({
+  const material=new MeshStandardMaterial({
     map:surface.albedo,normalMap:surface.normal,normalScale:new Vector2(1,1),
     roughnessMap:surface.orm,metalnessMap:surface.orm,aoMap:surface.orm,
     roughness:1,metalness:1,aoMapIntensity:1,envMapIntensity:.8,
   });
+  if(surface.micro)configureSculptMicroDetail(material,surface.micro);
+  return material;
+}
+
+export function natureSurface(atlas:Texture,assets:BlenderAssets|undefined,weathered=false){
+  if(!assets?.manifest.natureAtlas||!assets.surface)return modelSurface(atlas,undefined,weathered,assets?.surface);
+  const material=sculptSurface(assets.surface);
+  material.vertexColors=true;
+  return material;
 }
 
 const factionStart=atlasCell('chitin').x;

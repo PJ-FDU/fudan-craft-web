@@ -5,6 +5,7 @@ export class Camera {
   x=2256; y=3600; zoom=.85; targetZoom=.85; width=1; height=1;
   yaw=0;
   tilt=1;
+  freeOverview=false;
   private edgePadding=0;
   private anchor: { screen: Point; world: Point } | null=null;
   constructor(public world=4096) {}
@@ -12,7 +13,15 @@ export class Camera {
     const c=Math.abs(Math.cos(this.yaw)),s=Math.abs(Math.sin(this.yaw)),h=this.height/this.tilt;
     return {x:c*this.width+s*h,y:s*this.width+c*h};
   }
-  get minZoom() { const span=this.groundSpan;return Math.max(.28,span.x/this.world,span.y/this.world); }
+  get minZoom() {
+    const span=this.groundSpan;
+    if(this.freeOverview){
+      // 编辑器允许缩小至俯瞰整张地图全景（含边界余量）
+      const fit=Math.min(this.width,this.height)/(this.world*1.38);
+      return Math.max(.08,Math.min(.22,fit));
+    }
+    return Math.max(.28,span.x/this.world,span.y/this.world);
+  }
   get maxZoom() { return Math.max(2.4,this.minZoom); }
   resize(width:number,height:number) {
     this.width=Math.max(1,width);this.height=Math.max(1,height);

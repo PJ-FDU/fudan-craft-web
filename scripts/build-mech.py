@@ -21,7 +21,7 @@ PALETTE = {
     "frameDark":  ((.16, .20, .24), .46, .66, "metal", {"tex": "gunmetal", "scale": .12, "albedo_amp": .18, "bump_strength": .052}),
     "gun":        ((.20, .24, .28), .36, .82, "metal", {"tex": "gunmetal", "scale": .14, "albedo_amp": .18, "bump_strength": .046}),
     "steel":      ((.58, .64, .68), .24, .90, "metal", {"tex": "gunmetal", "scale": .14, "albedo_amp": .14, "bump_strength": .032}),
-    "exhaust":    ((.38, .33, .29), .50, .74, "metal", {"tex": "gunmetal", "scale": .14, "albedo_amp": .20, "bump_strength": .055}),
+    "exhaust":    ((.38, .33, .29), .55, .67, "metal", {"tex": "heat", "scale": .14, "albedo_amp": .20, "bump_strength": .055, "color_mix": .26}),
     "rubber":     ((.085, .095, .10), .86, .00, "rubber"),
     "recess":     ((.03, .04, .045), .68, .30, "metal"),
     "visor":      ((.05, .32, .44), .08, .22, "glass"),

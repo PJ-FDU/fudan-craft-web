@@ -17,7 +17,7 @@ const port=Number(process.env.PORT)||4320;
 const listenHost=process.env.LISTEN_HOST||'0.0.0.0';
 const vite=production?null:await (await import('vite')).createServer({server:{middlewareMode:true},appType:'spa'});
 const root=resolve('dist');
-const mime:Record<string,string>={'.html':'text/html; charset=utf-8','.js':'application/javascript','.css':'text/css','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.mp3':'audio/mpeg','.wav':'audio/wav','.json':'application/json','.svg':'image/svg+xml','.woff2':'font/woff2'};
+const mime:Record<string,string>={'.html':'text/html; charset=utf-8','.js':'application/javascript','.css':'text/css','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.glb':'model/gltf-binary','.mp3':'audio/mpeg','.wav':'audio/wav','.json':'application/json','.svg':'image/svg+xml','.woff2':'font/woff2'};
 const maxConnections=positiveInteger(process.env.WS_MAX_CONNECTIONS,512);
 const maxPerAddress=positiveInteger(process.env.WS_MAX_PER_IP,24);
 const roomCreatesPerMinute=positiveInteger(process.env.WS_ROOM_CREATES_PER_MINUTE,12);
@@ -38,7 +38,9 @@ const server=createServer(async(req,res)=>{
     else if(!file&&!extname(path)&&!pathname.startsWith('/assets/'))path=resolve(root,'index.html');
     file??=await stat(path);
     if(!file.isFile()){res.writeHead(404);res.end('Not found');return;}
-    const cache=extname(path)==='.html'?'no-cache':/^[\w-]+-[\w-]{8}\.(?:js|css)$/.test(basename(path))?'public, max-age=31536000, immutable':'public, max-age=3600';
+    const cache=extname(path)==='.html'||basename(path)==='manifest.json'?'no-cache':
+      /-[a-f0-9]{16}\.(?:webp|glb)$/.test(basename(path))||/^[\w-]+-[\w-]{8}\.(?:js|css)$/.test(basename(path))
+        ?'public, max-age=31536000, immutable':'public, max-age=3600';
     const tag=`W/"${file.size.toString(16)}-${Math.trunc(file.mtimeMs).toString(16)}"`;
     const headers={'Content-Type':mime[extname(path)]||'application/octet-stream','Cache-Control':cache,'ETag':tag,'X-Content-Type-Options':'nosniff'};
     if(req.headers['if-none-match']?.split(',').some(value=>value.trim()===tag||value.trim()==='*')){res.writeHead(304,headers);res.end();return;}

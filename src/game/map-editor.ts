@@ -3,17 +3,19 @@ import { Renderer } from './renderer.js';
 import { RESOURCE_STOCK } from './resource-world.js';
 import { TILE } from './pathfinding.js';
 import { COLORS, type Point, type Side, type ViewState } from './types.js';
-import { ELEVATION_LEVELS, WATER_BED_DEPTH, heightAt } from './terrain-height.js';
+import { ELEVATION_LEVELS, WATER_BED_DEPTH, WATER_SURFACE_Y, heightAt } from './terrain-height.js';
+import { terrainNoise } from './terrain-shapes.js';
 import {
   compileCustomWorld, createBlankMap, createFromBuiltinMap, deleteCustomMap,
-  exportCustomMapJSON, importCustomMapJSON, listCustomMaps, saveCustomMap,
-  symmetryPoints, validateCustomMap, type CustomMapDocument, type SymmetryMode, type ValidationIssue,
+  exportCustomMapJSON, importCustomMapJSON, listCustomMaps, MAP_SIZE_PRESETS,
+  resizeCustomMap, saveCustomMap, symmetryPoints, validateCustomMap,
+  type CustomMapDocument, type SymmetryMode, type ValidationIssue,
 } from './custom-maps.js';
 import { registerCustomWorld, type Feature, type WorldData } from './world.js';
 
 export type EditorTool =
   | 'elev-1' | 'elev-2' | 'elev-0' | 'ramp' | 'road' | 'water'
-  | 'forest' | 'rock' | 'ruin' | 'erase'
+  | 'forest' | 'bush' | 'flower' | 'foliage' | 'stump' | 'rock' | 'ruin' | 'erase'
   | 'gold' | 'oil' | 'base-1' | 'base-2' | 'base-3' | 'base-4';
 
 export interface MapEditorCallbacks {
@@ -35,9 +37,13 @@ const TOOLS: { group: string; items: { id: EditorTool; label: string; hint: stri
     ],
   },
   {
-    group: '生态与障碍',
+    group: '生态与装饰',
     items: [
       { id: 'forest', label: '树林', hint: '可伐' },
+      { id: 'bush', label: '灌木', hint: '装饰' },
+      { id: 'flower', label: '野花', hint: '点缀' },
+      { id: 'foliage', label: '草蕨', hint: '草丛' },
+      { id: 'stump', label: '树桩', hint: '林地' },
       { id: 'rock', label: '岩石', hint: '阻挡' },
       { id: 'ruin', label: '遗迹', hint: '石柱' },
       { id: 'erase', label: '橡皮擦', hint: '清除' },
@@ -104,10 +110,11 @@ export class MapEditor {
     this.host.append(this.root);
     this.renderPanel();
     this.rebuildWorld(true);
+    this.renderer.camera.freeOverview = true;
     const center = this.doc.size * TILE / 2;
     this.renderer.camera.focus({ x: center, y: center });
-    this.renderer.camera.zoom = .55;
-    this.renderer.camera.targetZoom = .55;
+    this.renderer.camera.zoom = .42;
+    this.renderer.camera.targetZoom = .42;
     this.bindInput();
     this.loop(performance.now());
   }
@@ -118,6 +125,8 @@ export class MapEditor {
     this.active = false;
     cancelAnimationFrame(this.raf);
     this.abort.abort();
+    this.renderer.camera.freeOverview = false;
+    this.renderer.camera.resize(this.renderer.camera.width, this.renderer.camera.height);
     this.root.remove();
   }
 
@@ -136,6 +145,7 @@ export class MapEditor {
     this.rebuildWorld(true);
     this.updateUndoButtons();
     this.syncNameInput();
+    this.syncSizeSelect();
   }
 
   private redo() {
@@ -146,6 +156,7 @@ export class MapEditor {
     this.rebuildWorld(true);
     this.updateUndoButtons();
     this.syncNameInput();
+    this.syncSizeSelect();
   }
 
   private updateUndoButtons() {
@@ -158,6 +169,19 @@ export class MapEditor {
   private syncNameInput() {
     const input = this.root.querySelector<HTMLInputElement>('#ed-name');
     if (input) input.value = this.doc.name;
+  }
+
+  private syncSizeSelect() {
+    const sel = this.root.querySelector<HTMLSelectElement>('#ed-size');
+    if (!sel) return;
+    const val = String(this.doc.size);
+    if (![...sel.options].some(o => o.value === val)) {
+      const opt = document.createElement('option');
+      opt.value = val;
+      opt.textContent = `${this.doc.size}×${this.doc.size} · 自定义`;
+      sel.append(opt);
+    }
+    sel.value = val;
   }
 
   private rebuildWorld(refreshValidation = true) {
@@ -295,7 +319,6 @@ export class MapEditor {
           const ti = ty * size + tx;
           if (!this.doc.water[ti]) {
             this.doc.ramps[ti] = 1;
-            this.doc.roads[ti] = Math.max(this.doc.roads[ti], 190);
           }
         }
       }
@@ -316,47 +339,83 @@ export class MapEditor {
         }
       }
     } else if (this.tool === 'water') {
+      const shoreNoise = terrainNoise(917);
       for (const p of points) {
-        const x0 = Math.max(2, Math.floor((p.x - radPx) / TILE)), x1 = Math.min(size - 3, Math.ceil((p.x + radPx) / TILE));
-        const y0 = Math.max(2, Math.floor((p.y - radPx) / TILE)), y1 = Math.min(size - 3, Math.ceil((p.y + radPx) / TILE));
+        const bankPad = TILE * 1.45;
+        const maxRad = radPx + bankPad;
+        const vx0 = Math.max(1, Math.floor((p.x - maxRad - TILE) / TILE)), vx1 = Math.min(size - 1, Math.ceil((p.x + maxRad + TILE) / TILE));
+        const vz0 = Math.max(1, Math.floor((p.y - maxRad - TILE) / TILE)), vz1 = Math.min(size - 1, Math.ceil((p.y + maxRad + TILE) / TILE));
+        for (let vz = vz0; vz <= vz1; vz++) for (let vx = vx0; vx <= vx1; vx++) {
+          const wx = vx * TILE, wz = vz * TILE;
+          const d = Math.hypot(wx - p.x, wz - p.y);
+          // 叠加柔和噪声扰动与 S 曲线缓坡，形成自然弯曲岸线而非规整方格
+          const wobble = 1 + shoreNoise(wx / 145, wz / 145) * .18;
+          const outer = maxRad * wobble;
+          if (d >= outer) continue;
+          const inner = radPx * .32 * wobble;
+          const t = Math.max(0, Math.min(1, 1 - (d - inner) / Math.max(1, outer - inner)));
+          const smooth = t * t * (3 - 2 * t);
+          const depth = WATER_BED_DEPTH * smooth;
+          const idx = vz * stride + vx;
+          this.doc.heights[idx] = Math.min(this.doc.heights[idx], depth);
+        }
+        const x0 = Math.max(2, Math.floor((p.x - maxRad) / TILE)), x1 = Math.min(size - 3, Math.ceil((p.x + maxRad) / TILE));
+        const y0 = Math.max(2, Math.floor((p.y - maxRad) / TILE)), y1 = Math.min(size - 3, Math.ceil((p.y + maxRad) / TILE));
+        const heightSampler = { land: this.doc.water, heights: this.doc.heights };
         for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
-          const d = Math.hypot((tx + .5) * TILE - p.x, (ty + .5) * TILE - p.y);
-          if (d <= radPx) {
+          const h = heightAt(heightSampler, (tx + .5) * TILE, (ty + .5) * TILE);
+          if (h < WATER_SURFACE_Y) {
             const ti = ty * size + tx;
             this.doc.water[ti] = 1;
             this.doc.roads[ti] = 0;
             this.doc.ramps[ti] = 0;
           }
         }
-        const vx0 = Math.max(1, Math.floor((p.x - radPx - TILE) / TILE)), vx1 = Math.min(size - 1, Math.ceil((p.x + radPx + TILE) / TILE));
-        const vz0 = Math.max(1, Math.floor((p.y - radPx - TILE) / TILE)), vz1 = Math.min(size - 1, Math.ceil((p.y + radPx + TILE) / TILE));
-        for (let vz = vz0; vz <= vz1; vz++) for (let vx = vx0; vx <= vx1; vx++) {
-          const d = Math.hypot(vx * TILE - p.x, vz * TILE - p.y);
-          if (d <= radPx) {
-            const depth = WATER_BED_DEPTH * Math.max(.25, 1 - d / (radPx + TILE));
-            this.doc.heights[vz * stride + vx] = Math.min(this.doc.heights[vz * stride + vx], depth);
-          }
-        }
         this.doc.features = this.doc.features.filter(f => Math.hypot(f.x - p.x, f.y - p.y) > radPx);
       }
-    } else if (this.tool === 'forest' || this.tool === 'rock' || this.tool === 'ruin') {
-      const spacing = this.tool === 'forest' ? 56 : this.tool === 'rock' ? 74 : 96;
+    } else if (
+      this.tool === 'forest' || this.tool === 'bush' || this.tool === 'flower'
+      || this.tool === 'foliage' || this.tool === 'stump'
+      || this.tool === 'rock' || this.tool === 'ruin'
+    ) {
+      const isDecor = this.tool === 'bush' || this.tool === 'flower' || this.tool === 'foliage' || this.tool === 'stump';
+      const spacing = this.tool === 'forest' ? 56
+        : this.tool === 'bush' ? 44
+        : this.tool === 'flower' || this.tool === 'foliage' ? 32
+        : this.tool === 'stump' ? 48
+        : this.tool === 'rock' ? 74 : 96;
+      const baseClearance = isDecor ? 96 : 180;
       for (const p of points) {
-        const count = this.tool === 'forest' ? Math.max(1, Math.round(this.radius * 1.1)) : 1;
+        const count = this.tool === 'forest'
+          ? Math.max(1, Math.round(this.radius * 1.1))
+          : this.tool === 'flower' || this.tool === 'foliage'
+            ? Math.max(2, Math.round(this.radius * 1.6))
+            : this.tool === 'bush'
+              ? Math.max(1, Math.round(this.radius * .9))
+              : 1;
         for (let k = 0; k < count; k++) {
           const angle = Math.random() * Math.PI * 2;
-          const dist = count === 1 ? 0 : Math.random() * radPx * .85;
+          const dist = count === 1 ? 0 : Math.random() * radPx * .88;
           const fx = Math.max(TILE * 3, Math.min(extent - TILE * 3, p.x + Math.cos(angle) * dist));
           const fy = Math.max(TILE * 3, Math.min(extent - TILE * 3, p.y + Math.sin(angle) * dist));
           const ti = Math.floor(fy / TILE) * size + Math.floor(fx / TILE);
           if (this.doc.water[ti]) continue;
           if (this.doc.features.some(f => Math.hypot(f.x - fx, f.y - fy) < spacing)) continue;
-          if (this.doc.bases.some(b => Math.hypot(b.x - fx, b.y - fy) < 180)) continue;
+          if (this.doc.bases.some(b => Math.hypot(b.x - fx, b.y - fy) < baseClearance)) continue;
           let feature: Feature;
           if (this.tool === 'forest') {
             const kinds = ['pine', 'oak', 'birch'] as const;
             const kind = kinds[Math.floor(Math.random() * kinds.length)];
             feature = { x: fx, y: fy, kind, size: 92 + Math.random() * 28, cell: kind === 'pine' ? 0 : kind === 'oak' ? 1 : 2, block: false };
+          } else if (this.tool === 'bush') {
+            feature = { x: fx, y: fy, kind: 'bush', size: 54 + Math.random() * 24, cell: 3, block: false };
+          } else if (this.tool === 'flower') {
+            feature = { x: fx, y: fy, kind: 'flower', size: 32 + Math.random() * 20, cell: 13, block: false };
+          } else if (this.tool === 'foliage') {
+            const fern = Math.random() < .5;
+            feature = { x: fx, y: fy, kind: fern ? 'fern' : 'grass', size: 30 + Math.random() * 22, cell: fern ? 15 : 12, block: false };
+          } else if (this.tool === 'stump') {
+            feature = { x: fx, y: fy, kind: 'stump', size: 34 + Math.random() * 14, cell: 14, block: false };
           } else if (this.tool === 'rock') {
             const large = Math.random() < .45;
             feature = { x: fx, y: fy, kind: large ? 'rockLarge' : 'rock', size: large ? 86 + Math.random() * 22 : 52 + Math.random() * 18, cell: large ? 5 : 4, block: true };
@@ -368,16 +427,30 @@ export class MapEditor {
       }
     } else if (this.tool === 'erase') {
       for (const p of points) {
-        const x0 = Math.max(2, Math.floor((p.x - radPx) / TILE)), x1 = Math.min(size - 3, Math.ceil((p.x + radPx) / TILE));
-        const y0 = Math.max(2, Math.floor((p.y - radPx) / TILE)), y1 = Math.min(size - 3, Math.ceil((p.y + radPx) / TILE));
+        const liftBlend = radPx + TILE * 1.4;
+        const vx0 = Math.max(1, Math.floor((p.x - liftBlend) / TILE)), vx1 = Math.min(size - 1, Math.ceil((p.x + liftBlend) / TILE));
+        const vz0 = Math.max(1, Math.floor((p.y - liftBlend) / TILE)), vz1 = Math.min(size - 1, Math.ceil((p.y + liftBlend) / TILE));
+        for (let vz = vz0; vz <= vz1; vz++) for (let vx = vx0; vx <= vx1; vx++) {
+          const idx = vz * stride + vx;
+          if (this.doc.heights[idx] >= 0) continue;
+          const d = Math.hypot(vx * TILE - p.x, vz * TILE - p.y);
+          if (d > liftBlend) continue;
+          const t = d <= radPx ? 1 : Math.max(0, 1 - (d - radPx) / (liftBlend - radPx));
+          const w = t * t * (3 - 2 * t);
+          this.doc.heights[idx] = this.doc.heights[idx] * (1 - w);
+        }
+        const x0 = Math.max(2, Math.floor((p.x - liftBlend) / TILE)), x1 = Math.min(size - 3, Math.ceil((p.x + liftBlend) / TILE));
+        const y0 = Math.max(2, Math.floor((p.y - liftBlend) / TILE)), y1 = Math.min(size - 3, Math.ceil((p.y + liftBlend) / TILE));
+        const heightSampler = { land: this.doc.water, heights: this.doc.heights };
         for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
-          if (Math.hypot((tx + .5) * TILE - p.x, (ty + .5) * TILE - p.y) > radPx) continue;
+          const d = Math.hypot((tx + .5) * TILE - p.x, (ty + .5) * TILE - p.y);
           const ti = ty * size + tx;
-          this.doc.roads[ti] = 0;
-          this.doc.ramps[ti] = 0;
-          if (this.doc.water[ti]) {
+          if (d <= radPx) {
+            this.doc.roads[ti] = 0;
+            this.doc.ramps[ti] = 0;
             this.doc.water[ti] = 0;
-            this.doc.heights[ty * stride + tx] = Math.max(0, this.doc.heights[ty * stride + tx]);
+          } else if (this.doc.water[ti] && heightAt(heightSampler, (tx + .5) * TILE, (ty + .5) * TILE) >= WATER_SURFACE_Y) {
+            this.doc.water[ti] = 0;
           }
         }
         this.doc.features = this.doc.features.filter(f => Math.hypot(f.x - p.x, f.y - p.y) > radPx);
@@ -553,9 +626,12 @@ export class MapEditor {
       <header class="ed-topbar">
         <div class="ed-brand"><strong>3D 地图编辑器</strong><input id="ed-name" type="text" maxlength="32" value="${this.doc.name}" aria-label="地图名称"/></div>
         <div class="ed-actions">
+          <select id="ed-size" aria-label="地图尺寸规格" title="调整地图尺寸（保留已有地形并居中裁切或扩展）">
+            ${MAP_SIZE_PRESETS.map(p => `<option value="${p.size}"${p.size === this.doc.size ? ' selected' : ''}>${p.label}</option>`).join('')}
+          </select>
           <select id="ed-template" aria-label="载入模板或已保存地图">
             <option value="">模板 / 已保存地图…</option>
-            <option value="__blank__">+ 新建空白地图 (128×128)</option>
+            <option value="__blank__">+ 新建空白地图</option>
             <optgroup label="基于内置地图修改">
               ${MAPS.map(m => `<option value="builtin:${m.id}">${m.name}</option>`).join('')}
             </optgroup>
@@ -608,6 +684,25 @@ export class MapEditor {
 
     this.root.querySelector<HTMLInputElement>('#ed-name')!.oninput = e => {
       this.doc.name = (e.target as HTMLInputElement).value;
+    };
+    this.syncSizeSelect();
+    this.root.querySelector<HTMLSelectElement>('#ed-size')!.onchange = e => {
+      const targetSize = Number((e.target as HTMLSelectElement).value);
+      if (!Number.isInteger(targetSize) || targetSize === this.doc.size) return;
+      this.pushUndo();
+      const { doc, worldOffset, trimmedCount, clampedBases } = resizeCustomMap(this.doc, targetSize);
+      this.doc = doc;
+      this.rebuildWorld(true);
+      this.syncSizeSelect();
+      const extent = this.doc.size * TILE;
+      this.renderer.camera.focus({
+        x: Math.max(TILE * 2, Math.min(extent - TILE * 2, this.renderer.camera.x + worldOffset)),
+        y: Math.max(TILE * 2, Math.min(extent - TILE * 2, this.renderer.camera.y + worldOffset)),
+      });
+      const notes: string[] = [];
+      if (trimmedCount > 0) notes.push(`裁切了 ${trimmedCount} 个边界外物件`);
+      if (clampedBases > 0) notes.push(`${clampedBases} 个基地已自动移入边界内`);
+      this.callbacks.onToast(`地图规格已调整为 ${targetSize}×${targetSize}${notes.length ? `（${notes.join('，')}）` : ''}`);
     };
     this.root.querySelectorAll<HTMLButtonElement>('.ed-tool').forEach(btn => {
       btn.onclick = () => {
@@ -670,6 +765,7 @@ export class MapEditor {
         this.doc = imported;
         this.rebuildWorld(true);
         this.syncNameInput();
+        this.syncSizeSelect();
         this.callbacks.onToast(`已导入自定义地图「${imported.name}」`);
       } catch (err) {
         this.callbacks.onToast((err as Error).message || '导入失败：无效的地图 JSON', true);
@@ -680,7 +776,7 @@ export class MapEditor {
       (e.target as HTMLSelectElement).value = '';
       if (!val) return;
       this.pushUndo();
-      if (val === '__blank__') this.doc = createBlankMap();
+      if (val === '__blank__') this.doc = createBlankMap(undefined, this.doc.size);
       else if (val.startsWith('builtin:')) this.doc = createFromBuiltinMap(val.slice(8) as MapId);
       else if (val.startsWith('saved:')) {
         const found = listCustomMaps().find(m => m.id === val.slice(6));
@@ -688,6 +784,9 @@ export class MapEditor {
       }
       this.rebuildWorld(true);
       this.syncNameInput();
+      this.syncSizeSelect();
+      const center = this.doc.size * TILE / 2;
+      this.renderer.camera.focus({ x: center, y: center });
     };
     this.root.querySelector<HTMLButtonElement>('#ed-play')!.onclick = () => {
       this.issues = validateCustomMap(this.doc);
@@ -710,7 +809,7 @@ export class MapEditor {
     const saved = listCustomMaps();
     sel.innerHTML = `
       <option value="">模板 / 已保存地图…</option>
-      <option value="__blank__">+ 新建空白地图 (128×128)</option>
+      <option value="__blank__">+ 新建空白地图</option>
       <optgroup label="基于内置地图修改">
         ${MAPS.map(m => `<option value="builtin:${m.id}">${m.name}</option>`).join('')}
       </optgroup>

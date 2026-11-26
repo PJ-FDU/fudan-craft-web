@@ -8,20 +8,23 @@ import { SURFACE, atlasCell, ATLAS_COLUMNS, ATLAS_ROWS } from '../src/game/battl
 import { surfaceFinish } from '../src/game/model-surface.js';
 import { surfaceWeathering } from '../src/game/model-weathering.js';
 import { MODEL_PORTRAITS } from '../src/game/model-portraits.js';
+import type { Size } from '../src/game/model-parts.js';
 
 const output=resolve(process.argv[2]??'.cache/blender-source');
+const sculpt=process.argv.includes('--sculpt');
 mkdirSync(output,{recursive:true});
 const models=new BattleModels(new Texture());
 const chunks:Buffer[]=[];
 let offset=0;
 const meshes:Record<string,unknown>[]=[];
-function mesh(geometry:BufferGeometry|undefined,pack:string,key:string,part:number,slot:number){
+function mesh(geometry:BufferGeometry|undefined,pack:string,key:string,part:number,slot:number,pivot?:Size){
   if(!geometry)return;
   const attributes:Record<string,{offset:number;count:number;size:number}>={};
   for(const [name,attribute] of Object.entries(geometry.attributes)){
     const values=new Float32Array(attribute.count*attribute.itemSize);
+    const positionOffset=name==='position'?pivot:undefined;
     for(let i=0;i<attribute.count;i++)for(let c=0;c<attribute.itemSize;c++)
-      values[i*attribute.itemSize+c]=attribute.getComponent(i,c);
+      values[i*attribute.itemSize+c]=attribute.getComponent(i,c)+(positionOffset?.[c]??0);
     const data=Buffer.from(values.buffer);
     attributes[name]={offset,count:attribute.count,size:attribute.itemSize};
     chunks.push(data);offset+=data.byteLength;
@@ -38,7 +41,8 @@ for(const race of RACES){
     templates[key]={bounds:[source.bounds.min.toArray(),source.bounds.max.toArray()],
       rig:source.rig?.joints??[],moving:source.moving.map(m=>m.at)};
     source.body.forEach((g,slot)=>mesh(g,race,key,-1,slot));
-    source.moving.forEach((m,part)=>m.parts.forEach((g,slot)=>mesh(g,race,key,part,slot)));
+    // Sculpt reconstructs these primitives in assembled space before splitting them back around the pivot.
+    source.moving.forEach((m,part)=>m.parts.forEach((g,slot)=>mesh(g,race,key,part,slot,sculpt?m.at:undefined)));
     for(const g of [...source.body,...source.moving.flatMap(m=>m.parts)])g?.dispose();
   }
 }

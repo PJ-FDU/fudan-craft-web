@@ -1,7 +1,7 @@
 import {
   AmbientLight, Box3, BufferAttribute, BufferGeometry, CircleGeometry, Color, CylinderGeometry, DataTexture,
   DirectionalLight, Group, HemisphereLight, LinearFilter, Matrix4, Mesh, MeshBasicMaterial, MeshStandardMaterial,
-  OrthographicCamera, PCFShadowMap, PlaneGeometry, Raycaster, RedFormat, RingGeometry, Scene, ShaderChunk, ShaderMaterial,
+  OrthographicCamera, PCFShadowMap, PlaneGeometry, Raycaster, RedFormat, RingGeometry, Scene, ShaderChunk, ShaderMaterial, SRGBColorSpace,
   SkinnedMesh, Texture, Vector2, Vector3, WebGLRenderer, type Object3D,
 } from 'three';
 import { AnimationClock, UnitMotion, deathPose } from './animation.js';
@@ -14,8 +14,9 @@ import { oilNodeAt } from './oil.js';
 import { placementError } from './engine.js';
 import { BattleModels, natureGeometry, type BattleModel } from './models-3d.js';
 import type { BlenderAssets } from './blender-assets.js';
-import { modelSurface } from './model-surface.js';
+import { natureSurface } from './model-surface.js';
 import { terrainGeometry, waterGeometry, waterMaskGeometry } from './battle-terrain.js';
+import { terrainColor, terrainNormal, terrainSurfaceUniforms, terrainWaterBed, terrainWaterFoam, terrainWaterNormal, type TerrainSurfaces } from './terrain-surfaces.js';
 import { heightAt, normalAt } from './terrain-height.js';
 import { humanoid,poseRig } from './unit-rig.js';
 import { weapon } from './weapons.js';
@@ -36,7 +37,7 @@ interface UnitVisual extends BattleModel {
   activityLamp?: Mesh<BufferGeometry,MeshBasicMaterial>;
 }
 interface NodeVisual extends BattleModel { node: ResourceNode; empty: boolean; selection:Mesh<BufferGeometry,MeshBasicMaterial>; }
-interface BattleEffect {root:Group;flare:ShotMesh;wreck?:BattleModel}
+interface BattleEffect {root:Group;flare:ShotMesh;particle?:ShotMesh;wreck?:BattleModel}
 export type ScenePick = {unit: number} | {node: number};
 type ShotMesh = Mesh<BufferGeometry,MeshBasicMaterial>;
 interface SceneMaterial {
@@ -55,6 +56,13 @@ const sunOffset = new Vector3(-598,1150,-462);
 const initialYaw = -.39;
 const groundTilt = .62;
 const life = {impact:.43,heal:.48,spawn:.85,complete:.85,death:3.2};
+const particlePlanes=Array.from({length:4},(_,index)=>{
+  const geometry=new PlaneGeometry(1,1);
+  const uv=geometry.getAttribute('uv');
+  for(let i=0;i<uv.count;i++)uv.setXY(i,
+    (index%2+.035+uv.getX(i)*.93)*.5,(1-Math.floor(index/2)+.035+uv.getY(i)*.93)*.5);
+  return geometry;
+});
 const bufferOutputs='layout(location=1) out vec4 battleNormal; layout(location=2) out vec4 battleSurface;';
 // MRT 要求所有活动附件都有输出。透明特效输出 alpha=0，通过混合保留下层材质数据。
 const neutralBuffers='battleNormal=vec4(0.0); battleSurface=vec4(0.0);';
@@ -95,6 +103,7 @@ export class BattleScene {
   private units=new Map<number,UnitVisual>();
   private nodes=new Map<number,NodeVisual>();
   private effects=new Map<number,BattleEffect>();
+  private particleTexture?:Texture;
   private motion=new UnitMotion();
   private clock=new AnimationClock();
   private shots=new Group();
@@ -146,11 +155,17 @@ export class BattleScene {
     this.sun.shadow.mapSize.set(size,size);this.gl.shadowMap.needsUpdate=true;this.lastShadow=-Infinity;
   }
 
-  constructor(canvas:HTMLCanvasElement,context:WebGL2RenderingContext,atlasImage:HTMLImageElement,unitAtlas:HTMLImageElement,factionAtlas:HTMLImageElement,private assets:BlenderAssets,private world:WorldData=getWorld(),factionDetail?:HTMLImageElement) {
+  constructor(canvas:HTMLCanvasElement,context:WebGL2RenderingContext,atlasImage:HTMLImageElement,unitAtlas:HTMLImageElement,factionAtlas:HTMLImageElement,private assets:BlenderAssets,private world:WorldData=getWorld(),factionDetail?:HTMLImageElement,private terrainSurfaces?:TerrainSurfaces,particles?:HTMLImageElement) {
     this.gl=new WebGLRenderer({canvas,context,antialias:true,alpha:false,powerPreference:'high-performance'});
     const anisotropy=this.gl.capabilities.getMaxAnisotropy();
     this.atlas=battleAtlas(atlasImage,unitAtlas,factionAtlas,anisotropy);
-    for(const texture of Object.values(assets.surface))texture.anisotropy=Math.min(8,anisotropy);
+    if(particles){
+      this.particleTexture=new Texture(particles);
+      this.particleTexture.colorSpace=SRGBColorSpace;
+      this.particleTexture.needsUpdate=true;
+    }
+    if(!assets.surface)throw Error('战场环境材质尚未加载');
+    for(const texture of [assets.surface.albedo,assets.surface.normal,assets.surface.orm])texture.anisotropy=Math.min(8,anisotropy);
     this.models=new BattleModels(this.atlas,factionDetail&&factionDetailTexture(factionDetail,anisotropy),assets,
       material=>this.addHaze(material));
     battleLighting(this.gl,this.scene);
@@ -225,9 +240,9 @@ export class BattleScene {
   private buildLandscape(){
     this.landscape.add(this.makeTerrain());
     if(this.world.waterMask){
-      const maskGeo=waterMaskGeometry(this.world.waterMask,gridSize(this.world.land));
+      const maskGeo=waterMaskGeometry(this.world.waterMask,gridSize(this.world.land),this.world.heights);
       if(maskGeo){
-        const material=new MeshStandardMaterial({color:0xffffff,roughness:.36,metalness:.04,envMapIntensity:.8});
+        const material=new MeshStandardMaterial({color:0xffffff,roughness:.18,metalness:.1,envMapIntensity:1.15});
         this.addHaze(material,{water:true});
         const mesh=new Mesh(maskGeo,material);
         mesh.receiveShadow=true;
@@ -242,7 +257,7 @@ export class BattleScene {
       const chunk=chunks.get(key)??[];
       chunk.push(feature);chunks.set(key,chunk);
     }
-    const vegetation=modelSurface(this.atlas,undefined,false,this.assets.surface);
+    const vegetation=natureSurface(this.atlas,this.assets);
     this.addHaze(vegetation,{wind:true});
     for(const chunk of chunks.values()){
       const geometry=natureGeometry(chunk,this.assets,this.world);
@@ -256,17 +271,22 @@ export class BattleScene {
 
   private addHaze(material:MeshStandardMaterial|MeshBasicMaterial,options:SceneMaterial={}) {
     const {wind,ground,water,hideInFog}=options;
+    const terrainSurfaces=(ground||water)&&this.terrainSurfaces;
     // 组合材质钩子，保留模型 PBR 参数，同时应用战争迷雾。
     const surfaceCompile=material.onBeforeCompile.bind(material),surfaceKey=material.customProgramCacheKey();
     const gbuffer=material instanceof MeshStandardMaterial&&!material.transparent;
-    material.customProgramCacheKey=()=>surfaceKey+':gbuffer-v2'+(ground?':ground':water?':water':wind?':vegetation':hideInFog==='solid'?':hidden-solid':hideInFog?':fx':':fog');
+    material.customProgramCacheKey=()=>surfaceKey+':gbuffer-v2'+(ground?':ground':water?':water':wind?':vegetation':hideInFog==='solid'?':hidden-solid':hideInFog?':fx':':fog')+(terrainSurfaces?':surface-layers':'');
     material.onBeforeCompile=(shader,renderer)=>{
       surfaceCompile(shader,renderer);
       shader.uniforms.battleFog=this.haze;
       shader.uniforms.battleExtent=this.extent;
       shader.uniforms.battleTime=this.ambient;
       if(gbuffer)shader.uniforms.battleSoftShadow=this.softShadow;
-      if(ground||water)shader.uniforms.paintedAtlas={value:this.atlas};
+      if(ground&&!terrainSurfaces)shader.uniforms.paintedAtlas={value:this.atlas};
+      if(terrainSurfaces){
+        shader.uniforms.terrainAlbedo={value:terrainSurfaces.albedo};
+        shader.uniforms.terrainDetail={value:terrainSurfaces.detail};
+      }
       if(ground){
         shader.uniforms.roads={value:ground.roads};
         shader.uniforms.groundShade={value:ground.shade};
@@ -304,11 +324,11 @@ export class BattleScene {
             return mix(mix(rippleHash(i),rippleHash(i+vec2(1,0)),f.x),
               mix(rippleHash(i+vec2(0,1)),rippleHash(i+vec2(1,1)),f.x),f.y);
           }`:''}
-        ${ground||water?atlasSamplingGLSL:''}
+        ${terrainSurfaces?terrainSurfaceUniforms:ground?atlasSamplingGLSL:''}
         ${ground?`uniform sampler2D roads;
           uniform sampler2D groundShade;`:''}
       `+shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
-        ${ground?`vec2 fieldUV=battleUv*battleExtent*(17.5/4096.0);
+        ${ground?(terrainSurfaces?terrainColor:`vec2 fieldUV=battleUv*battleExtent*(17.5/4096.0);
           vec3 grass=paintGround(${atlasCellGLSL('grass')},fieldUV);
           vec3 dirt=paintGround(${atlasCellGLSL('earth')},fieldUV*.77);
           float edge=sin(battleUv.x*425.0+battleUv.y*293.0)*cos(battleUv.y*507.0-battleUv.x*165.0);
@@ -317,29 +337,66 @@ export class BattleScene {
           vec3 field=mix(vec3(.075,.119,.055),grass*.76,.77)*(1.0+shade*.24);
           vec3 trail=mix(vec3(.178,.137,.088),dirt*vec3(.72,.89,1.13),.62)*(1.0+shade*.16);
           float slope=1.0-clamp(battleWorldNormal.y,0.0,1.0);
-          float cliffBlend=smoothstep(.13,.38,slope);
+          float shoreBank=1.0-smoothstep(-1.55,-.05,battleWorldPos.y);
+          float cliffBlend=smoothstep(.13,.38,slope)*(1.0-shoreBank*.85);
           vec3 cliffTex=paintGround(${atlasCellGLSL('stone')},vec2((battleWorldPos.x+battleWorldPos.z)*(13.0/4096.0),battleWorldPos.y*.022));
           vec3 cliff=mix(vec3(.14,.145,.135),cliffTex*.82,.75)*(1.0+shade*.14);
           float elevationLift=1.0+clamp(battleWorldPos.y/58.0,0.0,1.0)*.14;
           vec3 baseGround=mix(max(field,vec3(.018)),trail,road)*elevationLift;
+          float deepBed=1.0-smoothstep(-2.4,-1.1,battleWorldPos.y);
+          vec3 wetSand=mix(trail*vec3(.92,.88,.76),vec3(.11,.105,.08),deepBed);
+          float wetDarken=1.0-(1.0-smoothstep(-1.65,-.6,battleWorldPos.y))*.28;
+          baseGround=mix(baseGround,wetSand*wetDarken,clamp(shoreBank*(.82+edge*.12),0.0,1.0));
           float canopy=texture2D(groundShade,battleUv).a;
-          diffuseColor.rgb*=mix(baseGround,cliff,cliffBlend)*(1.0-canopy*.34);`:''}
+          diffuseColor.rgb*=mix(baseGround,cliff,cliffBlend)*(1.0-canopy*.34);`):''}
         ${water?`vec2 waterPoint=battleUv*battleExtent;
-          float shallow=1.0-smoothstep(2.0,48.0,shorelineDepth);
-          float foamBand=1.0-smoothstep(1.0,6.0+sin(battleTime*1.8+waterPoint.x*.07+waterPoint.y*.03)*2.0,shorelineDepth);
-          float bubbles=smoothstep(.1,.75,sin(waterPoint.x*.41+battleTime*.7)*sin(waterPoint.y*.36-battleTime*.5));
-          float foam=foamBand*(.28+bubbles*.48);
-          diffuseColor.rgb=mix(vec3(.025,.09,.115),vec3(.15,.28,.24),shallow);
-          diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.64,.74,.67),foam);`:''}
+          float shoreNoise=rippleNoise(waterPoint*.045+battleTime*vec2(.04,-.03));
+          float depthJitter=max(0.0,shorelineDepth+(shoreNoise-.5)*3.2);
+          float shallow=1.0-smoothstep(1.0,26.0,depthJitter);
+          float midDepth=1.0-smoothstep(16.0,52.0,depthJitter);
+          // 岸边扩散涟漪环 + 开放水域双层折射光纹
+          float shoreRipple=sin(shorelineDepth*.68-battleTime*2.3+shoreNoise*4.2);
+          float rippleRing=smoothstep(.58,.96,shoreRipple)*(1.0-smoothstep(3.0,26.0,shorelineDepth))*smoothstep(.4,2.8,shorelineDepth);
+          float r1=rippleNoise(waterPoint*.065+battleTime*vec2(.22,-.17));
+          float r2=rippleNoise(waterPoint*.105-battleTime*vec2(.18,.21));
+          float r3=rippleNoise(waterPoint*.17+battleTime*vec2(-.12,.14));
+          float caustic=smoothstep(.54,.86,r1*.5+r2*.5)*(.28+shallow*.55);
+          float shimmer=smoothstep(.64,.92,r2*.45+r3*.55)*.16;
+          float foamEdge=4.2+sin(battleTime*1.8+waterPoint.x*.055+waterPoint.y*.035)*1.4+shoreNoise*2.2;
+          float foamBand=1.0-smoothstep(.4,foamEdge,shorelineDepth);
+          float bubbles=smoothstep(.22,.78,rippleNoise(waterPoint*.16+battleTime*vec2(.12,-.09)));
+          float foam=foamBand*(.22+bubbles*.48);
+          ${terrainSurfaces?terrainWaterFoam:''}
+          vec3 deepCol=vec3(.02,.078,.105);
+          vec3 midCol=vec3(.048,.145,.165);
+          vec3 shallowCol=vec3(.145,.265,.225);
+          ${terrainSurfaces?terrainWaterBed:''}
+          diffuseColor.rgb=mix(deepCol,midCol,midDepth);
+          diffuseColor.rgb=mix(diffuseColor.rgb,shallowCol,shallow);
+          diffuseColor.rgb+=vec3(.09,.15,.14)*caustic+vec3(.14,.18,.17)*shimmer;
+          diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.56,.72,.68),rippleRing*.34);
+          diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.68,.78,.72),foam);`:''}
+      `).replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
+        ${ground&&terrainSurfaces?'roughnessFactor=terrainRoughness;':''}
       `).replace('#include <normal_fragment_maps>',`#include <normal_fragment_maps>
+        ${ground&&terrainSurfaces?terrainNormal:''}
         ${water?`vec2 wavePoint=battleUv*battleExtent;
-          float waveA=wavePoint.x*.032+wavePoint.y*.021+battleTime*1.3;
-          float waveB=wavePoint.x*-.018+wavePoint.y*.045+battleTime*.84;
-          vec2 rippleUv=wavePoint*.13+battleTime*vec2(.21,-.17);
-          float rippleX=(rippleNoise(rippleUv)-.5)*.036;
-          float rippleZ=(rippleNoise(rippleUv+vec2(23.4,11.7))-.5)*.036;
-          vec3 waveNormal=normalize(vec3(-cos(waveA)*.055+cos(waveB)*.03+rippleX,1.0,
-            -cos(waveA)*.04-cos(waveB)*.075+rippleZ));
+          float waveA=wavePoint.x*.026+wavePoint.y*.018+battleTime*1.3;
+          float waveB=wavePoint.x*-.022+wavePoint.y*.036+battleTime*.92;
+          float waveC=wavePoint.x*.043-wavePoint.y*.032-battleTime*1.1;
+          vec2 rippleUv1=wavePoint*.085+battleTime*vec2(.21,-.16);
+          vec2 rippleUv2=wavePoint*.165-battleTime*vec2(.15,.19);
+          float n1a=rippleNoise(rippleUv1), n1b=rippleNoise(rippleUv1+vec2(23.4,11.7));
+          float n2a=rippleNoise(rippleUv2), n2b=rippleNoise(rippleUv2+vec2(17.1,31.3));
+          float rippleX=(n1a-.5)*.095+(n2a-.5)*.055;
+          float rippleZ=(n1b-.5)*.095+(n2b-.5)*.055;
+          ${terrainSurfaces?terrainWaterNormal:''}
+          float shoreWave=cos(shorelineDepth*.68-battleTime*2.3)*.045*(1.0-smoothstep(2.0,22.0,shorelineDepth));
+          float waveCalm=smoothstep(0.0,9.0,shorelineDepth);
+          vec3 waveNormal=normalize(vec3(
+            (-cos(waveA)*.032+cos(waveB)*.024-cos(waveC)*.016)*waveCalm+rippleX+shoreWave,
+            1.0,
+            (-cos(waveA)*.024-cos(waveB)*.038+cos(waveC)*.018)*waveCalm+rippleZ+shoreWave));
           normal=normalize(mat3(viewMatrix)*waveNormal);`:''}
       `).replace('#include <shadowmap_pars_fragment>',gbuffer?pcssShadowChunk:'#include <shadowmap_pars_fragment>').replace('#include <opaque_fragment>',`
         vec2 fogUv=clamp(battleUv,0.0,1.0), kernel=vec2(15.56/battleExtent);
@@ -392,7 +449,7 @@ export class BattleScene {
     // 岸边使用地表本身；整片浅色覆盖网格会与起伏地面相交，露出三角形斑块。
     const surface=waterGeometry(feature);
     const material=new MeshStandardMaterial({
-      color:0xffffff,roughness:.36,metalness:.04,envMapIntensity:.8,
+      color:0xffffff,roughness:.18,metalness:.1,envMapIntensity:1.15,
     });
     this.addHaze(material,{water:true});
     const mesh=new Mesh(surface,material);
@@ -614,6 +671,7 @@ export class BattleScene {
 
   private removeEffect(effect:BattleEffect){
     effect.flare.material.dispose();
+    effect.particle?.material.dispose();
     effect.wreck?.rig?.skeleton.dispose();
     this.scene.remove(effect.root);
   }
@@ -639,13 +697,33 @@ export class BattleScene {
         this.addHaze(material,{hideInFog:true});
         const flare=new Mesh(this.effectRing,material);
         flare.position.y=1;root.add(flare);
-        effect={root,flare,wreck};
+        let particle:ShotMesh|undefined;
+        if(this.particleTexture){
+          const heavy=event.kind==='artillery'||event.kind==='tank';
+          const frame=event.type==='death'?0:event.type==='impact'?heavy?1:2:3;
+          const particleMaterial=new MeshBasicMaterial({
+            color:frame===3?0xa6ffcf:0xffffff,map:this.particleTexture,transparent:true,depthWrite:false,
+          });
+          this.addHaze(particleMaterial,{hideInFog:true});
+          particle=new Mesh(particlePlanes[frame],particleMaterial);
+          particle.renderOrder=2;
+          root.add(particle);
+        }
+        effect={root,flare,particle,wreck};
         this.scene.add(root);this.effects.set(event.id,effect);
       }
-      const {flare,wreck}=effect,t=age/(event.type==='death'?.55:duration);
+      const {flare,particle,wreck}=effect,t=age/(event.type==='death'?.55:duration);
       flare.visible=t<1;
       flare.scale.setScalar((8+Math.min(1,t)*24)*(event.kind==='artillery'?2:1));
       flare.material.opacity=.58*Math.max(0,1-t);
+      if(particle){
+        const death=event.type==='death',progress=age/(death?duration*.77:duration);
+        particle.visible=progress<1;
+        particle.position.set(death?progress*14:0,6+progress*(death?32:11),0);
+        particle.quaternion.copy(this.camera.quaternion);
+        particle.scale.setScalar((13+progress*(death?72:48))*(event.kind==='artillery'?1.55:1));
+        particle.material.opacity=(death?.64:.72)*Math.min(1,progress*9)*Math.max(0,1-progress);
+      }
       if(wreck){
         const fade=deathPose(age).alpha;
         const fall=Math.min(1,age/.55);

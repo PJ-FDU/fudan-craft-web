@@ -16,3 +16,4 @@ docs/reference-*.png
 artifacts/
 __pycache__/
 *.pyc
+public/assets/runtime/

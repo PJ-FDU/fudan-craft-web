@@ -151,11 +151,11 @@ export const STATS: Record<Kind, Stat> = {
   resonator:facility('共鸣工坊','RESONANCE WORKS',1,{hp:850}),
   warpHub:facility('折跃枢纽','WARP HUB',3),
   phaseSanctum:facility('相位圣所','PHASE SANCTUM',5),
-  assembly:facility('装配站','ASSEMBLY STATION',2,{hp:1050,cost:420,wood:210}),
-  relayTower:facility('固定补给塔','SUPPLY MAST',7,{hp:540,cost:135,wood:95,build:10}),
-  routePost:facility('路线站','ROUTE POST',1),
-  observatory:facility('观测所','OBSERVATORY',5),
-  escortDepot:facility('护航调度所','ESCORT DEPOT',5),
+  assembly:facility('装配站','ASSEMBLY STATION',2,{hp:1050,cost:420,wood:210,description:'部署后生产远行者作战单位，可收拢成车辆转移。'}),
+  relayTower:facility('固定补给塔','SUPPLY MAST',7,{hp:540,cost:135,wood:95,build:10,description:'提高远行者同盟的人口上限。'}),
+  routePost:facility('路线站','ROUTE POST',1,{description:'解锁路线工兵，可研究障碍识别。'}),
+  observatory:facility('观测所','OBSERVATORY',5,{description:'解锁前沿观测员和巡航翼，可研究区域识别。'}),
+  escortDepot:facility('护航调度所','ESCORT DEPOT',5,{description:'解锁护航指挥车和护空车，可研究护航干扰。'}),
 
 };
 export interface Technology {name:string;description:string;cost:Cost;duration:number;requires?:Tech;building?:BuildingKind}

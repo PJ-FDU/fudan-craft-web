@@ -15,11 +15,16 @@ import { gridSize,TILE,distance,indexAt } from './pathfinding.js';
 import { animationFile } from './animation.js';
 import { DetailedTerrain } from './terrain-renderer.js';
 import type { BattleScene } from './battle-scene.js';
+import type { TerrainSurfaces } from './terrain-surfaces.js';
 import type { BlenderAssets } from './blender-assets.js';
 import type { LightingQuality } from './battle-gi.js';
 import { harvestLand } from './resource-world.js';
 import { t } from './locale.js';
 import { PerformanceController,type PerformanceMode } from './performance.js';
+import { generatedImage } from './runtime-assets.js';
+import type { ResourceLoad } from './resource-loading.js';
+import { battleModelKeys } from './model-resources.js';
+import { RACES,type Race } from './types.js';
 export class Renderer {
   canvas:HTMLCanvasElement;ctx:CanvasRenderingContext2D;mini:HTMLCanvasElement;mctx:CanvasRenderingContext2D;
   private terrain!:DetailedTerrain;
@@ -32,7 +37,9 @@ export class Renderer {
   images=new Map<string,HTMLImageElement>();camera=new Camera(gridSize(this.world.land)*TILE);width=0;height=0;
   private lastDraw=0;
   private scene:BattleScene|null=null;
+  private sceneInitialization?:Promise<void>;
   blenderAssets?:BlenderAssets;
+  private terrainSurfaces?:TerrainSurfaces;
   private contextLost=false;
   readonly performance=new PerformanceController(matchMedia('(max-width:800px), (pointer:coarse)').matches);
   private preferredLighting:LightingQuality=innerWidth<700?'off':'balanced';
@@ -72,34 +79,66 @@ export class Renderer {
     });
     sceneCanvas.addEventListener('webglcontextrestored',()=>{this.contextLost=false;this.applyPerformance();});
   }
-  async load(){
+  async loadAnimationAssets(load?:ResourceLoad){
+    load?.phase('下载动画图集');
     const animationArt=Object.fromEntries(MOBILE_KINDS.map(k=>[`animation-${k}`,animationFile(k)]));
     const extras=Object.fromEntries(['trees','building-construction','building-damage','building-production','ground-grass','ground-earth','effects'].map(k=>[k,assetPath(`generated/animation-${k}-v4.png`)]));
-    const loadImage=(name:string,url:string)=>new Promise<HTMLImageElement>((resolve,reject)=>{
-      const image=new Image();
-      image.onload=()=>{this.images.set(name,image);resolve(image);};
-      image.onerror=()=>reject(Error(`无法加载素材 ${name}`));
-      image.src=url;
-    });
-    await Promise.all(Object.entries({...ART,...animationArt,...extras}).map(([name,url])=>loadImage(name,url)));
-    this.terrain=new DetailedTerrain(this.images,this.world);this.terrain.overview(this.miniTerrain);
+    await Promise.all(Object.entries({...ART,...animationArt,...extras}).map(async([name,url])=>{
+      const image=await generatedImage('generated/'+url.split('/generated/')[1],load);
+      this.images.set(name,image);
+    }));
+  }
+  async loadModel(key:string,load?:ResourceLoad){
+    const [{loadBlenderAssets}]=await Promise.all([import('./blender-assets.js'),this.loadSharedImages(load)]);
+    return loadBlenderAssets({keys:[key],environment:false,quality:'full',load});
+  }
+  private async loadSharedImages(load?:ResourceLoad){
+    const paths={
+      'battle-materials':'generated/battle-materials.webp',
+      'unit-materials':'generated/unit-materials.webp',
+      'faction-materials':FACTION_ATLAS_FILE,
+      'faction-detail':FACTION_DETAIL_FILE,
+    };
+    await Promise.all(Object.entries(paths).map(async([name,path])=>{
+      this.images.set(name,await generatedImage(path,load));
+    }));
+  }
+  async load(races:readonly Race[]=RACES,load?:ResourceLoad){
     const context=this.sceneCanvas.getContext('webgl2',{antialias:true,alpha:false,powerPreference:'high-performance'});
     if(!context)throw Error('此游戏需要 WebGL 2。请开启浏览器硬件加速后重新载入。');
-    const [{BattleScene},atlas,unitAtlas,factionAtlas,factionDetail,blenderAssets]=await Promise.all([
+    const [{BattleScene},,blenderAssets,terrainSurfaces,particles]=await Promise.all([
       import('./battle-scene.js'),
-      loadImage('battle-materials',assetPath('generated/battle-materials.webp')),
-      loadImage('unit-materials',assetPath('generated/unit-materials.webp')),
-      loadImage('faction-materials',assetPath(FACTION_ATLAS_FILE)),
-      loadImage('faction-detail',assetPath(FACTION_DETAIL_FILE)).catch(()=>undefined),
-      this.blenderAssets??import('./blender-assets.js').then(module=>module.loadBlenderAssets()),
+      Promise.all([this.loadSharedImages(load),...['grass','earth'].map(async name=>{
+        this.images.set(`ground-${name}`,await generatedImage(`generated/minimap-${name}`,load));
+      })]),
+      import('./blender-assets.js').then(module=>module.loadBlenderAssets({keys:battleModelKeys(races),quality:'compact',load})),
+      this.terrainSurfaces??import('./terrain-surfaces.js').then(module=>module.loadTerrainSurfaces(load)).catch(error=>{
+        console.warn('地表专用贴图未能加载，使用战场图集。',error);
+        return undefined;
+      }),
+      this.images.get('battle-particles')??generatedImage('generated/surfaces/battle-particles.png',load).catch(()=>undefined),
     ]);
     if(context.isContextLost())throw Error('3D 图形上下文已中断，请重新载入。');
     this.blenderAssets=blenderAssets;
-    this.scene=new BattleScene(this.sceneCanvas,context,atlas,unitAtlas,factionAtlas,blenderAssets,this.world,factionDetail);
-    this.scene.orient(this.camera);
-    this.applyPerformance();
-    this.sceneCanvas.hidden=false;
-    this.ready=true;
+    this.terrainSurfaces=terrainSurfaces;
+    if(!this.scene){
+      load?.phase('初始化战场');
+      // 快速取消后重新进入时，共享初始化，避免等待下一帧期间创建两份 GPU 场景。
+      this.sceneInitialization??=(async()=>{
+        // 给浏览器一次绘制机会，让用户在同步地形构建前看到阶段切换。
+        await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));
+        this.terrain=new DetailedTerrain(this.images,this.world);this.terrain.overview(this.miniTerrain);
+        this.scene=new BattleScene(this.sceneCanvas,context,this.images.get('battle-materials')!,
+          this.images.get('unit-materials')!,this.images.get('faction-materials')!,blenderAssets,
+          this.world,this.images.get('faction-detail'),terrainSurfaces,particles);
+        this.scene.orient(this.camera);
+        this.applyPerformance();
+        this.sceneCanvas.hidden=false;
+        this.ready=true;
+      })().catch(error=>{this.sceneInitialization=undefined;throw error;});
+      await this.sceneInitialization;
+    }
+    load?.phase('战场已就绪');
   }
   resize(){
     const r=this.canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio,this.performance.profile.ratio);

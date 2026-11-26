@@ -6,7 +6,7 @@ import {
 import { bark, baseSlab, dark, glass, lightArmor, mineral, orange, paint, Parts, steel, stone, tread, type Size } from './model-parts.js';
 import { ceramicArmor, circuitry, federal, service, strut } from './faction-model-parts.js';
 import { mobileModel } from './mobile-models.js';
-import { modelSurface, sculptSurface } from './model-surface.js';
+import { modelSurface, natureSurface, sculptSurface } from './model-surface.js';
 import type { BlenderAssets, BlenderSurface } from './blender-assets.js';
 import { heightAt } from './terrain-height.js';
 import type { WorldData } from './world.js';
@@ -51,10 +51,10 @@ export class BattleModels {
 
   constructor(atlas:Texture,private factionDetail?:Texture,private assets?:BlenderAssets,
     private configureSurface?:(material:MeshStandardMaterial)=>void){
-    this.solid=modelSurface(atlas,factionDetail,true,assets?.surface);
-    this.forest=modelSurface(atlas,undefined,false,assets?.surface);
+    this.solid=assets?.manifest.natureAtlas?natureSurface(atlas,assets):modelSurface(atlas,factionDetail,true,assets?.surface);
+    this.forest=natureSurface(atlas,assets);
     this.teams=COLORS.slice(1).map(color=>{
-      const material=modelSurface(atlas,factionDetail,true,assets?.surface);
+      const material=modelSurface(atlas,factionDetail,true,assets?.manifest.natureAtlas?undefined:assets?.surface);
       material.color.set(color);
       material.emissive.set(color);material.emissiveIntensity=.04;
       return material;
@@ -104,7 +104,7 @@ export class BattleModels {
     if(!model&&this.assets){
       const geometries=forest
         ?[this.assets.nature(`nature:${empty?'stump':forest.kind}`)]
-        :kind==='wood'&&!empty
+        :kind==='wood'&&!empty&&!this.assets.manifest.natureAtlas
           ?[['oak',-19,7,.9],['pine',24,14,.72],['birch',8,-20,.73]].map(([tree,x,z,scale])=>
             this.assets!.nature(`nature:${tree}`).scale(Number(scale),Number(scale),Number(scale)).translate(Number(x),0,Number(z)))
           :[this.assets.nature(`resource:${kind}${empty?':empty':''}`)];
@@ -177,11 +177,18 @@ export class BattleModels {
           const material=sculptSurface(surface);material.color.set(color);
           return material;
         })];
+        const light=this.lamps[race];
+        surfaces.push(new MeshStandardMaterial({
+          map:surface.albedo,emissiveMap:surface.albedo,roughness:.24,
+          color:surface.tintLamps?light.color:0xffffff,
+          emissive:surface.tintLamps?light.emissive:0xffffff,
+          emissiveIntensity:light.emissiveIntensity*(surface.tintLamps?1.55:1.15),
+        }));
         for(const material of surfaces)this.configureSurface?.(material);
         this.sculptPalettes.set(model.surface,surfaces);
       }
     }
-    const palette=[surfaces?.[0]??this.solid,surfaces?.[side]??this.teams[side-1],this.lamps[race]];
+    const palette=[surfaces?.[0]??this.solid,surfaces?.[side]??this.teams[side-1],surfaces?.at(-1)??this.lamps[race]];
     const addMeshes=(result:Group,geometries:ModelGeometry['body'],rig?:UnitRig)=>{
       geometries.forEach((g,i)=>{
         if(!g)return;

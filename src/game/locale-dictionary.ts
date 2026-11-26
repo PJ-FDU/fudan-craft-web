@@ -872,6 +872,11 @@ Three.js 3D 战场已就绪|3D battlefield ready
 核心支援单位。|Core support unit.
 常规作战单位。|Standard combat unit.
 种族生产、供给或科技设施。|Faction production, supply or research facility.
+部署后生产远行者作战单位，可收拢成车辆转移。|Produces Relay combat units when deployed and can pack into a vehicle to relocate.
+提高远行者同盟的人口上限。|Increases the Relay Alliance population cap.
+解锁路线工兵，可研究障碍识别。|Unlocks Pathfinders and researches Obstacle Recognition.
+解锁前沿观测员和巡航翼，可研究区域识别。|Unlocks Forward Observers and Roaming Wings and researches Area Recognition.
+解锁护航指挥车和护空车，可研究护航干扰。|Unlocks Escort Vehicles and Flak Carriers and researches Escort Disruption.
 T2 支援分化|T2 Support Specialization
 T3 高级干扰|T3 Advanced Disruption
 在主指挥建筑研究，解锁第二阶段兵种与科技。|Research at your command center to unlock tier-two units and technologies.

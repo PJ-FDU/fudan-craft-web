@@ -30,7 +30,19 @@ MATERIAL_FILES = {
     "radar":    "tactical-radar-screen.png",
     "medic":    "decal-medic-emblem.png",
     "hazard":   "decal-hazard-stripe.png",
+    "leather":  "surfaces/worn-leather.png",
+    "seal":     "surfaces/ribbed-seal.png",
+    "optics":   "surfaces/optical-coating.png",
+    "heat":     "surfaces/heat-oxidized.png",
 }
+
+CONTACT_TEXTURES = {
+    "leather": {"tex": "leather", "scale": .24, "albedo_amp": .25, "from_min": .015, "from_max": .35},
+    "glove": {"tex": "leather", "scale": .36, "albedo_amp": .15, "from_min": .015, "from_max": .35},
+    "rubber": {"tex": "seal", "scale": .19, "albedo_amp": .22, "from_min": .015, "from_max": .32},
+}
+OPTICAL_TEXTURE = {"tex": "optics", "scale": .07, "albedo_amp": .12,
+                   "from_min": .025, "from_max": .30, "bump_strength": 0, "color_mix": .075}
 
 
 def parse_hero_args():
@@ -141,7 +153,9 @@ class HeroBuilder:
             return bpy.data.materials[name]
         spec = self.palette[name]
         color, rough, metal, kind = spec[:4]
-        tex_cfg = spec[4] if len(spec) > 4 else None
+        tex_cfg = spec[4] if len(spec) > 4 else CONTACT_TEXTURES.get(name)
+        if tex_cfg is None and kind == "glass":
+            tex_cfg = OPTICAL_TEXTURE
 
         mat = bpy.data.materials.new(name)
         mat.use_nodes = True
@@ -243,6 +257,12 @@ class HeroBuilder:
             links.new(color_socket, tex_mul.inputs["A"])
             links.new(tex_contrast.outputs["Result"], tex_mul.inputs["B"])
             color_socket = tex_mul.outputs["Result"]
+            if tex_cfg.get("color_mix"):
+                tex_color = nodes.new("ShaderNodeMixRGB")
+                tex_color.inputs[0].default_value = tex_cfg["color_mix"]
+                links.new(color_socket, tex_color.inputs[1])
+                links.new(tex.outputs["Color"], tex_color.inputs[2])
+                color_socket = tex_color.outputs[0]
 
             # 将底纹微高度与高频程序噪声融合后驱动法线微凹凸与粗糙度变化
             bump_mix = nodes.new("ShaderNodeMath")

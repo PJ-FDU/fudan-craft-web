@@ -16,6 +16,9 @@ import bpy
 import numpy as np
 from mathutils import Matrix, Vector
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from sculpt_surface_library import GLASS, TREAD, bind_surface, sources_for
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--project", required=True)
@@ -168,6 +171,7 @@ def material(name):
     mat = bpy.data.materials.new(name)
     mat.use_nodes = True
     mat["metalness"] = metalness
+    mat["roughness"] = roughness
     nodes, links = mat.node_tree.nodes, mat.node_tree.links
     bsdf = nodes.get("Principled BSDF")
     bsdf.inputs["Metallic"].default_value = metalness
@@ -370,6 +374,9 @@ def material(name):
         relief = math_node("MULTIPLY", grime["Blue"], ground)
     links.new(math_node("ADD", math_node("MULTIPLY", micro.outputs["Fac"], .35), relief), bump.inputs["Height"])
     links.new(bump.outputs[0], bsdf.inputs["Normal"])
+    if name in {"tread", "glass"}:
+        path, quadrant, length, mix, depth = TREAD if name == "tread" else GLASS
+        bind_surface(mat, coordinate.outputs["Vector"], (path, quadrant, length / 12, mix * .52, depth * .45))
     emit = nodes.new("ShaderNodeEmission")
     emit.name = "Bake emission"
     target = nodes.new("ShaderNodeTexImage")
@@ -1081,7 +1088,7 @@ def run():
         "key":"industrial:worker","generator":"scripts/build-worker-hero.py","scriptHash":script_hash,
         "tile":[0,0],"tileSize":args.resolution,"lowFaces":low_count,"highFaces":high_count,
         "assemblies":len(pieces),"template":template,
-        "textureSources": texture_sources,
+        "textureSources": {**texture_sources, **sources_for(high.data.materials)},
         "weathering": {"mapping": "24 world units / triplanar image masks",
                        "sourceCropBottom": .12, "maskResolution": 1536,
                        "damageSites": damage_sites, "bentFrontBullBar": True,

@@ -1,7 +1,7 @@
 import { BufferGeometry, Float32BufferAttribute, PlaneGeometry, ShapeUtils, Vector2 } from 'three';
 import { distanceToCurve, insidePolygon, terrainNoise, waterContour } from './terrain-shapes.js';
 import { gridSize, TILE } from './pathfinding.js';
-import { heightAt } from './terrain-height.js';
+import { heightAt, WATER_SURFACE_Y } from './terrain-height.js';
 import type { Feature, WorldData } from './world.js';
 import type { Point } from './types.js';
 
@@ -82,26 +82,67 @@ export function waterGeometry(feature:Feature){
   return geometry;
 }
 
-/** 根据格网水体掩码生成任意形状的自由水面（供 3D 地图编辑器与自定义地图使用）。 */
-export function waterMaskGeometry(waterMask:Uint8Array,size:number):BufferGeometry|null {
+/** 根据格网水体掩码与高度场生成平滑自然岸线的水面（供 3D 地图编辑器与自定义地图使用）。 */
+export function waterMaskGeometry(waterMask:Uint8Array,size:number,heights?:Float32Array):BufferGeometry|null {
   const positions:number[]=[],depths:number[]=[];
   const isWet=(x:number,y:number)=>x>=0&&y>=0&&x<size&&y<size&&waterMask[y*size+x]>0;
-  const shoreDepth=(vx:number,vz:number)=>{
-    let best=48;
-    for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){
-      if(!isWet(vx+dx,vz+dy))best=Math.min(best,Math.hypot(dx,dy)*TILE);
+  let hasCarvedBasin=false;
+  if(heights){
+    const stride=size+1;
+    for(let i=0;i<waterMask.length;i++){
+      if(!waterMask[i])continue;
+      const x=i%size,y=Math.floor(i/size),vi=y*stride+x;
+      if(heights[vi]<WATER_SURFACE_Y||heights[vi+1]<WATER_SURFACE_Y||heights[vi+stride]<WATER_SURFACE_Y||heights[vi+stride+1]<WATER_SURFACE_Y){
+        hasCarvedBasin=true;
+        break;
+      }
     }
-    return best;
-  };
-  for(let y=0;y<size;y++)for(let x=0;x<size;x++){
-    if(!waterMask[y*size+x])continue;
-    const x0=x*TILE,x1=(x+1)*TILE,z0=y*TILE,z1=(y+1)*TILE;
-    const d00=shoreDepth(x,y),d10=shoreDepth(x+1,y),d01=shoreDepth(x,y+1),d11=shoreDepth(x+1,y+1);
-    // 朝上法线绕序：a(x0,z0) -> c(x0,z1) -> b(x1,z0)
-    positions.push(x0,1.35,z0, x0,1.35,z1, x1,1.35,z0);
-    depths.push(d00,d01,d10);
-    positions.push(x1,1.35,z0, x0,1.35,z1, x1,1.35,z1);
-    depths.push(d10,d01,d11);
+  }
+  if(heights&&hasCarvedBasin){
+    const heightSampler={land:waterMask,heights};
+    const stride=size+1;
+    const sub=2,step=TILE/sub;
+    const sampleDepth=(wx:number,wz:number)=>{
+      const h=heightAt(heightSampler,wx,wz);
+      return Math.max(0,(WATER_SURFACE_Y-h)*3.2);
+    };
+    for(let y=0;y<size;y++)for(let x=0;x<size;x++){
+      let nearWater=false;
+      for(let dy=-1;dy<=1&&!nearWater;dy++)for(let dx=-1;dx<=1;dx++){
+        if(isWet(x+dx,y+dy)){nearWater=true;break;}
+      }
+      if(!nearWater){
+        const vi=y*stride+x;
+        if(heights[vi]>=WATER_SURFACE_Y&&heights[vi+1]>=WATER_SURFACE_Y&&heights[vi+stride]>=WATER_SURFACE_Y&&heights[vi+stride+1]>=WATER_SURFACE_Y)continue;
+      }
+      for(let sy=0;sy<sub;sy++)for(let sx=0;sx<sub;sx++){
+        const x0=x*TILE+sx*step,x1=x0+step,z0=y*TILE+sy*step,z1=z0+step;
+        const d00=sampleDepth(x0,z0),d10=sampleDepth(x1,z0),d01=sampleDepth(x0,z1),d11=sampleDepth(x1,z1);
+        if(d00<=0&&d10<=0&&d01<=0&&d11<=0)continue;
+        // 水面位于 WATER_SURFACE_Y 之下由 3D 地形自然裁剪出平滑岸线，消除方块锯齿
+        positions.push(x0,WATER_SURFACE_Y,z0, x0,WATER_SURFACE_Y,z1, x1,WATER_SURFACE_Y,z0);
+        depths.push(d00,d01,d10);
+        positions.push(x1,WATER_SURFACE_Y,z0, x0,WATER_SURFACE_Y,z1, x1,WATER_SURFACE_Y,z1);
+        depths.push(d10,d01,d11);
+      }
+    }
+  }else{
+    const shoreDepth=(vx:number,vz:number)=>{
+      let best=48;
+      for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){
+        if(!isWet(vx+dx,vz+dy))best=Math.min(best,Math.hypot(dx,dy)*TILE);
+      }
+      return best;
+    };
+    for(let y=0;y<size;y++)for(let x=0;x<size;x++){
+      if(!waterMask[y*size+x])continue;
+      const x0=x*TILE,x1=(x+1)*TILE,z0=y*TILE,z1=(y+1)*TILE;
+      const d00=shoreDepth(x,y),d10=shoreDepth(x+1,y),d01=shoreDepth(x,y+1),d11=shoreDepth(x+1,y+1);
+      positions.push(x0,1.35,z0, x0,1.35,z1, x1,1.35,z0);
+      depths.push(d00,d01,d10);
+      positions.push(x1,1.35,z0, x0,1.35,z1, x1,1.35,z1);
+      depths.push(d10,d01,d11);
+    }
   }
   if(!positions.length)return null;
   const geometry=new BufferGeometry();

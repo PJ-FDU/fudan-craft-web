@@ -14,6 +14,9 @@ from pathlib import Path
 import bpy
 from mathutils import Vector
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from environment_surface_atlas import FILES as NATURE_TEXTURES, atlas_uv, bake_environment, imported_material, tint
+
 
 def arguments():
     parser = argparse.ArgumentParser()
@@ -33,8 +36,10 @@ output.mkdir(parents=True, exist_ok=True)
 editable = project / "artifacts/blender-game"
 editable.mkdir(parents=True, exist_ok=True)
 doc = json.loads((source / "source.json").read_text())
-if args.from_blend and (output / "manifest.json").exists():
+previous = {}
+if (output / "manifest.json").exists():
     previous = json.loads((output / "manifest.json").read_text())
+if args.from_blend:
     for key, template in doc["templates"].items():
         if key in previous["templates"]:
             template["bounds"] = previous["templates"][key]["bounds"]
@@ -42,6 +47,7 @@ binary = b"" if args.from_blend else (source / "geometry.bin").read_bytes()
 bpy.context.preferences.filepaths.save_version = 0
 bpy.context.preferences.filepaths.file_preview_type = "NONE"
 scene = bpy.context.scene
+legacy_cells = {(s["cell"]["x"], s["cell"]["y"]): s["name"] for s in doc["surfaces"]}
 
 
 def clear():
@@ -76,7 +82,21 @@ def import_mesh(item):
                       for i in range(0, len(positions), 3)], [],
                      [(i, i + 1, i + 2) for i in range(0, count, 3)])
     uv = mesh.uv_layers.new(name="Atlas")
-    uv.data.foreach_set("uv", values(attrs["uv"]))
+    coords = values(attrs["uv"])
+    colors = values(attrs["color"]) if item["pack"] == "nature" else None
+    if colors is not None:
+        seeds = values(attrs["weatherCoord"])
+        for face in mesh.polygons:
+            first = face.vertices[0]
+            src_u, src_v = coords[first * 2] * doc["columns"], coords[first * 2 + 1] * doc["rows"]
+            x, y = int(src_u), int(src_v)
+            material = imported_material(item["key"], legacy_cells[x, y], face.center, face.normal, seeds[first * 4 + 3])
+            for index in face.vertices:
+                u, v = coords[index * 2] * doc["columns"] - x, coords[index * 2 + 1] * doc["rows"] - y
+                coords[index * 2:index * 2 + 2] = array.array("f", atlas_uv(material, u, v))
+                base = index * 3
+                colors[base:base + 3] = array.array("f", tint(material, colors[base:base + 3]))
+    uv.data.foreach_set("uv", coords)
     if "normal" in attrs:
         normals = values(attrs["normal"])
         mesh.normals_split_custom_set_from_vertices(
@@ -85,7 +105,7 @@ def import_mesh(item):
             face.use_smooth = True
     for name, description in attrs.items():
         if name not in ("position", "normal", "uv"):
-            attribute(mesh, name, description["size"], values(description))
+            attribute(mesh, name, description["size"], colors if name == "color" and colors is not None else values(description))
     obj = bpy.data.objects.new(f'{item["key"]}|{item["part"]}|{item["slot"]}', mesh)
     scene.collection.objects.link(obj)
     obj["key"] = item["key"]
@@ -100,7 +120,7 @@ def export(pack):
         if obj.type == "MESH" and "key" in obj:
             obj.select_set(True)
     bpy.ops.export_scene.gltf(
-        filepath=str(output / f"{pack}.glb"), export_format="GLB",
+        filepath=str(output / ("nature-surfaces.glb" if pack == "nature" else f"{pack}.glb")), export_format="GLB",
         use_selection=True,
         export_attributes=True, export_extras=True, export_materials="NONE",
         export_vertex_color="NONE", export_cameras=False, export_lights=False,
@@ -136,14 +156,24 @@ def preview_material(pack, slot):
     finish.attribute_name = "_surfaceFinish"
     separate = nodes.new("ShaderNodeSeparateXYZ")
     links.new(finish.outputs["Vector"], separate.inputs[0])
-    links.new(separate.outputs["X"], bsdf.inputs["Roughness"])
-    links.new(separate.outputs["Y"], bsdf.inputs["Metallic"])
+    if pack == "nature":
+        orm = nodes.new("ShaderNodeTexImage")
+        orm.image = bpy.data.images.load(str(output / NATURE_TEXTURES["orm"]), check_existing=True)
+        orm.image.colorspace_settings.name = "Non-Color"
+        orm.image.pack()
+        channels = nodes.new("ShaderNodeSeparateColor")
+        links.new(orm.outputs["Color"], channels.inputs["Color"])
+        links.new(channels.outputs["Green"], bsdf.inputs["Roughness"])
+        links.new(channels.outputs["Blue"], bsdf.inputs["Metallic"])
+    else:
+        links.new(separate.outputs["X"], bsdf.inputs["Roughness"])
+        links.new(separate.outputs["Y"], bsdf.inputs["Metallic"])
     albedo = nodes.new("ShaderNodeTexImage")
-    albedo.image = bpy.data.images.load(str(output / "albedo.png"), check_existing=True)
+    albedo.image = bpy.data.images.load(str(output / (NATURE_TEXTURES["albedo"] if pack == "nature" else "albedo.png")), check_existing=True)
     albedo.image.pack()
     multiply = nodes.new("ShaderNodeMixRGB")
     multiply.blend_type = "MULTIPLY"
-    multiply.inputs[0].default_value = .34
+    multiply.inputs[0].default_value = 1 if pack == "nature" else .34
     links.new(tint.outputs["Color"], multiply.inputs[1])
     links.new(albedo.outputs["Color"], multiply.inputs[2])
     links.new(multiply.outputs[0], bsdf.inputs["Base Color"])
@@ -155,7 +185,7 @@ def preview_material(pack, slot):
         links.new(multiply.outputs[0], team.inputs[1])
         links.new(team.outputs[0], bsdf.inputs["Base Color"])
     texture = nodes.new("ShaderNodeTexImage")
-    texture.image = bpy.data.images.load(str(output / "normal.png"), check_existing=True)
+    texture.image = bpy.data.images.load(str(output / (NATURE_TEXTURES["normal"] if pack == "nature" else "normal.png")), check_existing=True)
     texture.image.colorspace_settings.name = "Non-Color"
     texture.image.pack()
     normal = nodes.new("ShaderNodeNormalMap")
@@ -299,14 +329,15 @@ def restore_editable(pack):
 # 树木由 Blender 原生网格建立：真实分叉、根系、逐簇叶片，无 billboard。
 def native_nature(kind, surface_by_name):
     rng = random.Random(741 + sum(ord(c) for c in kind))
-    verts, faces, surfaces, tints = [], [], [], []
+    verts, faces, surfaces, tints, texcoords = [], [], [], [], []
 
-    def triangle(points, surface, tint):
+    def triangle(points, surface, base_color, uv=((.03, .03), (.97, .03), (.5, .97))):
         start = len(verts)
         verts.extend(points)
         faces.append((start, start + 1, start + 2))
         surfaces.extend([surface] * 3)
-        tints.extend([tint] * 3)
+        tints.extend([base_color] * 3)
+        texcoords.extend(uv)
 
     def branch(a, b, radius, end_radius, surface="bark", tint=(.38, .24, .13), sides=7):
         a, b = Vector(a), Vector(b)
@@ -323,9 +354,11 @@ def native_nature(kind, surface_by_name):
                           for i in range(sides)])
         for i in range(sides):
             j = (i + 1) % sides
-            triangle((rings[0][i], rings[0][j], rings[1][j]), surface, tint)
-            triangle((rings[0][i], rings[1][j], rings[1][i]), surface, tint)
-            triangle((b, rings[1][i], rings[1][j]), surface, tint)
+            u, v = i / sides, (i + 1) / sides
+            extent = min(1, max(.12, (b - a).length / 102))
+            triangle((rings[0][i], rings[0][j], rings[1][j]), surface, tint, ((u, 0), (v, 0), (v, extent)))
+            triangle((rings[0][i], rings[1][j], rings[1][i]), surface, tint, ((u, 0), (v, extent), (u, extent)))
+            triangle((b, rings[1][i], rings[1][j]), surface, tint, ((.5, .5), (u, extent), (v, extent)))
 
     def leaves(center, radius, number, needle=False):
         # 三维折叶簇提供体积、背面和投影，顶视与低角度均有真实轮廓。
@@ -349,7 +382,7 @@ def native_nature(kind, surface_by_name):
                 triangle(p, surface, tint)
                 triangle(tuple(reversed(p)), surface, tint)
 
-    bark_surface = "stone" if kind == "birch" else "bark"
+    bark_surface = "birch" if kind == "birch" else "bark"
     bark_tint = (.79, .77, .68) if kind == "birch" else (.44, .30, .16)
     if kind in ("pine", "oak", "birch"):
         height = 102 if kind == "pine" else 87
@@ -381,11 +414,11 @@ def native_nature(kind, surface_by_name):
     uv = mesh.uv_layers.new(name="Atlas")
     coords, colors, finishes, weather, spans, local = [], [], [], [], [], []
     for i, vertex in enumerate(verts):
-        spec = surface_by_name[surfaces[i]]
-        u, v = ((.03, .03), (.97, .03), (.5, .97))[i % 3]
-        coords.extend(((spec["cell"]["x"] + u) / doc["columns"],
-                       (spec["cell"]["y"] + v) / doc["rows"]))
-        colors.extend(tints[i])
+        surface = surfaces[i]
+        spec = surface_by_name["bark" if surface == "birch" else surface]
+        u, v = texcoords[i]
+        coords.extend(atlas_uv(surface, u, v))
+        colors.extend(tint(surface, tints[i]))
         finishes.extend(spec["finish"])
         weather.extend(spec["weather"])
         spans.extend((12, 18))
@@ -527,6 +560,10 @@ if args.only:
     packs = [args.only]
 if not args.only and not args.from_blend:
     bake_atlas()
+if "nature" in packs and not args.from_blend:
+    bake_environment(output)
+if "nature" in packs and args.from_blend and not previous.get("natureTextures"):
+    raise ValueError("Build the environment atlas before exporting its editable Blender file")
 for pack in packs:
     if args.from_blend:
         restore_editable(pack)
@@ -546,8 +583,13 @@ for pack in packs:
     export(pack)
     save_editable(pack)
     print(f"BLENDER_PACK {pack}", flush=True)
-(output / "manifest.json").write_text(json.dumps({
+manifest = {
     "version": 1, "generator": bpy.app.version_string, "templates": doc["templates"],
     "packs": [f"{pack}.glb" for pack in ["industrial", "brood", "stellar", "relay", "nature"]],
     "textures": ["albedo.png", "normal.png", "orm.png"],
-}, separators=(",", ":")))
+}
+if "nature" in packs or previous.get("natureTextures"):
+    manifest["packs"][-1] = "nature-surfaces.glb"
+    manifest["natureTextures"] = NATURE_TEXTURES
+    manifest["textures"].extend(NATURE_TEXTURES.values())
+(output / "manifest.json").write_text(json.dumps(manifest, separators=(",", ":")))

@@ -4,6 +4,7 @@ import type { Point } from './types.js';
 import type { WorldData } from './world.js';
 
 export const ELEVATION_LEVELS = [0, 26, 52] as const;
+export const WATER_SURFACE_Y = -1.5;
 export const WATER_BED_DEPTH = -20;
 export const CLIFF_STEP = 10;
 export const FLAT_TOLERANCE = 3.2;

@@ -2,6 +2,15 @@ import assert from 'node:assert/strict';
 
 /** Remove the selected model while retaining the other compressed mesh blocks verbatim. */
 export function removePackedModel(bytes, key) {
+  return filterPackedModels(bytes, candidate => candidate !== key);
+}
+
+/** 按模型拆包，压缩后的顶点数据原样保留，不重建几何或骨骼。 */
+export function extractPackedModel(bytes, key) {
+  return filterPackedModels(bytes, candidate => candidate === key);
+}
+
+function filterPackedModels(bytes, keep) {
   assert.equal(bytes.toString('ascii', 0, 4), 'glTF');
   assert.equal(bytes.readUInt32LE(4), 2);
   const jsonLength = bytes.readUInt32LE(12);
@@ -10,14 +19,15 @@ export function removePackedModel(bytes, key) {
   const binaryStart = 20 + jsonLength + 8;
   assert.equal(bytes.readUInt32LE(binaryStart - 4), 0x004e4942);
   const binary = bytes.subarray(binaryStart);
-  if (!doc.nodes.some(node => node.extras?.key === key)) return bytes;
+  if (doc.nodes.every(node => keep(node.extras?.key))) return bytes;
   assert.ok(!doc.animations && !doc.skins && !doc.materials && !doc.images);
   assert.ok(doc.nodes.every(node => !node.children), 'Pack must have flat roots');
   assert.equal(doc.buffers.length, 2);
   const nodes = new Map(), meshes = new Map(), accessors = new Map(), views = new Map();
   doc.nodes.forEach((node, i) => {
-    if (node.extras?.key !== key) nodes.set(i, nodes.size);
+    if (keep(node.extras?.key)) nodes.set(i, nodes.size);
   });
+  assert.ok(nodes.size, 'Selected model is absent from pack');
   for (const index of nodes.keys()) meshes.set(doc.nodes[index].mesh, meshes.size);
   for (const index of meshes.keys()) for (const primitive of doc.meshes[index].primitives) {
     assert.ok(!primitive.targets);

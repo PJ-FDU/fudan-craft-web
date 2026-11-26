@@ -16,6 +16,15 @@ import bpy
 import numpy as np
 from mathutils import Euler, Matrix, Vector
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from sculpt_surface_library import CANVAS, CERAMIC, GLASS, LEATHER, NYLON, SEAL, STEEL, bind_surface, sources_for
+
+SURFACE_TEXTURES = {
+    "cloth": NYLON, "cloak": CANVAS, "webbing": NYLON, "tan": CANVAS, "thread": CANVAS,
+    "armor": CERAMIC, "rubber": SEAL, "glove": LEATHER, "gun": STEEL, "chassis": STEEL,
+    "steel": STEEL, "optic": STEEL, "lens": GLASS, "goggle": GLASS,
+}
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--project", required=True)
 parser.add_argument("--source", required=True)
@@ -111,6 +120,7 @@ def material(name):
     mat = bpy.data.materials.new(name)
     mat.use_nodes = True
     mat["metalness"] = metal
+    mat["roughness"] = rough
     nodes, links = mat.node_tree.nodes, mat.node_tree.links
     bsdf = nodes.get("Principled BSDF")
     bsdf.inputs["Metallic"].default_value = metal
@@ -206,6 +216,9 @@ def material(name):
     variation.inputs["To Min"].default_value = max(.08, rough - .035)
     variation.inputs["To Max"].default_value = min(1, rough + .035)
     links.new(variation.outputs[0], bsdf.inputs["Roughness"])
+    if name in SURFACE_TEXTURES:
+        path, quadrant, length, mix, depth = SURFACE_TEXTURES[name]
+        bind_surface(mat, coords.outputs["Vector"], (path, quadrant, length * .5, mix * .55, depth * .40))
     nodes.new("ShaderNodeEmission").name = "Bake emission"
     nodes.new("ShaderNodeTexImage").name = "Bake target"
     return mat
@@ -1113,7 +1126,7 @@ def run():
     template["surface"]="sniper"
     report={"key":"industrial:sniper","generator":"scripts/build-sniper-hero.py","scriptHash":script_hash,
             "tile":[0,0],"tileSize":args.resolution,"lowFaces":low_count,"highFaces":high_count,
-            "assemblies":len(pieces),"template":template,
+            "assemblies":len(pieces),"template":template,"textureSources":sources_for(high.data.materials),
             "rifle":{"length":28.6575,"scopeLength":8.8,"barrelAxisY":1.65,"gripForwardOffset":2,
                       "joint":"rifle",
                      "features":["open bore","vented brake","bolt handle","trigger guard","box magazine",

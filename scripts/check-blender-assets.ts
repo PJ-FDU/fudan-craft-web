@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFileSync, statSync, writeFileSync } from 'node:fs';
+import { closeSync, openSync, readFileSync, readSync, statSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { Box3, Mesh, Texture } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -15,13 +15,46 @@ import { getWorld } from '../src/game/world.js';
 import { terrainGeometry, waterGeometry } from '../src/game/battle-terrain.js';
 import { waterContour } from '../src/game/terrain-shapes.js';
 
-const directory=resolve('public/assets/blender-sculpt-v2');
+const project=resolve(process.argv[3]??'.');
+const directory=resolve(project,'public/assets/blender-sculpt-v2');
 const manifest=JSON.parse(readFileSync(resolve(directory,'manifest.json'),'utf8')) as BlenderManifest;
 const scriptHash=createHash('sha256').update(readFileSync(resolve('scripts/build-sculpt-assets.py'))).digest('hex');
 assert.equal(manifest.scriptHash,scriptHash,'资产生成脚本已变化，请重新烘焙');
+const sharedAtlases=Object.entries(manifest.generators??{}).filter(([,generator])=>
+  generator.script==='scripts/build-sculpt-assets.py').map(([name])=>name).sort();
+assert.deepEqual([...(manifest.bakedWeather??[])].sort(),sharedAtlases,'共享图集尚未完成固定旧化烘焙');
+const textureChecks=manifest.textures.map(file=>{
+  const path=resolve(directory,file),header=Buffer.alloc(24);
+  const fd=openSync(path,'r');
+  try{
+    assert.equal(readSync(fd,header,0,header.length,0),header.length,file);
+    assert.equal(header.subarray(0,8).toString('hex'),'89504e470d0a1a0a',file);
+    assert.equal(header.toString('ascii',12,16),'IHDR',file);
+  }finally{closeSync(fd);}
+  const width=header.readUInt32BE(16),height=header.readUInt32BE(20);
+  assert.ok(width>0&&height>0&&width<=4096&&height<=4096,file);
+  return {file,width,height,bytes:statSync(path).size,rgbaMipBytes:Math.ceil(width*height*4*4/3)};
+});
+const texturesByFile=new Map(textureChecks.map(texture=>[texture.file,texture]));
+assert.equal(texturesByFile.size,textureChecks.length,'贴图文件重复登记');
+
+function matchingTextureSizes(channels:NonNullable<BlenderManifest['legacyTextures']>):[number,number]{
+  const albedo=texturesByFile.get(channels.albedo);
+  assert.ok(albedo,`清单缺少反照率贴图：${channels.albedo}`);
+  for(const file of [channels.normal,channels.orm]){
+    const texture=texturesByFile.get(file);
+    assert.ok(texture,`清单缺少 PBR 通道：${file}`);
+    assert.deepEqual([texture.width,texture.height],[albedo.width,albedo.height],`PBR 通道尺寸不一致：${file}`);
+  }
+  return [albedo.width,albedo.height];
+}
+
+assert.ok(manifest.legacyTextures,'清单缺少环境 PBR 通道');
+matchingTextureSizes(manifest.legacyTextures);
 interface BakeRecord {
   key:string;tile:[number,number];tileSize:number;lowFaces:number;highFaces:number;scriptHash:string;
   textureSources?:Record<string,{file:string;sha256:string}>;
+  fixedWeather?:string;
   projection:{
     cageExtrusion:number;maxRayDistance:number;uvPixels:number;missedNormalPixels:number;
     backfacingNormalPixels:number;missedMaterialPixels:number;missedProjectionPixels:number;
@@ -36,12 +69,15 @@ for(const [race,surface] of Object.entries(manifest.surfaces??{})){
   const expectedHash=generator?createHash('sha256').update(readFileSync(resolve(generator.script))).digest('hex'):scriptHash;
   if(generator)assert.equal(generator.scriptHash,expectedHash,`资产生成脚本已变化：${race}`);
   generatorHashes[race]=expectedHash;
-  const records=JSON.parse(readFileSync(generator?resolve(generator.bake):resolve('artifacts/blender-sculpt',`${race}-bake.json`),'utf8')) as BakeRecord[];
-  const bytes=readFileSync(resolve(directory,surface.albedo)),width=bytes.readUInt32BE(16),height=bytes.readUInt32BE(20);
+  const bakePath=generator?.bake??`artifacts/blender-sculpt/${race}-bake.json`;
+  const records=JSON.parse(readFileSync(resolve(project,bakePath),'utf8')) as BakeRecord[];
+  const [width,height]=matchingTextureSizes(surface);
   textureSizes.set(race,[width,height]);
   const used=new Set<string>();
   for(const record of records){
     assert.equal(record.scriptHash,expectedHash,`模型烘焙版本过期：${record.key}`);
+    assert.equal(Boolean(record.fixedWeather),Boolean(manifest.bakedWeather?.includes(race)),`做旧烘焙标记不一致：${record.key}`);
+    if(record.fixedWeather)assert.ok(Object.values(record.textureSources??{}).some(source=>source.sha256===record.fixedWeather),record.key);
     for(const source of Object.values(record.textureSources??{})){
       const actualHash=createHash('sha256').update(readFileSync(resolve(source.file))).digest('hex');
       assert.equal(source.sha256,actualHash,`纹理源图已变化，请重新烘焙：${source.file}`);
@@ -78,6 +114,7 @@ const assets=new BlenderAssets(manifest,dummySurface(),
   new Map(Object.keys(manifest.surfaces??{}).map(name=>[name,dummySurface()])));
 const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
 let meshes=0,vertices=0,triangles=0,rigPosesChecked=0,rigContractsChecked=0,uvVerticesChecked=0;
+let environmentMeshes=0;
 for(const file of manifest.packs){
   const bytes=readFileSync(resolve(directory,file));
   const gltf=await loader.parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'');
@@ -96,6 +133,10 @@ for(const file of manifest.packs){
           uv.getY(i)>=y/rows-.0001&&uv.getY(i)<=(y+1)/rows+.0001,`UV 超出专属图块：${key}/${i}`);
         uvVerticesChecked++;
       }
+    }else if(key.startsWith('nature:')||key.startsWith('resource:')){
+      const uv=geometry.getAttribute('uv');
+      for(let i=0;i<uv.count;i++)assert.ok(uv.getX(i)>=0&&uv.getX(i)<=1&&uv.getY(i)>=0&&uv.getY(i)<=1,key);
+      environmentMeshes++;
     }
     assets.add(key,part,slot,geometry);
     meshes++;vertices+=geometry.getAttribute('position').count;
@@ -103,6 +144,7 @@ for(const file of manifest.packs){
   });
 }
 assets.validate();
+assert.equal(environmentMeshes,17,'环境与资源网格覆盖不足');
 const models=new BattleModels(new Texture(),undefined,assets);
 for(const [key,template] of Object.entries(manifest.templates)){
   const [race,kind,mode]=key.split(':') as [Race,Kind,string|undefined];
@@ -167,7 +209,7 @@ for(const map of MAPS){
 const report={
   generator:manifest.generator,scriptHash,generatorHashes,templates:Object.keys(manifest.templates).length,meshes,vertices,triangles,
   files:Object.fromEntries([...manifest.packs,...manifest.textures].map(file=>[file,statSync(resolve(directory,file)).size])),
-  rigPosesChecked,rigContractsChecked,uvVerticesChecked,uniqueModelTiles:bakeRecords.size,terrainChecks,
+  rigPosesChecked,rigContractsChecked,uvVerticesChecked,environmentMeshes,uniqueModelTiles:bakeRecords.size,terrainChecks,
   sculptFaces:{
     low:[...bakeRecords.values()].reduce((sum,r)=>sum+r.lowFaces,0),
     high:[...bakeRecords.values()].reduce((sum,r)=>sum+r.highFaces,0),
@@ -180,13 +222,7 @@ const report={
       key:r.key,fallbackFraction:r.projection.lowSurfaceFallbackPixels/r.projection.uvPixels,
     })).sort((a,b)=>b.fallbackFraction-a.fallbackFraction)[0],
   },
-  textureChecks:manifest.textures.map(file=>{
-    const bytes=readFileSync(resolve(directory,file));
-    assert.equal(bytes.subarray(1,4).toString(),'PNG',file);
-    const width=bytes.readUInt32BE(16),height=bytes.readUInt32BE(20);
-    assert.ok(width>0&&height>0&&width<=4096&&height<=4096,file);
-    return {file,width,height,bytes:bytes.length,rgbaMipBytes:Math.ceil(width*height*4*4/3)};
-  }),
+  textureChecks,
 };
 if(process.argv[2])writeFileSync(resolve(process.argv[2]),JSON.stringify(report,null,2)+'\n');
 console.log(JSON.stringify(report,null,2));

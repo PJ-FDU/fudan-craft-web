@@ -19,6 +19,7 @@ from mathutils import Euler, Matrix, Vector
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import sculpt_humanoids
 import sculpt_brood
+from sculpt_surface_library import RECIPES, bind_surface, sources_for
 
 
 parser = argparse.ArgumentParser()
@@ -164,7 +165,9 @@ def finish_of(p, slot):
 def material(p, slot, seed):
     surface, color, params = finish_of(p, slot)
     panel = p["shape"] in BOX | {"armorHull", "armorPlate"} and min(p["size"]) > 2
-    cache_key = f'{surface}:{color}:{params}:{p["shape"]}:{seed % 7}:{slot}:{panel}'
+    recipe = RECIPES.get(surface) if slot == 0 and surface != "bark" else None
+    dimensions = tuple(p["size"]) if recipe else ()
+    cache_key = f'{surface}:{color}:{params}:{p["shape"]}:{seed % 7}:{slot}:{panel}:{dimensions}'
     if cache_key in bpy.data.materials:
         return bpy.data.materials[cache_key]
     mat = bpy.data.materials.new(cache_key)
@@ -329,6 +332,8 @@ def material(p, slot, seed):
     bump.inputs["Distance"].default_value = bump_distance
     links.new(height, bump.inputs["Height"])
     links.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
+    if recipe:
+        bind_surface(mat, coord.outputs["Vector"], recipe, dimensions)
     emission = nodes.new("ShaderNodeEmission")
     emission.name = "Bake emission"
     links.new(color_output, emission.inputs["Color"])
@@ -696,7 +701,7 @@ def bake(low, high, channel, target, projected=True):
             links.new(bsdf.inputs["Base Color"].links[0].from_socket, emit.inputs["Color"])
             links.new(emit.outputs[0], output.inputs["Surface"])
         elif channel == "roughness":
-            links.new(nodes["Baked roughness"].outputs[0], emit.inputs["Color"])
+            links.new(bsdf.inputs["Roughness"].links[0].from_socket, emit.inputs["Color"])
             links.new(emit.outputs[0], output.inputs["Surface"])
         elif channel == "metalness":
             emit.inputs["Color"].default_value = (mat["metalness"],) * 3 + (1,)
@@ -888,6 +893,7 @@ def model(key):
     log(f"DONE {key} {time.time() - begin:.1f}s")
     return runtime, high, {"albedo": color, "normal": normal, "orm": orm}, {
         "key": key, "lowFaces": low_count, "highFaces": high_count,
+        "textureSources": sources_for(high.data.materials),
         "scriptHash": script_hash,
         "tileSize": opts.tile_size, "bake": ["EMIT", "NORMAL_TANGENT_SELECTED_TO_ACTIVE", "AO", "ROUGHNESS", "METALNESS"],
         "projection": {"cageExtrusion": cage, "maxRayDistance": cage * 2 + 2,
@@ -1081,8 +1087,11 @@ def pack(name, keys):
         export_vertex_color="NONE", export_cameras=False, export_lights=False,
         export_meshopt_compression_enable=True, export_meshopt_extension="EXT_meshopt_compression",
     )
-    featured = {"industrial": "mech", "brood": "behemoth", "stellar": "colossus", "relay": "ranger"}
-    target = opts.only_key or f'{name}:{featured[name]}'
+    suffix = "-test" if opts.only_key else ""
+    (editable / f"{name}{suffix}-bake.json").write_text(json.dumps(reports, indent=2) + "\n")
+    featured = {"industrial": "tank", "brood": "behemoth", "stellar": "colossus", "relay": "assembly"}
+    preferred = f'{name}:{featured[name]}'
+    target = preferred if preferred in keys else keys[0]
     for obj in runtime:
         obj.hide_render = obj["key"] != target
     render_preview([obj for obj in runtime if obj["key"] == target], target)
@@ -1107,40 +1116,80 @@ def pack(name, keys):
     for mat in list(bpy.data.materials):
         if not mat.users:
             bpy.data.materials.remove(mat)
-    suffix = "-test" if opts.only_key else ""
-    (editable / f"{name}{suffix}-bake.json").write_text(json.dumps(reports, indent=2) + "\n")
     return {"albedo": f"{name}-albedo.png", "normal": f"{name}-normal.png", "orm": f"{name}-orm.png"}
 
 
+factions = ("industrial", "brood", "stellar", "relay")
 surfaces = {}
+generators = {}
 previous = None
+manifest_path = out / "manifest.json"
+if not opts.only_key and manifest_path.exists():
+    previous = json.loads(manifest_path.read_text())
 if opts.only:
-    previous = json.loads((out / "manifest.json").read_text())
+    if previous is None:
+        raise ValueError("A partial pack build requires the published manifest")
     for key, template in previous["templates"].items():
         if not key.startswith(opts.only + ":"):
             if template["rig"] != doc["templates"][key]["rig"]:
                 raise ValueError("Unbuilt pack rig changed: " + key)
             doc["templates"][key] = template
     surfaces.update(previous["surfaces"])
-for name in ("industrial", "brood", "stellar", "relay"):
+    generators.update(previous.get("generators", {}))
+
+# The authored models have independent UVs, rigs and PBR maps. Do not put their
+# generic placeholders back into a rebuilt faction pack.
+independent = {}
+if previous:
+    for key, template in previous["templates"].items():
+        name = template.get("surface")
+        if key not in doc["templates"] or not name or name in factions:
+            continue
+        if doc["templates"][key]["rig"] != template["rig"]:
+            raise ValueError("Independently baked rig changed: " + key)
+        if doc["templates"][key]["moving"] != template["moving"]:
+            raise ValueError("Independently baked moving parts changed: " + key)
+        package = previous["surfaces"][name]
+        for filename in (f"{name}.glb", *package.values()):
+            if not (out / filename).is_file():
+                raise FileNotFoundError(out / filename)
+        independent[key] = name
+        doc["templates"][key] = template
+
+for name in factions:
     if opts.only and name != opts.only:
         continue
-    keys = [key for key in doc["portraits"] if key.startswith(name + ":") and (not opts.only_key or key == opts.only_key)]
+    keys = [key for key in doc["portraits"] if key.startswith(name + ":") and key not in independent
+            and (not opts.only_key or key == opts.only_key)]
     if keys:
         surfaces[name] = pack(name, keys)
+        generators[name] = {"script": "scripts/build-sculpt-assets.py", "scriptHash": script_hash,
+                            "bake": f"artifacts/blender-sculpt/{name}-bake.json",
+                            "blend": f"artifacts/blender-sculpt/{name}.blend"}
 if not opts.only_key:
+    for name in dict.fromkeys(independent.values()):
+        surfaces[name] = previous["surfaces"][name]
+        if name in previous.get("generators", {}):
+            generators[name] = previous["generators"][name]
     legacy = json.loads((project / "public/assets/blender-v1/manifest.json").read_text())
-    textures = [f"../blender-v1/{c}.png" for c in ("albedo", "normal", "orm")]
+    nature_textures = legacy.get("natureTextures")
+    legacy_textures = {c: f"../blender-v1/{name}" for c, name in
+                       (nature_textures or {c: f"{c}.png" for c in ("albedo", "normal", "orm")}).items()}
+    nature_pack = "nature-surfaces.glb" if nature_textures else "nature.glb"
     manifest = {
         "version": 2, "generator": "Blender semantic sculpt / Cycles high-to-low dedicated PBR",
         "reference": "generated/model-portraits-v2.webp", "templates": doc["templates"],
         "scriptHash": script_hash,
-        "packs": [f"{name}.glb" for name in surfaces] + ["../blender-v1/nature.glb"],
-        "textures": textures + [p for surface in surfaces.values() for p in surface.values()],
-        "surfaces": surfaces, "legacyTextures": dict(zip(("albedo", "normal", "orm"), textures)),
+        "packs": [f"{name}.glb" for name in surfaces] + [f"../blender-v1/{nature_pack}"],
+        "textures": list(legacy_textures.values()) + [p for surface in surfaces.values() for p in surface.values()],
+        "surfaces": surfaces, "legacyTextures": legacy_textures,
+        "natureAtlas": bool(nature_textures),
+        "generators": generators,
     }
     missing = set(legacy["templates"]) - set(k for k in doc["templates"] if "surface" in doc["templates"][k])
     if missing:
         raise ValueError("Missing portrait sculpt models: " + str(missing))
-    (out / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    pending_manifest = manifest_path.with_suffix(".json.tmp")
+    pending_manifest.write_text(json.dumps(manifest, indent=2) + "\n")
+    pending_manifest.replace(manifest_path)
 log("COMPLETE")

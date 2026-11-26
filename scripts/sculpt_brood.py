@@ -17,6 +17,7 @@ import math
 import bmesh
 import bpy
 from mathutils import Euler, Matrix, Vector
+from sculpt_surface_library import BROOD, bind_surface
 
 
 BROOD_KEYS = {
@@ -237,6 +238,9 @@ def brood_material(name, slot=0):
 
     links.new(color_out, bsdf.inputs["Base Color"])
     links.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
+    organic_kinds = {"chitin": BROOD[0], "flesh": BROOD[1], "sac": BROOD[2], "bone": BROOD[3]}
+    if slot == 0 and kind in organic_kinds:
+        bind_surface(mat, coord.outputs["Vector"], organic_kinds[kind])
 
     emission = nodes.new("ShaderNodeEmission")
     emission.name = "Bake emission"

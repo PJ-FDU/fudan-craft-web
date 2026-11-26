@@ -8,11 +8,11 @@
         [
           -47.54648971557617,
           0,
-          -55.47209167480469
+          -42.47209167480469
         ],
         [
           47.54648971557617,
-          158.5,
+          114.65543365478516,
           54.959999084472656
         ]
       ],
@@ -2320,12 +2320,12 @@
       "bounds": [
         [
           -30.458223342895508,
-          -1.4999961853027344,
+          0,
           -30.852392196655273
         ],
         [
           30.458223342895508,
-          97.5,
+          57.5,
           32.95000076293945
         ]
       ],
@@ -2342,13 +2342,13 @@
     "industrial:oilwell": {
       "bounds": [
         [
-          -46.5,
+          -41.5,
           0,
           -30.5
         ],
         [
           34.5,
-          103.16633224487305,
+          55.16633224487305,
           30.5
         ]
       ],
@@ -2434,12 +2434,12 @@
       "bounds": [
         [
           -37.4873046875,
-          -1,
+          0,
           -37.74597930908203
         ],
         [
           37.4873046875,
-          116.5,
+          80.9191665649414,
           37.454864501953125
         ]
       ],
@@ -6220,12 +6220,12 @@
     "relay:base": {
       "bounds": [
         [
-          -50.56005859375,
-          -0.16102218627929688,
-          -40.68994903564453
+          -43.89013671875,
+          -9.5367431640625e-07,
+          -42.130001068115234
         ],
         [
-          50.56005859375,
+          43.1796875,
           63,
           42.48500061035156
         ]
@@ -7600,14 +7600,14 @@
     "relay:refinery": {
       "bounds": [
         [
-          -41.739990234375,
-          -0.12096786499023438,
-          -31.603517532348633
+          -37,
+          -0.22365093231201172,
+          -29.030000686645508
         ],
         [
-          41.739990234375,
+          37,
           33.70000076293945,
-          34.44499969482422
+          27.859519958496094
         ]
       ],
       "rig": [
@@ -7632,14 +7632,14 @@
     "relay:lumbermill": {
       "bounds": [
         [
-          -41.739990234375,
-          -0.12096786499023438,
-          -34.41184997558594
+          -37.860107421875,
+          0,
+          -35.849998474121094
         ],
         [
-          41.739990234375,
+          28,
           31.700000762939453,
-          31.600000381469727
+          29.5
         ]
       ],
       "rig": [
@@ -7664,12 +7664,12 @@
     "relay:tower": {
       "bounds": [
         [
-          -20.1800537109375,
-          0.18860149383544922,
-          -17.200000762939453
+          -21,
+          -0.19345974922180176,
+          -14.920000076293945
         ],
         [
-          20.1800537109375,
+          21,
           35,
           29.000003814697266
         ]
@@ -7710,14 +7710,14 @@
     "relay:oilwell": {
       "bounds": [
         [
-          -20.1800537109375,
-          0.18860149383544922,
+          -21,
+          -0.19345974922180176,
           -18.5
         ],
         [
-          20.1800537109375,
+          21,
           31,
-          17.200000762939453
+          14.920000076293945
         ]
       ],
       "rig": [
@@ -7756,14 +7756,14 @@
     "relay:assembly": {
       "bounds": [
         [
-          -41.739990234375,
-          -0.12096786499023438,
-          -31.600000381469727
+          -39,
+          -0.2960546016693115,
+          -31.829999923706055
         ],
         [
-          41.739990234375,
+          39,
           44.84025573730469,
-          42.21553039550781
+          41.97042465209961
         ]
       ],
       "rig": [
@@ -7932,14 +7932,14 @@
     "relay:relayTower": {
       "bounds": [
         [
-          -20.1800537109375,
-          0.18860149383544922,
-          -17.200000762939453
+          -21,
+          -0.19345974922180176,
+          -14.920000076293945
         ],
         [
-          20.1800537109375,
+          21,
           66,
-          17.200000762939453
+          14.920000076293945
         ]
       ],
       "rig": [
@@ -7978,14 +7978,14 @@
     "relay:routePost": {
       "bounds": [
         [
-          -41.739990234375,
-          -0.12096786499023438,
-          -31.600000381469727
+          -42.580078125,
+          0,
+          -28.950000762939453
         ],
         [
-          41.739990234375,
+          30.0615234375,
           40,
-          31.600000381469727
+          20.950000762939453
         ]
       ],
       "rig": [
@@ -8010,14 +8010,14 @@
     "relay:observatory": {
       "bounds": [
         [
-          -41.739990234375,
-          -0.12096786499023438,
-          -31.600000381469727
+          -32.10302734375,
+          -0.2394580841064453,
+          -32
         ],
         [
-          41.739990234375,
+          39.16015625,
           44.40836715698242,
-          31.600000381469727
+          35.505001068115234
         ]
       ],
       "rig": [
@@ -8056,14 +8056,14 @@
     "relay:escortDepot": {
       "bounds": [
         [
-          -44.818359375,
-          -0.12096786499023438,
-          -35.20977783203125
+          -46.27001953125,
+          -9.5367431640625e-07,
+          -36.650001525878906
         ],
         [
-          41.739990234375,
+          34.5,
           54,
-          31.600000381469727
+          30.649999618530273
         ]
       ],
       "rig": [
@@ -8100,27 +8100,27 @@
       "surface": "relay"
     }
   },
-  "scriptHash": "238260fd271cda449c3b0490689baa5dcf055591cf8171eb09a721edd858d1cc",
+  "scriptHash": "d1df2a8f234bf174c713c67be45285d861202ae44859e49a4946be1990a0a921",
   "packs": [
     "industrial.glb",
     "brood.glb",
     "stellar.glb",
     "relay.glb",
-    "../blender-v1/nature.glb",
     "worker.glb",
-    "sniper.glb",
     "rifleman.glb",
     "medic.glb",
+    "sniper.glb",
+    "mech.glb",
     "commander.glb",
     "ranger.glb",
-    "observer.glb",
     "pathfinder.glb",
-    "mech.glb"
+    "observer.glb",
+    "../blender-v1/nature-surfaces.glb"
   ],
   "textures": [
-    "../blender-v1/albedo.png",
-    "../blender-v1/normal.png",
-    "../blender-v1/orm.png",
+    "../blender-v1/nature-albedo.png",
+    "../blender-v1/nature-normal.png",
+    "../blender-v1/nature-orm.png",
     "industrial-albedo.png",
     "industrial-normal.png",
     "industrial-orm.png",
@@ -8136,30 +8136,30 @@
     "worker-albedo.png",
     "worker-normal.png",
     "worker-orm.png",
-    "sniper-albedo.png",
-    "sniper-normal.png",
-    "sniper-orm.png",
     "rifleman-albedo.png",
     "rifleman-normal.png",
     "rifleman-orm.png",
     "medic-albedo.png",
     "medic-normal.png",
     "medic-orm.png",
+    "sniper-albedo.png",
+    "sniper-normal.png",
+    "sniper-orm.png",
+    "mech-albedo.png",
+    "mech-normal.png",
+    "mech-orm.png",
     "commander-albedo.png",
     "commander-normal.png",
     "commander-orm.png",
     "ranger-albedo.png",
     "ranger-normal.png",
     "ranger-orm.png",
-    "observer-albedo.png",
-    "observer-normal.png",
-    "observer-orm.png",
     "pathfinder-albedo.png",
     "pathfinder-normal.png",
     "pathfinder-orm.png",
-    "mech-albedo.png",
-    "mech-normal.png",
-    "mech-orm.png"
+    "observer-albedo.png",
+    "observer-normal.png",
+    "observer-orm.png"
   ],
   "surfaces": {
     "industrial": {
@@ -8187,11 +8187,6 @@
       "normal": "worker-normal.png",
       "orm": "worker-orm.png"
     },
-    "sniper": {
-      "albedo": "sniper-albedo.png",
-      "normal": "sniper-normal.png",
-      "orm": "sniper-orm.png"
-    },
     "rifleman": {
       "albedo": "rifleman-albedo.png",
       "normal": "rifleman-normal.png",
@@ -8201,6 +8196,16 @@
       "albedo": "medic-albedo.png",
       "normal": "medic-normal.png",
       "orm": "medic-orm.png"
+    },
+    "sniper": {
+      "albedo": "sniper-albedo.png",
+      "normal": "sniper-normal.png",
+      "orm": "sniper-orm.png"
+    },
+    "mech": {
+      "albedo": "mech-albedo.png",
+      "normal": "mech-normal.png",
+      "orm": "mech-orm.png"
     },
     "commander": {
       "albedo": "commander-albedo.png",
@@ -8212,67 +8217,57 @@
       "normal": "ranger-normal.png",
       "orm": "ranger-orm.png"
     },
-    "observer": {
-      "albedo": "observer-albedo.png",
-      "normal": "observer-normal.png",
-      "orm": "observer-orm.png"
-    },
     "pathfinder": {
       "albedo": "pathfinder-albedo.png",
       "normal": "pathfinder-normal.png",
       "orm": "pathfinder-orm.png"
     },
-    "mech": {
-      "albedo": "mech-albedo.png",
-      "normal": "mech-normal.png",
-      "orm": "mech-orm.png"
+    "observer": {
+      "albedo": "observer-albedo.png",
+      "normal": "observer-normal.png",
+      "orm": "observer-orm.png"
     }
   },
   "legacyTextures": {
-    "albedo": "../blender-v1/albedo.png",
-    "normal": "../blender-v1/normal.png",
-    "orm": "../blender-v1/orm.png"
+    "albedo": "../blender-v1/nature-albedo.png",
+    "normal": "../blender-v1/nature-normal.png",
+    "orm": "../blender-v1/nature-orm.png"
   },
+  "natureAtlas": true,
   "generators": {
     "industrial": {
       "script": "scripts/build-sculpt-assets.py",
-      "scriptHash": "238260fd271cda449c3b0490689baa5dcf055591cf8171eb09a721edd858d1cc",
+      "scriptHash": "d1df2a8f234bf174c713c67be45285d861202ae44859e49a4946be1990a0a921",
       "bake": "artifacts/blender-sculpt/industrial-bake.json",
       "blend": "artifacts/blender-sculpt/industrial.blend"
     },
     "brood": {
       "script": "scripts/build-sculpt-assets.py",
-      "scriptHash": "238260fd271cda449c3b0490689baa5dcf055591cf8171eb09a721edd858d1cc",
+      "scriptHash": "d1df2a8f234bf174c713c67be45285d861202ae44859e49a4946be1990a0a921",
       "bake": "artifacts/blender-sculpt/brood-bake.json",
       "blend": "artifacts/blender-sculpt/brood.blend"
     },
     "stellar": {
       "script": "scripts/build-sculpt-assets.py",
-      "scriptHash": "238260fd271cda449c3b0490689baa5dcf055591cf8171eb09a721edd858d1cc",
+      "scriptHash": "d1df2a8f234bf174c713c67be45285d861202ae44859e49a4946be1990a0a921",
       "bake": "artifacts/blender-sculpt/stellar-bake.json",
       "blend": "artifacts/blender-sculpt/stellar.blend"
     },
     "relay": {
       "script": "scripts/build-sculpt-assets.py",
-      "scriptHash": "238260fd271cda449c3b0490689baa5dcf055591cf8171eb09a721edd858d1cc",
+      "scriptHash": "d1df2a8f234bf174c713c67be45285d861202ae44859e49a4946be1990a0a921",
       "bake": "artifacts/blender-sculpt/relay-bake.json",
       "blend": "artifacts/blender-sculpt/relay.blend"
     },
     "worker": {
       "script": "scripts/build-worker-hero.py",
-      "scriptHash": "8e9e08e10794750a40a3e5f3ee6e17def8aed4f8ec948dbc2d42c0956d1e3e46",
-      "bake": "artifacts/blender-sculpt/worker-bake.json",
+      "scriptHash": "74b22dd53cd7ff9debf26beeb55bd53a6a2fc23984122452c97d0a7fed9d0fb2",
+      "bake": "artifacts/worker-hero/worker-bake.json",
       "blend": "artifacts/worker-hero/engineering-worker.blend"
-    },
-    "sniper": {
-      "script": "scripts/build-sniper-hero.py",
-      "scriptHash": "6f54add7727a09a465a4b1cc02707914bb6f3fac9f6654954c6652baa6cc1b97",
-      "bake": "artifacts/blender-sculpt/sniper-bake.json",
-      "blend": "artifacts/sniper-hero/ghost-sniper.blend"
     },
     "rifleman": {
       "script": "scripts/build-rifleman.py",
-      "scriptHash": "3ec0518cc1612cbe363f1e91bdc27af3a2ee07482c5e74f513a0a7442136e12f",
+      "scriptHash": "340fdd73088b3ea168ceeb8dd89f7333c477880618dd6902129e2f51a0441a23",
       "bake": "artifacts/rifleman/rifleman-bake.json",
       "blend": "artifacts/rifleman/rifleman.blend"
     },
@@ -8281,6 +8276,18 @@
       "scriptHash": "598856edcb4748a66726dee1a3bc2a17154dfabd569ed23286af45fdd6f530b1",
       "bake": "artifacts/medic/medic-bake.json",
       "blend": "artifacts/medic/medic.blend"
+    },
+    "sniper": {
+      "script": "scripts/build-sniper-hero.py",
+      "scriptHash": "6b2cf1838a9392b30955a312e533c309a462b030933ca832a597ae288d349a5c",
+      "bake": "artifacts/sniper-hero/sniper-bake.json",
+      "blend": "artifacts/sniper-hero/ghost-sniper.blend"
+    },
+    "mech": {
+      "script": "scripts/build-mech.py",
+      "scriptHash": "c991e338c05701627ca8ef2eac0318bbc527492ffc9c92e74b83ed71867a9419",
+      "bake": "artifacts/mech/mech-bake.json",
+      "blend": "artifacts/mech/mech.blend"
     },
     "commander": {
       "script": "scripts/build-commander.py",
@@ -8294,23 +8301,23 @@
       "bake": "artifacts/ranger/ranger-bake.json",
       "blend": "artifacts/ranger/ranger.blend"
     },
-    "observer": {
-      "script": "scripts/build-observer.py",
-      "scriptHash": "05053535b99b3b03294cf981df8739d2f45e5a6f282365eeb29bfa20fa1afbce",
-      "bake": "artifacts/observer/observer-bake.json",
-      "blend": "artifacts/observer/observer.blend"
-    },
     "pathfinder": {
       "script": "scripts/build-pathfinder.py",
       "scriptHash": "a25d2db25dc01649349d0645ae0c623004b0df717da253ad2f45602f10fcc6c4",
       "bake": "artifacts/pathfinder/pathfinder-bake.json",
       "blend": "artifacts/pathfinder/pathfinder.blend"
     },
-    "mech": {
-      "script": "scripts/build-mech.py",
-      "scriptHash": "88ea04fa495af119b48ac393353a3715b319c5cd25471bf62faba0f9b9cc9daa",
-      "bake": "artifacts/mech/mech-bake.json",
-      "blend": "artifacts/mech/mech.blend"
+    "observer": {
+      "script": "scripts/build-observer.py",
+      "scriptHash": "05053535b99b3b03294cf981df8739d2f45e5a6f282365eeb29bfa20fa1afbce",
+      "bake": "artifacts/observer/observer-bake.json",
+      "blend": "artifacts/observer/observer.blend"
     }
-  }
+  },
+  "bakedWeather": [
+    "industrial",
+    "brood",
+    "stellar",
+    "relay"
+  ]
 }

@@ -18,6 +18,15 @@ import bpy
 import numpy as np
 from mathutils import Euler, Matrix, Vector
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from sculpt_surface_library import CERAMIC, GLASS, LEATHER, NYLON, SEAL, STEEL, bind_surface, sources_for
+
+SURFACE_TEXTURES = {
+    "ceramic": CERAMIC, "ceramicHi": CERAMIC, "armorMid": CERAMIC, "armorDark": CERAMIC,
+    "undersuit": NYLON, "pouch": NYLON, "rubber": SEAL, "glove": LEATHER,
+    "gun": STEEL, "gunDark": STEEL, "steel": STEEL, "visor": GLASS, "lens": GLASS,
+}
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--template", required=True)
 parser.add_argument("--output", required=True)
@@ -114,6 +123,7 @@ def material(name):
     mat = bpy.data.materials.new(name)
     mat.use_nodes = True
     mat["metalness"] = metal
+    mat["roughness"] = rough
     nodes, links = mat.node_tree.nodes, mat.node_tree.links
     bsdf = nodes.get("Principled BSDF")
     bsdf.inputs["Metallic"].default_value = metal
@@ -184,6 +194,9 @@ def material(name):
     links.new(fine.outputs["Fac"], bump.inputs["Height"])
     links.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
 
+    if name in SURFACE_TEXTURES:
+        path, quadrant, length, mix, depth = SURFACE_TEXTURES[name]
+        bind_surface(mat, coords.outputs["Vector"], (path, quadrant, length * .5, mix * .65, depth * .38))
     emit = nodes.new("ShaderNodeEmission")
     emit.name = "Bake emission"
     target = nodes.new("ShaderNodeTexImage")
@@ -1232,6 +1245,7 @@ def run():
         "highFaces": high_count,
         "assemblies": len(pieces),
         "template": template,
+        "textureSources": sources_for(high.data.materials),
         "rifle": {
             "length": 20.9,
             "barrelAxisY": 1.85,
