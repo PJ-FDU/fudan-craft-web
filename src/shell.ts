@@ -22,7 +22,9 @@ export function toast(message: string, error = false) {
   const item = document.createElement('div');
   item.className = error ? 'toast error' : 'toast';
   item.textContent = message;
-  $('toasts').append(item);
+  const container=$('toasts');
+  (dialog.open?dialog:app).append(container);
+  container.append(item);
   setTimeout(() => item.remove(), 3500);
   if (error) audio.effect('ui-error', .4, 0, .6);
 }
@@ -94,6 +96,16 @@ export function handleHomeKeys(event: KeyboardEvent) {
 }
 
 lockPageZoom();
+// iOS 键盘会缩小可视视口，而不一定改变布局视口；弹窗按实际可见高度限位。
+const syncVisualViewport=()=>{
+  const viewport=window.visualViewport;
+  document.documentElement.style.setProperty('--visual-height',`${viewport?.height??innerHeight}px`);
+  document.documentElement.style.setProperty('--visual-top',`${viewport?.offsetTop??0}px`);
+};
+window.visualViewport?.addEventListener('resize',syncVisualViewport);
+window.visualViewport?.addEventListener('scroll',syncVisualViewport);
+window.addEventListener('resize',syncVisualViewport);
+syncVisualViewport();
 mountUIIcons(app);
 audio.scene('menu');
 document.addEventListener('pointerdown', () => void audio.unlock(), {capture: true});

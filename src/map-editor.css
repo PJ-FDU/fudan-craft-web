@@ -12,7 +12,9 @@
 .ed-brand strong{font-size:13px;letter-spacing:1.2px;color:#e5d8a8;white-space:nowrap}
 .ed-brand input{width:180px;height:28px;padding:0 9px;background:#0f1918;border:1px solid #75846880;border-radius:3px;color:#edf3e6;font-size:12px}
 .ed-actions{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
-.ed-actions select,.ed-actions button{height:28px;padding:0 10px;border-radius:3px;border:1px solid #6e7d6480;background:#1f2c29;color:#d6e0ce;font-size:11px;cursor:pointer}
+.ed-actions button{height:28px;padding:0 10px;border-radius:3px;border:1px solid #6e7d6480;background:#1f2c29;color:#d6e0ce;font-size:11px;cursor:pointer}
+.ed-actions game-select{flex:0 1 180px;min-width:100px;--select-padding:10px}
+.ed-actions .game-select-trigger{height:28px;min-height:28px;font-size:11px}
 .ed-actions button:hover:not(:disabled){border-color:#c6b681;background:#2e4138;color:#f3efd8}
 .ed-actions button:disabled{opacity:.4;cursor:default}
 .ed-actions .ed-primary{background:linear-gradient(#5c734e,#3c5338);border-color:#c4bd8a;color:#f6f3dc;font-weight:600}
@@ -31,11 +33,38 @@
 .ed-field{display:flex;flex-direction:column;gap:4px;font-size:11px;color:#b8c7b6;margin-bottom:6px}
 .ed-field span{display:flex;justify-content:space-between}
 .ed-field b{color:#e5d9a8;font-weight:500}
-.ed-field select,.ed-field input[type="range"]{width:100%}
-.ed-field select{height:28px;background:#101a19;color:#dbe4d5;border:1px solid #68786280;border-radius:3px;padding:0 6px;font-size:11px}
+.ed-field game-select,.ed-field input[type="range"]{width:100%}
+.ed-field .game-select-trigger{min-height:32px;--select-padding:6px;font-size:11px}
 .ed-camera-row{display:grid;grid-template-columns:1fr 1fr auto;gap:5px}
 .ed-camera-row button{height:26px;padding:0 8px;border-radius:3px;border:1px solid #61715a60;background:#1a2523;color:#cdd7c5;font-size:11px;cursor:pointer}
 .ed-camera-row button:hover{border-color:#b8ae7e;background:#2a3a33}
 .ed-footer{border-top:1px solid #ffffff14;padding-top:7px;display:flex;flex-direction:column;gap:3px}
 #ed-coords{font:10px var(--mono,monospace);color:#d7cca0}
 .ed-footer small{font-size:9px;color:#7f9686;line-height:1.45}
+.ed-primary-actions{display:flex;gap:6px;pointer-events:auto}
+.ed-primary-actions button{height:28px;padding:0 10px;border:1px solid #6e7d6480;border-radius:3px;background:#1f2c29;color:#d6e0ce;font-size:11px}
+.ed-touch-control{display:none}
+@media(max-width:800px),(pointer:coarse){
+  .map-editor-ui{top:var(--visual-top,0px);bottom:auto;height:var(--visual-height,100dvh);padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+  .ed-topbar{gap:8px;padding:8px max(8px,env(safe-area-inset-right)) 8px max(8px,env(safe-area-inset-left));flex:none}
+  .ed-brand{order:1;flex:1;min-width:0}
+  .ed-brand strong{display:none}
+  .ed-brand input{width:100%;min-width:0;height:44px}
+  .ed-primary-actions{order:2;gap:4px}
+  .ed-primary-actions button{min-width:44px;height:44px;padding:4px;font-size:12px}
+  .ed-touch-control{display:block}
+  .ed-primary-actions button[aria-pressed=true],#ed-tools-toggle[aria-expanded=true]{background:#3c5338;border-color:#c4bd8a}
+  .ed-actions{order:3;flex:0 0 100%;flex-wrap:nowrap;overflow-x:auto;min-width:0;padding-bottom:4px;overscroll-behavior-x:contain;touch-action:pan-x}
+  .ed-actions>*{flex:none}
+  .ed-actions game-select{flex:0 0 160px}
+  .ed-actions button,.ed-actions .game-select-trigger{min-height:44px;height:44px;min-width:44px;font-size:12px}
+  #ed-save{order:-4}#ed-play{order:-3}#ed-zoom-in{order:-2}#ed-zoom-out{order:-1}
+  .ed-sidebar{width:min(320px,calc(100% - 16px - env(safe-area-inset-left) - env(safe-area-inset-right)));flex:0 1 auto;min-height:0;max-height:none;margin:8px max(8px,env(safe-area-inset-left));overscroll-behavior:contain;scroll-padding-bottom:12px}
+  .map-editor-ui:not(.ed-tools-open) .ed-sidebar{display:none}
+  .ed-tool{min-height:44px;font-size:12px}
+  .ed-field .game-select-trigger,.ed-camera-row button{min-height:44px}
+  .ed-field input[type=range]{min-height:44px;touch-action:pan-y}
+  .ed-camera-row{grid-template-columns:1fr 1fr 44px}
+  .ed-footer small{font-size:11px;line-height:1.6}
+  .ed-footer small:not(.ed-touch-control){display:none}
+}

@@ -1,0 +1,88 @@
+/* 与 TouchHUD 相同的断点，横屏手机和平板也必须使用触屏尺寸。 */
+@media(max-width:800px),(pointer:coarse){
+  #dialog,#dialog.animation-dialog{
+    --dialog-padding:16px;
+    padding:0 var(--dialog-padding) var(--dialog-padding);
+    max-width:calc(100vw - max(8px,env(safe-area-inset-left)) - max(8px,env(safe-area-inset-right)));
+    max-height:calc(var(--visual-height,100dvh) - max(8px,env(safe-area-inset-top)) - max(8px,env(safe-area-inset-bottom)));
+    inset-block:var(--visual-top,0px) auto;margin-block:max(8px,env(safe-area-inset-top)) 0;
+    overflow:auto;overscroll-behavior:contain;scroll-padding-top:88px;
+  }
+  #dialog .dialog-top{
+    position:sticky;top:0;z-index:5;align-items:center;gap:12px;
+    margin:0 calc(-1 * var(--dialog-padding)) 12px;padding:12px var(--dialog-padding);
+    background:#14221a;border-bottom:1px solid #c9b68a35;
+  }
+  body:has(.home-screen) #dialog .dialog-top{background:#19221a}
+  #dialog .dialog-top>div{min-width:0}
+  #dialog .dialog-top h2{font-size:20px;line-height:1.4;margin:6px 0 0;overflow-wrap:anywhere}
+  #dialog .dialog-top .eyebrow{font-size:9px;overflow-wrap:anywhere}
+  #dialog .dialog-top #close-dialog{width:44px;height:44px;border:1px solid #c9b68a45;border-radius:3px}
+  #dialog-content{min-width:0}
+  #dialog .primary-button,#dialog .secondary-button{min-height:44px;min-width:44px;line-height:1.5}
+  #dialog .dialog-actions{gap:8px}
+  #dialog .dialog-actions button{flex:1 1 130px;margin:0;white-space:normal}
+  #dialog .field input{min-height:44px;max-width:100%}
+  #dialog .toggle-label{gap:12px;min-height:48px;line-height:1.6}
+  #dialog .toggle-label input[type=checkbox]{margin-left:0}
+  #dialog input[type=range]{min-width:0;min-height:44px;touch-action:pan-y}
+  #dialog .audio-slider{grid-template-columns:96px minmax(0,1fr) 36px;gap:8px;padding:4px 0}
+  #dialog .audio-settings{padding:12px}
+  #dialog .operation-preferences .toggle-label:has(input[type=range]){display:grid;grid-template-columns:minmax(74px,1fr) minmax(80px,1.3fr) 40px;gap:8px}
+  #dialog .operation-preferences input[type=range]{width:100%}
+  #dialog .notice-settings{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;font-size:12px}
+  #dialog .notice-settings .toggle-label{gap:8px}
+  #dialog .binding-row{grid-template-columns:minmax(0,1fr) 58px 64px 44px}
+  #dialog .binding-row input,#dialog .binding-row .game-select-trigger,#dialog .binding-row>button{min-height:44px}
+  #dialog .binding-row>button{width:44px}
+  #dialog .binding-row label{font-size:12px;min-height:44px;align-content:center}
+  #dialog summary{min-height:44px;align-content:center;line-height:1.5}
+  #app.touch-ui .touch-details summary{min-height:44px;align-content:center;line-height:1.5}
+  html[lang] .operation-breadcrumb nav>button{min-width:44px;flex-shrink:0;justify-content:center}
+  .operation-content .operation-settings{min-width:0}
+  .operation-intro{overflow-wrap:anywhere}
+  #dialog .room-code{gap:12px;flex-wrap:wrap}
+  #dialog .room-code strong{font-size:22px;overflow-wrap:anywhere}
+  #dialog .room-code button{min-width:44px;min-height:44px}
+  #dialog .room-member{flex-wrap:wrap;line-height:1.6}
+  #dialog .room-member>span{min-width:0;flex:1;overflow-wrap:anywhere}
+  #dialog .room-member small{margin-left:17px}
+  #dialog.animation-dialog .animation-stage,#dialog.animation-dialog .model-stage{width:100%;min-width:0}
+  #dialog .model-filters{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  #dialog .model-object-field,#dialog .model-filters .toggle-label{grid-column:1/-1}
+  #dialog .model-lighting-row{gap:8px}
+  #dialog .model-lighting-row .toggle-label{white-space:normal}
+  .game-select-list [role=option]{min-height:44px}
+  #app.touch-ui .skill-panel{position:static;transform:none;max-width:100%;flex-wrap:wrap;justify-content:flex-start;margin:0;max-height:25dvh;overflow:auto}
+  .touch-skill-slot{grid-column:1/-1;min-width:0;pointer-events:auto}
+  .touch-skill-slot:has(.skill-panel[hidden]){display:none}
+  #app.touch-ui .skill-panel output{flex:1 0 100%;overflow-wrap:anywhere}
+  #app.touch-ui .skill-panel button{min-width:44px;min-height:44px}
+  #app.touch-ui #cancel-command,#app.touch-ui #rotate-building{min-width:44px;min-height:44px}
+  #app.touch-ui .hud-actions #pause,#app.touch-ui .hud-actions #menu{width:44px;min-width:44px}
+  #app.touch-ui .compact-header .economy-stat small{font-size:8px}
+  #app.touch-ui .field-alerts{max-width:calc(100% - 16px)}
+  #app.touch-ui .field-alerts button{min-height:44px;max-width:100%;text-align:left;white-space:normal;line-height:1.5}
+  #app.touch-ui .audio-caption{bottom:calc(var(--touch-bottom) + var(--touch-hud-height) + 68px);font-size:12px}
+  .battle-loading{overflow:auto;padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+  .battle-loading .dialog-actions button{min-height:44px}
+  .resource-progress-heading{gap:8px;flex-wrap:wrap;font-size:12px}
+  .resource-progress [data-load-detail]{overflow-wrap:anywhere}
+}
+/* 原生 dialog 在顶层；提示必须随当前弹窗挂载，才能保持可见。 */
+#dialog>.toasts{position:fixed;top:auto;bottom:max(16px,env(safe-area-inset-bottom));left:50%;right:auto;width:max-content;max-width:min(420px,calc(100vw - 40px));z-index:10}
+#dialog>.toasts .toast{white-space:normal;overflow-wrap:anywhere}
+@media(max-width:360px){
+  #dialog .binding-row{grid-template-columns:58px minmax(0,1fr) 44px}
+  #dialog .binding-row label{grid-column:1/-1}
+  #dialog .binding-row input{width:58px}
+  #dialog .notice-settings{column-gap:8px;font-size:11px}
+  #dialog .notice-settings .toggle-label{font-size:11px;gap:6px}
+}
+@media(max-height:500px) and (pointer:coarse){
+  #dialog .dialog-top{padding-block:8px}
+  #dialog .dialog-top h2{font-size:18px}
+  .battle-loading .loading-insignia{font-size:44px;margin-bottom:8px}
+  .battle-loading h2{font-size:20px;margin:12px 0}
+  .battle-loading .resource-progress{margin:12px 0}
+}

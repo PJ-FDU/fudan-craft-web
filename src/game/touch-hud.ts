@@ -13,11 +13,17 @@ export class TouchHUD {
   private filterKey='';
   private kindFilter=element('touch-kind') as GameSelect;
   constructor(private app:HTMLElement,actions:Actions){
+    // 筛选、窄屏换行和安全区都会改变底栏高度，浮动控件不能依赖固定偏移。
+    const hud=element('touch-hud');
+    new ResizeObserver(()=>{
+      app.style.setProperty('--touch-hud-height',`${hud.getBoundingClientRect().height}px`);
+    }).observe(hud);
     this.slots=[
       [document.querySelector<HTMLElement>('.minimap-wrap')!,element('touch-radar')],
       [document.querySelector<HTMLElement>('.production-panel')!,element('touch-production-slot')],
       [document.querySelector<HTMLElement>('.logistics-queue')!,element('touch-queue-slot')],
       [element('unit-details'),element('touch-details')],
+      [element('skill-panel'),element('touch-skill-slot')],
     ].map(([node,slot])=>{const marker=document.createComment('desktop-hud-slot');node.before(marker);return {node,slot,marker};});
     for(const [id,action] of [['touch-attack',actions.attack],['touch-repair',actions.repair],['touch-stop',actions.stop],['touch-all',actions.all],['touch-clear',actions.clear],['touch-dispatch',actions.dispatch]] as const)element(id).onclick=action;
     element('touch-idle').onclick=actions.idle;

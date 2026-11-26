@@ -9,11 +9,11 @@ export const DEFAULT_BINDINGS={army:'f2',idle:'f3',pause:'p',attack:'a',repair:'
 export type Binding=keyof typeof DEFAULT_BINDINGS;
 export type NoticeKind='attack'|'depleted'|'population'|'construction';
 export interface OperationPreferences {
-  animation:boolean;health:boolean;ranges:boolean;trackpad:boolean;continuousBuild:boolean;
+  animation:boolean;health:boolean;buildingNames:boolean;ranges:boolean;trackpad:boolean;continuousBuild:boolean;
   panSpeed:number;zoomSensitivity:number;reverseZoom:boolean;edgeScroll:boolean;
   bindings:Record<Binding,string>;notices:Record<NoticeKind,{sound:boolean;visual:boolean}>;
 }
-export const defaultPreferences=():OperationPreferences=>({animation:true,health:true,ranges:false,trackpad:false,continuousBuild:false,
+export const defaultPreferences=():OperationPreferences=>({animation:true,health:true,buildingNames:false,ranges:false,trackpad:false,continuousBuild:false,
   panSpeed:560,zoomSensitivity:1,reverseZoom:false,edgeScroll:false,bindings:{...DEFAULT_BINDINGS},
   notices:{attack:{sound:true,visual:true},depleted:{sound:true,visual:true},population:{sound:true,visual:true},construction:{sound:true,visual:true}}});
 const KEY='fudancraft-operations-v1';
@@ -43,7 +43,7 @@ export function bindingError(bindings:Record<Binding,string>,action:Binding,key:
 export function parsePreferences(raw:unknown):OperationPreferences{
   const result=defaultPreferences();if(!raw||typeof raw!=='object')return result;
   const value=raw as Partial<OperationPreferences>;
-  for(const k of ['animation','health','ranges','trackpad','continuousBuild','reverseZoom','edgeScroll'] as const)if(typeof value[k]==='boolean')result[k]=value[k];
+  for(const k of ['animation','health','buildingNames','ranges','trackpad','continuousBuild','reverseZoom','edgeScroll'] as const)if(typeof value[k]==='boolean')result[k]=value[k];
   if(Number.isFinite(value.panSpeed)&&value.panSpeed!>=160&&value.panSpeed!<=1600)result.panSpeed=value.panSpeed!;
   if(Number.isFinite(value.zoomSensitivity)&&value.zoomSensitivity!>=.25&&value.zoomSensitivity!<=3)result.zoomSensitivity=value.zoomSensitivity!;
   if(value.bindings&&typeof value.bindings==='object'){

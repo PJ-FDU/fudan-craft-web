@@ -23,7 +23,7 @@ export function modelGallery(root:HTMLElement,images:Map<string,HTMLImageElement
     root.textContent='当前设备未启用 3D 渲染，无法显示模型图鉴。';return ()=>{};
   }
   root.innerHTML=`
-    <p class="dialog-description">拖动旋转、滚轮缩放。查看四个种族的部队、建筑与动作。</p>
+    <p class="dialog-description">拖动旋转，双指捏合或滚轮缩放。查看四个种族的部队、建筑与动作。</p>
     <div class="settings-row model-filters">
       <div class="field">种族${dropdownMarkup('model-race','种族',RACES.map(r=>[r,RACE_NAMES[r]]))}</div>
       <div class="field">分类${dropdownMarkup('model-category','分类',[['units','部队'],['buildings','建筑']])}</div>

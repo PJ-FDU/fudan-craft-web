@@ -10,6 +10,7 @@ import './touch-hud.css';
 import './improvements.css';
 import './map-editor.css';
 import './resource-loading.css';
+import './mobile-ui.css';
 import { getLanguage,onLanguageChange,t } from './game/locale.js';
 import { dropdownMarkup,type GameSelect } from './game/dropdown.js';
 import { uiIcon } from './game/icons.js';
@@ -159,8 +160,7 @@ $('retry-battle').onclick=()=>{if(pendingBattle)void prepareBattle(pendingBattle
 function focusBase(){renderer.setWorld(view);const b=view.units.find(u=>u.side===side&&u.kind==='base');if(b)renderer.focus({x:b.x,y:b.y-(renderer.is3D?32:80)});}
 let skillMode:{id:AbilityId;ids:number[];target?:number}|null=null;
 let stationMode:{id:number;action:'move'|'deploy'}|null=null;
-const skillPanel=document.createElement('section');
-skillPanel.className='skill-panel';skillPanel.hidden=true;skillPanel.setAttribute('aria-label','技能与设施指令');app.append(skillPanel);
+const skillPanel=$('skill-panel');
 let skillRenderKey='';
 function setMode(mode:'attack'|'rally'|'repair'|null){skillMode=null;stationMode=null;renderer.skillPreview=null;if(!started||home||operationOpen)skillPanel.hidden=true;attackMode=mode==='attack';rallyMode=mode==='rally';repairMode=mode==='repair';buildKind=null;renderer.placement=null;$('command-hint').hidden=!mode;$('rotate-building').hidden=true;$('command-message').textContent=repairMode?'点击受损的己方建筑进行维修 · × / Esc 取消':attackMode?'点击战场：攻击移动 · Esc 取消':'点击战场：设置基地集结点 · Esc 取消';$('attack-move').classList.toggle('active',attackMode);$('repair').classList.toggle('active',repairMode);$('touch-attack').classList.toggle('active',attackMode);$('touch-repair').classList.toggle('active',repairMode);canvas.style.cursor=mode?'crosshair':'default';}
 function beginRepair(){
@@ -312,8 +312,10 @@ function showDialog(title:string,content:string,tag='COMMAND CENTER',pause=true)
   dialog.classList.toggle('animation-dialog',tag==='LIVING BATTLEFIELD');
   dialog.classList.toggle('map-dialog',tag==='NEW OPERATION'||tag.startsWith('ROOM / '));
   $('dialog-title').textContent=title;$('dialog-tag').textContent=tag;$('dialog-content').innerHTML=content;if(!dialog.open)dialog.showModal();
+  dialog.scrollTop=0;
+  dialog.append($('toasts'));
 }
-function closeDialog(){renderOperationTasks=undefined;galleryCleanup?.();galleryCleanup=null;dialog.close();app.append($('audio-caption'));if(dialogPauses)paused=beforeDialog;dialogPauses=false;if(operationOpen)$('operation-back').focus({preventScroll:true});else if(home)$($<HTMLButtonElement>('continue-game').disabled?'start':'continue-game').focus({preventScroll:true});else canvas.focus({preventScroll:true});}
+function closeDialog(){renderOperationTasks=undefined;galleryCleanup?.();galleryCleanup=null;dialog.close();app.append($('audio-caption'),$('toasts'));if(dialogPauses)paused=beforeDialog;dialogPauses=false;if(operationOpen)$('operation-back').focus({preventScroll:true});else if(home)$($<HTMLButtonElement>('continue-game').disabled?'start':'continue-game').focus({preventScroll:true});else canvas.focus({preventScroll:true});}
 $('cancel-command').onclick=()=>{setMode(null);updateUI(true);};
 $('close-dialog').onclick=closeDialog;dialog.addEventListener('cancel',e=>{e.preventDefault();closeDialog();});dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();const m=e as MouseEvent;if(m.clientX<r.left||m.clientX>r.right||m.clientY<r.top||m.clientY>r.bottom)closeDialog();}});
 function openMapEditor(doc?:CustomMapDocument){
@@ -351,6 +353,7 @@ function setupBattle(){
   closeDialog();refreshHomeSave();operationBeforePaused=paused;paused=true;operationOpen=true;
   keys.clear();controls.clear();setMode(null);hideCommandTooltip();app.classList.add('operation-open');
   titleScreen.hidden=false;titleScreen.inert=false;battleUI.inert=true;battleHeader.inert=true;
+  titleScreen.scrollTop=0;
   $('operation-content').hidden=false;
   operation=new OperationMenu($('operation-content'),{
     mapId:view.mapId,canLoad:!$<HTMLButtonElement>('continue-game').disabled,fromBattle:!home,
@@ -489,9 +492,11 @@ function settings(){
   select.onchange=()=>{const value=select.value;if(value==='off'||value==='balanced'||value==='high'||value==='cinematic')renderer.lightingQuality=value;};
   $('settings-ok').onclick=closeDialog;
   bindSavedPreferences('settings');
+  const done=$('settings-ok');done.firstChild!.textContent='完成设置 ';
+  $('dialog-content').append(done.parentElement!);
 }
 function applyPreferences(){
-  renderer.animate=preferences.animation;renderer.showHealth=preferences.health;renderer.showRanges=preferences.ranges;
+  renderer.animate=preferences.animation;renderer.showHealth=preferences.health;renderer.showBuildingNames=preferences.buildingNames;renderer.showRanges=preferences.ranges;
   controls.trackpad=preferences.trackpad;controls.zoomSensitivity=preferences.zoomSensitivity;controls.reverseZoom=preferences.reverseZoom;controls.edgeScroll=preferences.edgeScroll;
   soundscape.baseAttackSound=preferences.notices.attack.sound;
   syncCommandBindings();
@@ -508,6 +513,13 @@ function syncCommandBindings(){
 }
 function bindSavedPreferences(mode:'menu'|'settings'){
   const ids=mode==='menu'?['animation-toggle','health-toggle','range-toggle','trackpad-toggle']:['setting-animation','setting-health','setting-ranges','setting-trackpad'];
+  const health=$<HTMLInputElement>(ids[1]);
+  health.parentElement!.firstChild!.textContent='显示血条（单位与建筑）';
+  const names=document.createElement('label');names.className='toggle-label';
+  names.append(document.createTextNode('显示建筑名称'));
+  const toggle=document.createElement('input');toggle.type='checkbox';toggle.id=mode==='menu'?'building-names-toggle':'setting-building-names';toggle.checked=preferences.buildingNames;
+  toggle.onchange=()=>{preferences.buildingNames=toggle.checked;savePreferences(preferences);applyPreferences();};
+  names.append(toggle);health.parentElement!.after(names);
   ids.forEach((id,i)=>{const key=(['animation','health','ranges','trackpad'] as const)[i],input=$<HTMLInputElement>(id);
     input.onchange=()=>{preferences[key]=input.checked;savePreferences(preferences);applyPreferences();};});
   bindOperationSettings($('dialog-content'),preferences,applyPreferences,view.players.find(p=>p.side===side)?.race);
@@ -594,13 +606,13 @@ function connect(){
 }
 function leaveNetwork(){clearReconnect();mapSync?.reset();mapChoiceSerial++;if(socket?.readyState===WebSocket.OPEN)socket.send(JSON.stringify({type:'leave'}));const old=socket;socket=null;old?.close();roomCode='';lastLobby=null;network=false;lastReady=0;}
 function customMapOptions(){
-  return `<option value="">选择已保存的自定义地图…</option>${listCustomMaps().map(d=>`<option value="draft:${escape(d.id)}">${escape(d.name)} · 本地草稿</option>`).join('')}${cachedVersions.map(v=>`<option value="cache:${v.contentHash}">${escape(v.name)} · 缓存版本 ${v.contentHash.slice(0,8)}</option>`).join('')}`;
+  return [['','选择已保存的自定义地图…'],...listCustomMaps().map(d=>[`draft:${d.id}`,`${d.name} · 本地草稿`]),...cachedVersions.map(v=>[`cache:${v.contentHash}`,`${v.name} · 缓存版本 ${v.contentHash.slice(0,8)}`])] as [string,string][];
 }
-function customMapSelector(){return `<label class="field">自定义地图<select id="room-custom-map">${customMapOptions()}</select></label>`;}
+function customMapSelector(){return `<div class="field">自定义地图${dropdownMarkup('room-custom-map','自定义地图',customMapOptions())}</div>`;}
 function refreshMapOptions(){
   void listCachedMapVersions().then(versions=>{
-    cachedVersions=versions;const select=$<HTMLSelectElement>('room-custom-map');
-    if(select){const value=select.value;select.innerHTML=customMapOptions();select.value=value;}
+    cachedVersions=versions;const select=$<GameSelect>('room-custom-map');
+    if(select)select.setOptions(customMapOptions(),select.value);
   }).catch(()=>{});
 }
 async function selectedCustomMap(value:string){
@@ -626,7 +638,7 @@ function multiplayer(){if(roomCode&&!network&&lastLobby){roomLobby(lastLobby.pla
   showDialog('与指挥官并肩交锋',`<p class="dialog-description">支持 2–4 人自由对战，或 1–2 位朋友合作对抗 AI。两人合作请选择四人地图；共享视野，资源与指挥权独立。</p>${PAGES_BUILD?'<p class="room-note">P2P 静态版 · 房主创建房间后复制邀请链接。房主需保持页面打开；离开或刷新会结束房间。</p>':''}<label class="field">指挥官代号<input id="player-name" maxlength="16" value="${t('指挥官')}" autocomplete="nickname"/></label><div class="field">房间模式${dropdownMarkup('room-mode','房间模式',[['ffa','自由对战'],['coop','朋友合作对抗 AI']])}</div>${customMapSelector()}<div class="dialog-actions"><button id="create-room" class="primary-button">创建房间 <span>${uiIcon('plus')}</span></button></div><label class="field">加入已有房间<input id="room-input" maxlength="${PAGES_BUILD?2048:6}" placeholder="${PAGES_BUILD?'粘贴邀请链接或完整房间标识':'输入 6 位房间码'}" ${PAGES_BUILD?'':'style="text-transform:uppercase;font-family:var(--mono);letter-spacing:3px"'}/></label><div class="dialog-actions"><button id="join-room" class="secondary-button">加入作战房间 <span>${uiIcon('arrow-up-right')}</span></button></div>`,'MULTIPLAYER NETWORK');
   refreshMapOptions();
   if(PAGES_BUILD){const invite=parseInvite(location.href);if(invite)$<HTMLInputElement>('room-input').value=invite.code;}
-  async function act(join:boolean){const name=$<HTMLInputElement>('player-name').value,input=$<HTMLInputElement>('room-input').value.trim(),code=PAGES_BUILD?parseInvite(input)?.code??'':input.toUpperCase(),mode=$<GameSelect>('room-mode').value,custom=$<HTMLSelectElement>('room-custom-map').value;if(join&&!(PAGES_BUILD?parseInvite(code):/^[A-F0-9]{6}$/.test(code))){toast(PAGES_BUILD?'请粘贴完整的 P2P 邀请链接或房间标识':'请输入正确的 6 位房间码',true);return;}const button=$<HTMLButtonElement>(join?'join-room':'create-room');button.disabled=true;try{const mapSnapshot=join?undefined:await selectedCustomMap(custom),ws=await connect();ws.send(JSON.stringify({type:join?'join':'create',name,code,mode,...(mapSnapshot?{mapId:mapSnapshot.version.mapId,mapSnapshot}:{})}));}catch(e){toast((e as Error).message,true);button.disabled=false;}}
+  async function act(join:boolean){const name=$<HTMLInputElement>('player-name').value,input=$<HTMLInputElement>('room-input').value.trim(),code=PAGES_BUILD?parseInvite(input)?.code??'':input.toUpperCase(),mode=$<GameSelect>('room-mode').value,custom=$<GameSelect>('room-custom-map').value;if(join&&!(PAGES_BUILD?parseInvite(code):/^[A-F0-9]{6}$/.test(code))){toast(PAGES_BUILD?'请粘贴完整的 P2P 邀请链接或房间标识':'请输入正确的 6 位房间码',true);return;}const button=$<HTMLButtonElement>(join?'join-room':'create-room');button.disabled=true;try{const mapSnapshot=join?undefined:await selectedCustomMap(custom),ws=await connect();ws.send(JSON.stringify({type:join?'join':'create',name,code,mode,...(mapSnapshot?{mapId:mapSnapshot.version.mapId,mapSnapshot}:{})}));}catch(e){toast((e as Error).message,true);button.disabled=false;}}
   $('create-room').onclick=()=>void act(false);$('join-room').onclick=()=>void act(true);
 }
 function roomLobby(players:LobbyPlayers,ownSide:Side,mapId:string,mode:'ffa'|'coop'='ffa',mapVersion?:MapVersion){
@@ -650,8 +662,8 @@ function roomLobby(players:LobbyPlayers,ownSide:Side,mapId:string,mode:'ffa'|'co
   bindMapPicker($('dialog-content'),id=>{mapChoiceSerial++;socket?.send(JSON.stringify({type:'select-map',mapId:id}));});
   if(roomHost){
     refreshMapOptions();
-    $<HTMLSelectElement>('room-custom-map').onchange=async event=>{
-      const value=(event.target as HTMLSelectElement).value,ws=socket,serial=++mapChoiceSerial;if(!value)return;
+    $<GameSelect>('room-custom-map').onchange=async event=>{
+      const value=(event.target as GameSelect).value,ws=socket,serial=++mapChoiceSerial;if(!value)return;
       try{const mapSnapshot=await selectedCustomMap(value);if(socket===ws&&serial===mapChoiceSerial&&mapSnapshot)ws?.send(JSON.stringify({type:'select-map',mapId:mapSnapshot.version.mapId,mapSnapshot}));}
       catch(error){toast((error as Error).message,true);}
     };

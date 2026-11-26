@@ -31,19 +31,20 @@
 .hotkey-settings p{font-size:12px;line-height:1.7;color:#a4b7a8}
 .manual-filters{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin:16px 0}
 .manual-filters input[type="search"]{flex:1 1 200px;min-width:0;min-height:44px}
-.manual-filters label{display:flex;flex-direction:column;gap:6px;font-size:11px;color:#a4b7a8;flex:1 1 145px}
-.manual-filters input,.manual-filters select,.binding-row select{border:1px solid #8faa9755;background:#11201b;color:#e8e2d2;padding:10px;border-radius:3px;color-scheme:dark}
-.manual-filters select{min-height:44px;max-width:100%}
-.manual-filters input:focus-visible,.manual-filters select:focus-visible,.binding-row :focus-visible{outline:2px solid #c9b68a;outline-offset:2px}
+.manual-filter{display:flex;flex-direction:column;gap:6px;font-size:11px;color:#a4b7a8;flex:1 1 145px;min-width:0}
+.manual-filters input{border:1px solid #8faa9755;background:#11201b;color:#e8e2d2;padding:10px;border-radius:3px}
+.manual-filters .game-select-trigger{min-height:44px}
+.manual-filters input:focus-visible,.binding-row :focus-visible{outline:2px solid #c9b68a;outline-offset:2px}
 .binding-group{margin:18px 0}
 .binding-group h4{margin:0 0 8px;color:#c9b68a;font-size:12px;letter-spacing:.06em}
-.binding-row{display:grid;grid-template-columns:minmax(0,1fr) 62px 55px 30px;gap:6px;align-items:center;padding:10px 0;border-bottom:1px solid #8faa9726}
+.binding-row{display:grid;grid-template-columns:minmax(0,1fr) 62px 64px 30px;gap:6px;align-items:center;padding:10px 0;border-bottom:1px solid #8faa9726}
 .binding-row label{min-width:0;line-height:1.4}
 .binding-row label small{display:block;color:#95a69a;font-size:10px;margin-top:4px;overflow-wrap:anywhere}
-.binding-row input,.binding-row select{min-height:38px}
-.binding-row select{width:55px;padding:6px;font-size:11px}
-.binding-row button{width:30px;min-height:38px;padding:0;background:transparent;border:1px solid #8faa9733;color:#c9b68a;font-size:18px}
-.binding-row button:disabled{opacity:.3}
+.binding-row input,.binding-row .game-select-trigger{min-height:38px}
+.binding-key-picker{--select-padding:7px}
+.binding-key-picker .game-select-trigger{font-size:11px;gap:5px}
+.binding-row > button{width:30px;min-height:38px;padding:0;background:transparent;border:1px solid #8faa9733;color:#c9b68a;font-size:18px}
+.binding-row > button:disabled{opacity:.3}
 .binding-row input:focus{background:#263d2c;border-color:#c9b68a}
 .binding-feedback{min-height:24px;font-size:12px;color:#e4cc93;line-height:1.6;margin:12px 0}
 .binding-conflict{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
@@ -81,16 +82,15 @@
 @media(max-width:760px){.field-manual-list{grid-template-columns:1fr}.binding-grid{grid-template-columns:1fr}}
 @media(max-width:580px){
   .manual-filters{gap:10px}.manual-filters input[type="search"]{flex-basis:100%}
-  .binding-row{grid-template-columns:minmax(0,1fr) 58px 55px 36px}
-  .binding-row input{width:58px}.binding-row button{width:36px}
-  .binding-row input,.binding-row select,.binding-row button{min-height:44px}
+  .binding-row{grid-template-columns:minmax(0,1fr) 58px 64px 36px}
+  .binding-row input{width:58px}.binding-row > button{width:36px}
+  .binding-row input,.binding-row .game-select-trigger,.binding-row > button{min-height:44px}
   .unit-reference .information-facts > div{grid-template-columns:80px minmax(0,1fr)}
 }
 .task-row{display:flex;justify-content:space-between;gap:12px;width:100%;padding:12px;margin:4px 0;background:#192a22;border:1px solid #8faa9733;text-align:left}
 .task-row span{flex:none;color:#c9b68a}
 .operation-task-unit{padding:12px 0;border-bottom:1px solid #8faa9733}
 .operation-task-unit p{font-size:12px;color:#a4b7a8}
-.touch-ui .touch-actions{grid-template-columns:repeat(7,minmax(0,1fr))}
 @media(max-width:580px){.notice-settings{gap:8px}.binding-grid{grid-template-columns:1fr}.operation-preferences input[type="range"]{width:110px}}
 .select-setting > span:first-child {
   flex: none;
@@ -188,6 +188,9 @@ game-select {
   box-shadow: 0 12px 28px #0008;
   font-size: 12px;
   line-height: 1.4;
+  box-sizing:border-box;
+  overflow-x:hidden;
+  overflow-wrap:anywhere;
 }
 .game-select-list [role="option"] {
   min-height: 36px;

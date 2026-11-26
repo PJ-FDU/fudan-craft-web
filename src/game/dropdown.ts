@@ -44,7 +44,7 @@ export class GameSelect extends HTMLElement {
       else this.open();
     };
     this.trigger.onkeydown=event=>this.onKey(event);
-    this.trigger.onblur=()=>this.close();
+    // 触屏点击非焦点选项时会先让按钮失焦；由外部焦点/点击关闭，避免选项点击被吞掉。
     this.list.onmousedown=event=>{if((event.target as Element).closest('[role=option]'))event.preventDefault();};
     this.list.onclick=event=>{
       const option=(event.target as Element).closest<HTMLElement>('[data-index]');
@@ -101,6 +101,11 @@ export class GameSelect extends HTMLElement {
     document.addEventListener('pointerdown',event=>{if(!event.composedPath().includes(this))this.close();},{signal,capture:true});
     window.addEventListener('scroll',event=>{if(event.target!==this.list)this.position();},{signal,capture:true});
     window.addEventListener('resize',this.position,{signal});
+    window.visualViewport?.addEventListener('resize',this.position,{signal});
+    window.visualViewport?.addEventListener('scroll',this.position,{signal});
+    window.addEventListener('blur',()=>this.close(),{signal});
+    document.addEventListener('focusin',event=>{if(!event.composedPath().includes(this))this.close();},{signal});
+    this.closest('dialog')?.addEventListener('close',()=>this.close(),{signal});
     this.position();
     this.highlight(this.selected);
   }
@@ -117,15 +122,18 @@ export class GameSelect extends HTMLElement {
   }
 
   private position=()=>{
-    const rect=this.trigger.getBoundingClientRect(),viewport=document.documentElement.clientHeight;
-    if(!rect.height||rect.bottom<0||rect.top>viewport){this.close();return;}
+    const rect=this.trigger.getBoundingClientRect(),visual=window.visualViewport;
+    const viewport=visual?.height??document.documentElement.clientHeight,viewportWidth=visual?.width??document.documentElement.clientWidth;
+    const top=visual?.offsetTop??0,left=visual?.offsetLeft??0;
+    if(!rect.height||rect.bottom<top||rect.top>top+viewport){this.close();return;}
     const gap=6,edge=8;
-    this.list.style.left=`${rect.left}px`;
-    this.list.style.width=`${rect.width}px`;
-    const below=viewport-rect.bottom-gap-edge,above=rect.top-gap-edge;
+    const width=Math.min(viewportWidth-edge*2,Math.max(140,rect.width));
+    this.list.style.left=`${Math.max(left+edge,Math.min(rect.left,left+viewportWidth-edge-width))}px`;
+    this.list.style.width=`${width}px`;
+    const below=top+viewport-rect.bottom-gap-edge,above=rect.top-top-gap-edge;
     const opensAbove=below<Math.min(248,this.list.scrollHeight+2)&&above>below;
     this.list.style.maxHeight=`${Math.max(0,Math.min(248,opensAbove?above:below))}px`;
-    this.list.style.top=`${opensAbove?rect.top-gap-this.list.offsetHeight:rect.bottom+gap}px`;
+    this.list.style.top=`${Math.max(top+edge,Math.min(opensAbove?rect.top-gap-this.list.offsetHeight:rect.bottom+gap,top+viewport-edge-this.list.offsetHeight))}px`;
   };
 
   private highlight(index:number,scroll=true){
@@ -143,6 +151,7 @@ export class GameSelect extends HTMLElement {
   }
 
   private commit(index:number){
+    if(!Number.isInteger(index)||index<0||index>=this.choices.length)return;
     const changed=index!==this.selected;
     this.select(index);
     this.close();

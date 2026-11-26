@@ -5,14 +5,15 @@ import { spriteMarkup } from './art.js';
 import { t } from './locale.js';
 import { operationText as text } from './operation-preferences.js';
 import { escapeHtml as esc,informationMarkup,unitInformation } from './unit-information.js';
+import { dropdownMarkup,type GameSelect } from './dropdown.js';
 
 let filterRace:string='industrial',category='all',query='';
 export function fieldManualMarkup(race?:Race){
   if(race)filterRace=race;
-  return `<p class="dialog-description">${text('按种族查阅单位与建筑。数值为基础值；当前升级、状态和进度请查看战场选中面板。','Browse units and buildings by faction. Values are base stats; inspect battlefield selections for current upgrades, status and progress.')}</p><div class="manual-filters"><input type="search" data-manual-search aria-label="${text('搜索单位与建筑','Search units and buildings')}" placeholder="${text('搜索名称、用途、技能或前置条件','Search name, role, skill or prerequisite')}"><label>${text('种族','Faction')}<select data-manual-race><option value="all">${text('全部种族','All factions')}</option>${RACES.map(r=>`<option value="${r}">${t(RACE_NAMES[r])}</option>`).join('')}</select></label><label>${text('类别','Category')}<select data-manual-category><option value="all">${text('全部','All')}</option><option value="units">${text('单位','Units')}</option><option value="buildings">${text('建筑','Buildings')}</option><option value="support">${text('技能支援','Ability support')}</option></select></label></div><p data-manual-count role="status"></p><div id="codex-models" class="dialog-actions"></div><div class="field-manual-list"></div>`;
+  return `<p class="dialog-description">${text('按种族查阅单位与建筑。数值为基础值；当前升级、状态和进度请查看战场选中面板。','Browse units and buildings by faction. Values are base stats; inspect battlefield selections for current upgrades, status and progress.')}</p><div class="manual-filters"><input type="search" data-manual-search aria-label="${text('搜索单位与建筑','Search units and buildings')}" placeholder="${text('搜索名称、用途、技能或前置条件','Search name, role, skill or prerequisite')}"><div class="manual-filter">${text('种族','Faction')}${dropdownMarkup('manual-race',text('种族','Faction'),[['all',text('全部种族','All factions')],...RACES.map(r=>[r,t(RACE_NAMES[r])] as const)],filterRace)}</div><div class="manual-filter">${text('类别','Category')}${dropdownMarkup('manual-category',text('类别','Category'),[['all',text('全部','All')],['units',text('单位','Units')],['buildings',text('建筑','Buildings')],['support',text('技能支援','Ability support')]],category)}</div></div><p data-manual-count role="status"></p><div id="codex-models" class="dialog-actions"></div><div class="field-manual-list"></div>`;
 }
 export function bindFieldManual(root:HTMLElement){
-  const race=root.querySelector<HTMLSelectElement>('[data-manual-race]')!,type=root.querySelector<HTMLSelectElement>('[data-manual-category]')!,search=root.querySelector<HTMLInputElement>('[data-manual-search]')!;
+  const race=root.querySelector<GameSelect>('#manual-race')!,type=root.querySelector<GameSelect>('#manual-category')!,search=root.querySelector<HTMLInputElement>('[data-manual-search]')!;
   race.value=filterRace;type.value=category;search.value=query;
   const render=()=>{
     filterRace=race.value;category=type.value;query=search.value;

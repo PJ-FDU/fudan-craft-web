@@ -2,13 +2,14 @@ import { assignBinding,bindingOwner,bindingName,BINDING_NAMES,supportedBinding,D
 import { RACES,RACE_NAMES,STATS,type Race,type BuildingKind } from './types.js';
 import { ROSTERS,producerFor } from './races.js';
 import { t } from './locale.js';
+import { dropdownMarkup,type GameSelect,type Choice } from './dropdown.js';
 
 export function bindOperationSettings(root:HTMLElement,prefs:OperationPreferences,apply:()=>void,race:Race='industrial'){
   const previous=root.querySelector<HTMLElement>('.operation-preferences');
   const previousView=previous?{open:previous.querySelector<HTMLDetailsElement>('.hotkey-settings')?.open,
     query:previous.querySelector<HTMLInputElement>('[data-binding-search]')?.value??'',
-    race:previous.querySelector<HTMLSelectElement>('[data-binding-race]')?.value,
-    producer:previous.querySelector<HTMLSelectElement>('[data-binding-producer]')?.value}:undefined;
+    race:previous.querySelector<GameSelect>('#binding-race')?.value,
+    producer:previous.querySelector<GameSelect>('#binding-producer')?.value}:undefined;
   if(previousView?.race)race=previousView.race as Race;
   const panel=document.createElement('div');panel.className='operation-preferences';
   const toggle=(key:string,zh:string,en:string,checked:boolean)=>`<label class="toggle-label">${text(zh,en)}<input type="checkbox" data-operation="${key}" ${checked?'checked':''}></label>`;
@@ -20,8 +21,8 @@ export function bindOperationSettings(root:HTMLElement,prefs:OperationPreference
     <h3>${text('通知','Notifications')}</h3>${Object.entries(notices).map(([k,[zh,en]])=>`<div class="notice-settings"><span>${text(zh,en)}</span>${toggle(k+'.sound','声音','Sound',prefs.notices[k as NoticeKind].sound)}${toggle(k+'.visual','视觉','Visual',prefs.notices[k as NoticeKind].visual)}</div>`).join('')}
     <details class="hotkey-settings"><summary>${text('自定义快捷键','Customize hotkeys')}</summary><p>${text('点击按键框，再按新键。Esc 取消；也可从列表选择。设置自动保存。','Click a key field, then press a new key. Esc cancels; you can also choose from the list. Changes save automatically.')}</p>
     <div class="manual-filters"><input type="search" data-binding-search placeholder="${text('搜索操作、单位或按键','Search action, unit or key')}" aria-label="${text('搜索快捷键','Search hotkeys')}">
-    <label>${text('种族预览','Faction preview')}<select data-binding-race>${RACES.map(r=>`<option value="${r}" ${r===race?'selected':''}>${t(RACE_NAMES[r])}</option>`).join('')}</select></label>
-    <label>${text('生产建筑','Producer')}<select data-binding-producer></select></label></div>
+    <div class="manual-filter">${text('种族预览','Faction preview')}${dropdownMarkup('binding-race',text('种族预览','Faction preview'),RACES.map(r=>[r,t(RACE_NAMES[r])]),race)}</div>
+    <div class="manual-filter">${text('生产建筑','Producer')}${dropdownMarkup('binding-producer',text('生产建筑','Producer'))}</div></div>
     <p class="room-note">${text('训练槽位按种族及选中生产建筑重新排列；实际派遣以调度面板上的单位与按键为准。预览不改变对局种族。','Training slots follow your faction and selected production buildings. Use the unit labels in Dispatch during battle. This preview does not change your faction.')}</p>
     <div data-binding-groups></div>
     <div class="binding-feedback" role="status" aria-live="polite"></div><div class="binding-conflict" hidden><button class="secondary-button" data-binding-swap>${text('交换这两个操作的按键','Swap these two hotkeys')}</button><button class="secondary-button" data-binding-cancel>${text('取消','Cancel')}</button></div>
@@ -41,7 +42,7 @@ export function bindOperationSettings(root:HTMLElement,prefs:OperationPreference
     savePreferences(prefs);apply();
   });
   const feedback=panel.querySelector<HTMLElement>('.binding-feedback')!,conflict=panel.querySelector<HTMLElement>('.binding-conflict')!;
-  const raceSelect=panel.querySelector<HTMLSelectElement>('[data-binding-race]')!,producerSelect=panel.querySelector<HTMLSelectElement>('[data-binding-producer]')!,search=panel.querySelector<HTMLInputElement>('[data-binding-search]')!;
+  const raceSelect=panel.querySelector<GameSelect>('#binding-race')!,producerSelect=panel.querySelector<GameSelect>('#binding-producer')!,search=panel.querySelector<HTMLInputElement>('[data-binding-search]')!;
   search.value=previousView?.query??'';
   panel.querySelector<HTMLDetailsElement>('.hotkey-settings')!.open=!!previousView?.open;
   let pending:{action:Binding;key:string}|undefined;
@@ -60,7 +61,7 @@ export function bindOperationSettings(root:HTMLElement,prefs:OperationPreference
     panel.querySelector<HTMLElement>('.binding-empty')!.hidden=![...panel.querySelectorAll<HTMLElement>('.binding-group')].every(group=>group.hidden);
   };
   const refresh=()=>{panel.querySelectorAll<HTMLInputElement>('[data-binding]').forEach(input=>input.value=prefs.bindings[input.dataset.binding as Binding].toUpperCase());
-    panel.querySelectorAll<HTMLSelectElement>('[data-key-picker]').forEach(select=>select.value=prefs.bindings[select.dataset.keyPicker as Binding]);
+    panel.querySelectorAll<GameSelect>('.binding-key-picker').forEach(select=>select.value=prefs.bindings[select.id.slice('key-picker-'.length) as Binding]);
     panel.querySelectorAll<HTMLButtonElement>('[data-reset-binding]').forEach(button=>button.disabled=prefs.bindings[button.dataset.resetBinding as Binding]===DEFAULT_BINDINGS[button.dataset.resetBinding as Binding]);
     filter();
   };
@@ -78,14 +79,14 @@ export function bindOperationSettings(root:HTMLElement,prefs:OperationPreference
     const kinds=producerSelect.value?roster.filter(k=>producerFor(k,selectedRace)===producerSelect.value):roster;
     panel.querySelector<HTMLElement>('[data-binding-groups]')!.innerHTML=groups.map(group=>`<section class="binding-group"><h4>${group.name}</h4><div class="binding-grid">${group.actions.map(action=>{
       const kind=action.startsWith('train')?kinds[Number(action.slice(5))-1]:undefined;
-      return `<div class="binding-row" data-action="${action}"><label for="hotkey-${action}">${bindingName(action)}<small>${action.startsWith('train')?kind?t(STATS[kind].name)+' · '+t(STATS[producerFor(kind,selectedRace)!].name):text('当前预览无对应单位','No unit in this preview'):text('默认 ','Default ')+DEFAULT_BINDINGS[action].toUpperCase()}</small></label><input id="hotkey-${action}" readonly data-binding="${action}" aria-label="${bindingName(action)}" inputmode="none"><select data-key-picker="${action}" aria-label="${text('选择按键：','Choose key: ')+bindingName(action)}">${keys.map((key,i)=>`<option value="key-${i}">${key.toUpperCase()}</option>`).join('')}</select><button data-reset-binding="${action}" title="${text('恢复此项默认（占用时需交换）','Restore default (swap if occupied)')}" aria-label="${text('重置 ','Reset ')+bindingName(action)}">↺</button></div>`;
+      return `<div class="binding-row" data-action="${action}"><label for="hotkey-${action}">${bindingName(action)}<small>${action.startsWith('train')?kind?t(STATS[kind].name)+' · '+t(STATS[producerFor(kind,selectedRace)!].name):text('当前预览无对应单位','No unit in this preview'):text('默认 ','Default ')+DEFAULT_BINDINGS[action].toUpperCase()}</small></label><input id="hotkey-${action}" readonly data-binding="${action}" aria-label="${bindingName(action)}" inputmode="none">${dropdownMarkup('key-picker-'+action,text('选择按键：','Choose key: ')+bindingName(action),keys.map(key=>[key,key.toUpperCase()]),prefs.bindings[action])}<button data-reset-binding="${action}" title="${text('恢复此项默认（占用时需交换）','Restore default (swap if occupied)')}" aria-label="${text('重置 ','Reset ')+bindingName(action)}">↺</button></div>`;
     }).join('')}</div></section>`).join('')+`<p class="binding-empty" hidden>${text('没有匹配的快捷键','No matching hotkeys')}</p>`;
-    // option 值通过 DOM 写入，避免引号、反斜杠等键名进入 HTML 属性。
+    // 按键通过统一组件编码，避免引号、反斜杠进入未转义的 HTML 属性。
     panel.querySelectorAll<HTMLElement>('.binding-row').forEach(row=>{
       const action=row.dataset.action as Binding,kind=action.startsWith('train')?kinds[Number(action.slice(5))-1]:undefined;
       row.dataset.search=BINDING_NAMES[action].join(' ')+' '+(kind?STATS[kind].name+' '+STATS[kind].en:'');
     });
-    panel.querySelectorAll<HTMLSelectElement>('[data-key-picker]').forEach(select=>{[...select.options].forEach((option,i)=>option.value=keys[i]);select.onchange=()=>request(select.dataset.keyPicker as Binding,select.value);});
+    panel.querySelectorAll<GameSelect>('game-select[id^="key-picker-"]').forEach(select=>{select.classList.add('binding-key-picker');select.onchange=()=>request(select.id.slice('key-picker-'.length) as Binding,select.value);});
     panel.querySelectorAll<HTMLInputElement>('[data-binding]').forEach(input=>{
       input.onfocus=()=>{cancel();feedback.textContent=bindingName(input.dataset.binding as Binding)+' · '+text('等待按键，Esc 取消','Press a key; Esc cancels');};
       input.onkeydown=e=>{
@@ -101,7 +102,7 @@ export function bindOperationSettings(root:HTMLElement,prefs:OperationPreference
   };
   const producers=()=>{
     const selectedRace=raceSelect.value as Race;
-    producerSelect.replaceChildren(new Option(text('整套种族阵容','Full faction roster'),''),...[...new Set(ROSTERS[selectedRace].units.map(k=>producerFor(k,selectedRace)!))].map(kind=>new Option(t(STATS[kind as BuildingKind].name),kind)));
+    producerSelect.setOptions([['',text('整套种族阵容','Full faction roster')],...[...new Set(ROSTERS[selectedRace].units.map(k=>producerFor(k,selectedRace)!))].map(kind=>[kind,t(STATS[kind as BuildingKind].name)] as Choice)]);
     render();
   };
   raceSelect.onchange=producers;producerSelect.onchange=render;search.oninput=filter;
@@ -109,5 +110,5 @@ export function bindOperationSettings(root:HTMLElement,prefs:OperationPreference
   panel.querySelector<HTMLButtonElement>('[data-binding-cancel]')!.onclick=()=>{cancel();feedback.textContent=text('已取消，按键未更改','Cancelled; hotkeys unchanged');};
   panel.querySelector<HTMLButtonElement>('[data-reset-bindings]')!.onclick=()=>{prefs.bindings=defaultPreferences().bindings;save();feedback.textContent=text('全部快捷键已恢复默认','All hotkeys restored');};
   producers();
-  if(previousView?.producer&&[...producerSelect.options].some(option=>option.value===previousView.producer)){producerSelect.value=previousView.producer;render();}
+  if(previousView?.producer){producerSelect.value=previousView.producer;render();}
 }

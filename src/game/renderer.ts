@@ -66,7 +66,7 @@ export class Renderer {
   set zoom(value:number){this.camera.setZoomAt(value,{x:this.width/2,y:this.height/2},true);}
   selected=new Set<number>();side:Side=1;
   drag:{start:Point;end:Point}|null=null;marker:{p:Point;time:number;attack:boolean}|null=null;
-  showHealth=true;showRanges=false;ready=false;hoverNode:number|null=null;selectedNode:number|null=null;
+  showHealth=true;showBuildingNames=false;showRanges=false;ready=false;hoverNode:number|null=null;selectedNode:number|null=null;
   placement:BuildPlacement|null=null;
   constructor(canvas:HTMLCanvasElement,mini:HTMLCanvasElement,private sceneCanvas:HTMLCanvasElement){
     this.canvas=canvas;this.ctx=canvas.getContext('2d')!;this.mini=mini;this.mctx=mini.getContext('2d')!;
@@ -344,7 +344,7 @@ export class Renderer {
         }
       }
       const native=maxShield(unit),effects=unit.ability?.effects.filter(s=>s.until>view.time)??[],temp=effects.find(s=>s.group==='barrier');
-      if(this.showHealth&&(selected||unit.hp<unit.maxHp||temp||native&&(unit.shield??0)<native)){
+      if(this.showHealth){
         const anchor=scene.healthAnchor(unit,this.camera);
         const width=(mobile?Math.max(26,Math.min(40,stat.size*.45)):Math.max(40,Math.min(54,stat.size*.29)))*Math.max(.8,Math.min(1.1,zoom));
         healthBars.push({point:{x:anchor.x,y:anchor.y-11},width,fraction:unit.hp/unit.maxHp,side:unit.side,selected});
@@ -358,9 +358,9 @@ export class Renderer {
         text(`建造 ${Math.floor(unit.construction*100)}%`,{x:p.x,y:below},'#ead6a1');
         bar({x:p.x,y:below+9},56,unit.construction,'#e2c78e');
       }else if(!mobile){
-        text(stat.name,{x:p.x,y:below},unit.side===this.side?'#deeee1':'#f2b0a5');
+        if(this.showBuildingNames)text(stat.name,{x:p.x,y:below},unit.side===this.side?'#deeee1':'#f2b0a5');
         const item=queues.get(unit.id);
-        if(item)bar({x:p.x,y:below+9},54,1-item.remaining/item.duration,'#8ce2cc');
+        if(item)bar({x:p.x,y:below+(this.showBuildingNames?9:0)},54,1-item.remaining/item.duration,'#8ce2cc');
       }else if(unit.kind==='worker'&&unit.cargo>0){
         bar({x:p.x,y:below},18,unit.cargo/(player?.tech.includes('logistics')?150:100),RESOURCE_INFO[unit.cargoKind||'gold'].color);
       }

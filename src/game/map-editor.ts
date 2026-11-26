@@ -12,6 +12,7 @@ import {
   type CustomMapDocument, type SymmetryMode, type ValidationIssue,
 } from './custom-maps.js';
 import { registerCustomWorld, type Feature, type WorldData } from './world.js';
+import { dropdownMarkup,type GameSelect,type Choice } from './dropdown.js';
 
 export type EditorTool =
   | 'elev-1' | 'elev-2' | 'elev-0' | 'ramp' | 'road' | 'water'
@@ -88,6 +89,7 @@ export class MapEditor {
   private hoverWorld: Point | null = null;
   private painting = false;
   private panning = false;
+  private touchPanning = true;
   private panLast: Point = { x: 0, y: 0 };
   private dirtyLandscape = false;
   private lastBrushPoint: Point | null = null;
@@ -172,16 +174,12 @@ export class MapEditor {
   }
 
   private syncSizeSelect() {
-    const sel = this.root.querySelector<HTMLSelectElement>('#ed-size');
+    const sel = this.root.querySelector<GameSelect>('#ed-size');
     if (!sel) return;
     const val = String(this.doc.size);
-    if (![...sel.options].some(o => o.value === val)) {
-      const opt = document.createElement('option');
-      opt.value = val;
-      opt.textContent = `${this.doc.size}×${this.doc.size} · 自定义`;
-      sel.append(opt);
-    }
-    sel.value = val;
+    const choices:Choice[]=MAP_SIZE_PRESETS.map(p=>[String(p.size),p.label]);
+    if(!choices.some(([value])=>value===val))choices.push([val,`${this.doc.size}×${this.doc.size} · 自定义`]);
+    sel.setOptions(choices,val);
   }
 
   private rebuildWorld(refreshValidation = true) {
@@ -488,19 +486,24 @@ export class MapEditor {
 
   private bindInput() {
     const signal = this.abort.signal;
+    let activePointer:number|null=null;
     const screenPoint = (e: MouseEvent | PointerEvent): Point => {
       const rect = this.canvas.getBoundingClientRect();
       return { x: e.clientX - rect.left, y: e.clientY - rect.top };
     };
     this.canvas.addEventListener('contextmenu', e => e.preventDefault(), { signal });
     this.canvas.addEventListener('pointerdown', e => {
-      if (e.button === 1 || e.button === 2) {
+      // 第二根手指不能再开一笔绘制，也不能提前结束第一根手指的笔画。
+      if(activePointer!==null)return;
+      if (e.button === 1 || e.button === 2 || e.pointerType==='touch'&&this.touchPanning) {
+        activePointer=e.pointerId;
         this.panning = true;
         this.panLast = { x: e.clientX, y: e.clientY };
         this.canvas.setPointerCapture(e.pointerId);
         return;
       }
       if (e.button !== 0) return;
+      activePointer=e.pointerId;
       this.pushUndo();
       this.painting = true;
       const w = this.renderer.screenToWorld(screenPoint(e));
@@ -512,6 +515,7 @@ export class MapEditor {
       this.canvas.setPointerCapture(e.pointerId);
     }, { signal });
     this.canvas.addEventListener('pointermove', e => {
+      if(activePointer!==null&&activePointer!==e.pointerId)return;
       if (this.panning) {
         this.renderer.pan(this.panLast.x - e.clientX, this.panLast.y - e.clientY);
         this.panLast = { x: e.clientX, y: e.clientY };
@@ -526,7 +530,9 @@ export class MapEditor {
       this.lastBrushPoint = w;
       this.applyStroke(w, false);
     }, { signal });
-    const stopPointer = () => {
+    const stopPointer = (e:PointerEvent) => {
+      if(activePointer!==e.pointerId)return;
+      activePointer=null;
       if (this.painting) {
         this.painting = false;
         this.lastBrushPoint = null;
@@ -537,13 +543,14 @@ export class MapEditor {
     };
     this.canvas.addEventListener('pointerup', stopPointer, { signal });
     this.canvas.addEventListener('pointercancel', stopPointer, { signal });
+    this.canvas.addEventListener('lostpointercapture', stopPointer, { signal });
     this.canvas.addEventListener('wheel', e => {
       e.preventDefault();
       const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
       this.renderer.zoomAt(factor, screenPoint(e));
     }, { passive: false, signal });
     window.addEventListener('keydown', e => {
-      if ((e.target as HTMLElement)?.tagName === 'INPUT' || (e.target as HTMLElement)?.tagName === 'SELECT') return;
+      if(e.defaultPrevented||(e.target as HTMLElement)?.closest('input,textarea,game-select,[contenteditable]'))return;
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
         e.preventDefault();
         if (e.shiftKey) this.redo(); else this.undo();
@@ -621,22 +628,12 @@ export class MapEditor {
   };
 
   private renderPanel() {
-    const saved = listCustomMaps();
     this.root.innerHTML = `
       <header class="ed-topbar">
         <div class="ed-brand"><strong>3D 地图编辑器</strong><input id="ed-name" type="text" maxlength="32" value="${this.doc.name}" aria-label="地图名称"/></div>
         <div class="ed-actions">
-          <select id="ed-size" aria-label="地图尺寸规格" title="调整地图尺寸（保留已有地形并居中裁切或扩展）">
-            ${MAP_SIZE_PRESETS.map(p => `<option value="${p.size}"${p.size === this.doc.size ? ' selected' : ''}>${p.label}</option>`).join('')}
-          </select>
-          <select id="ed-template" aria-label="载入模板或已保存地图">
-            <option value="">模板 / 已保存地图…</option>
-            <option value="__blank__">+ 新建空白地图</option>
-            <optgroup label="基于内置地图修改">
-              ${MAPS.map(m => `<option value="builtin:${m.id}">${m.name}</option>`).join('')}
-            </optgroup>
-            ${saved.length ? `<optgroup label="已保存自定义地图">${saved.map(m => `<option value="saved:${m.id}">${m.name}</option>`).join('')}</optgroup>` : ''}
-          </select>
+          ${dropdownMarkup('ed-size','地图尺寸规格',MAP_SIZE_PRESETS.map(p=>[String(p.size),p.label]),String(this.doc.size))}
+          ${dropdownMarkup('ed-template','载入模板或已保存地图',this.templateChoices())}
           <button id="ed-undo" type="button" disabled title="撤销 (Ctrl+Z)">撤销</button>
           <button id="ed-redo" type="button" disabled title="重做 (Ctrl+Shift+Z)">重做</button>
           <button id="ed-validate" type="button" class="ed-badge">✓ 地图校验通过</button>
@@ -645,10 +642,12 @@ export class MapEditor {
           <button id="ed-import" type="button">导入 JSON</button>
           <input id="ed-import-file" type="file" accept=".json,application/json" hidden/>
           <button id="ed-play" type="button" class="ed-primary">立即试玩 ▶</button>
-          <button id="ed-exit" type="button">退出</button>
+          <button id="ed-zoom-in" class="ed-touch-control" type="button" aria-label="放大地图">＋</button>
+          <button id="ed-zoom-out" class="ed-touch-control" type="button" aria-label="缩小地图">−</button>
         </div>
+        <div class="ed-primary-actions"><button id="ed-pan" class="ed-touch-control" type="button" aria-pressed="true">移图</button><button id="ed-tools-toggle" class="ed-touch-control" type="button" aria-expanded="false" aria-controls="ed-sidebar">工具</button><button id="ed-exit" type="button">退出</button></div>
       </header>
-      <aside class="ed-sidebar" aria-label="地图编辑工具箱">
+      <aside id="ed-sidebar" class="ed-sidebar" aria-label="地图编辑工具箱">
         ${TOOLS.map(group => `
           <section class="ed-group">
             <h3>${group.group}</h3>
@@ -661,13 +660,7 @@ export class MapEditor {
           <h3>笔刷与对称</h3>
           <label class="ed-field"><span>笔刷半径 <b id="ed-radius-val">${this.radius} 格</b></span><input id="ed-radius" type="range" min="1" max="8" value="${this.radius}"/></label>
           <label class="ed-field"><span>对称模式</span>
-            <select id="ed-symmetry">
-              <option value="none">无对称</option>
-              <option value="horizontal">水平镜像 (左右)</option>
-              <option value="vertical">垂直镜像 (上下)</option>
-              <option value="rotational" selected>中心旋转 (1v1 推荐)</option>
-              <option value="quad">四角对称 (4P 推荐)</option>
-            </select>
+            ${dropdownMarkup('ed-symmetry','对称模式',[['none','无对称'],['horizontal','水平镜像 (左右)'],['vertical','垂直镜像 (上下)'],['rotational','中心旋转 (1v1 推荐)'],['quad','四角对称 (4P 推荐)']],this.symmetry)}
           </label>
           <div class="ed-camera-row">
             <button id="ed-orbit-l" type="button">↶ 旋转</button>
@@ -678,16 +671,27 @@ export class MapEditor {
         <footer class="ed-footer">
           <div id="ed-coords">X 64 · Z 64 · 海拔 0</div>
           <small>左键绘制 · 右键拖动平移 · 滚轮缩放 · Z/C 旋转 · [ ] 调笔刷</small>
+          <small class="ed-touch-control">「移图」拖动画面；选择笔刷后单指绘制，＋ / − 缩放。</small>
         </footer>
       </aside>
     `;
 
+    const toggle=this.root.querySelector<HTMLButtonElement>('#ed-tools-toggle')!;
+    toggle.onclick=()=>{
+      const open=this.root.classList.toggle('ed-tools-open');
+      toggle.setAttribute('aria-expanded',String(open));
+    };
+    const pan=this.root.querySelector<HTMLButtonElement>('#ed-pan')!;
+    pan.onclick=()=>{this.touchPanning=!this.touchPanning;pan.setAttribute('aria-pressed',String(this.touchPanning));};
+    for(const [id,factor] of [['ed-zoom-in',1.2],['ed-zoom-out',1/1.2]] as const){
+      this.root.querySelector<HTMLButtonElement>('#'+id)!.onclick=()=>this.renderer.zoomAt(factor,{x:this.renderer.width/2,y:this.renderer.height/2});
+    }
     this.root.querySelector<HTMLInputElement>('#ed-name')!.oninput = e => {
       this.doc.name = (e.target as HTMLInputElement).value;
     };
     this.syncSizeSelect();
-    this.root.querySelector<HTMLSelectElement>('#ed-size')!.onchange = e => {
-      const targetSize = Number((e.target as HTMLSelectElement).value);
+    this.root.querySelector<GameSelect>('#ed-size')!.onchange = e => {
+      const targetSize = Number((e.target as GameSelect).value);
       if (!Number.isInteger(targetSize) || targetSize === this.doc.size) return;
       this.pushUndo();
       const { doc, worldOffset, trimmedCount, clampedBases } = resizeCustomMap(this.doc, targetSize);
@@ -708,14 +712,18 @@ export class MapEditor {
       btn.onclick = () => {
         this.tool = btn.dataset.tool as EditorTool;
         this.root.querySelectorAll('.ed-tool').forEach(b => b.classList.toggle('active', b === btn));
+        this.touchPanning=false;pan.setAttribute('aria-pressed','false');
+        if(matchMedia('(max-width:800px), (pointer:coarse)').matches){
+          this.root.classList.remove('ed-tools-open');toggle.setAttribute('aria-expanded','false');
+        }
       };
     });
     this.root.querySelector<HTMLInputElement>('#ed-radius')!.oninput = e => {
       this.radius = Number((e.target as HTMLInputElement).value);
       this.syncBrushSlider();
     };
-    this.root.querySelector<HTMLSelectElement>('#ed-symmetry')!.onchange = e => {
-      this.symmetry = (e.target as HTMLSelectElement).value as SymmetryMode;
+    this.root.querySelector<GameSelect>('#ed-symmetry')!.onchange = e => {
+      this.symmetry = (e.target as GameSelect).value as SymmetryMode;
     };
     this.root.querySelector<HTMLButtonElement>('#ed-undo')!.onclick = () => this.undo();
     this.root.querySelector<HTMLButtonElement>('#ed-redo')!.onclick = () => this.redo();
@@ -771,9 +779,9 @@ export class MapEditor {
         this.callbacks.onToast((err as Error).message || '导入失败：无效的地图 JSON', true);
       }
     };
-    this.root.querySelector<HTMLSelectElement>('#ed-template')!.onchange = e => {
-      const val = (e.target as HTMLSelectElement).value;
-      (e.target as HTMLSelectElement).value = '';
+    this.root.querySelector<GameSelect>('#ed-template')!.onchange = e => {
+      const val = (e.target as GameSelect).value;
+      (e.target as GameSelect).value = '';
       if (!val) return;
       this.pushUndo();
       if (val === '__blank__') this.doc = createBlankMap(undefined, this.doc.size);
@@ -803,17 +811,13 @@ export class MapEditor {
     this.root.querySelector<HTMLButtonElement>('#ed-exit')!.onclick = () => this.callbacks.onExit();
   }
 
+  private templateChoices():Choice[]{
+    return [['','模板 / 已保存地图…'],['__blank__','+ 新建空白地图'],
+      ...MAPS.map(m=>[`builtin:${m.id}`,`内置 · ${m.name}`] as Choice),
+      ...listCustomMaps().map(m=>[`saved:${m.id}`,`已保存 · ${m.name}`] as Choice)];
+  }
   private refreshTemplateSelect() {
-    const sel = this.root.querySelector<HTMLSelectElement>('#ed-template');
-    if (!sel) return;
-    const saved = listCustomMaps();
-    sel.innerHTML = `
-      <option value="">模板 / 已保存地图…</option>
-      <option value="__blank__">+ 新建空白地图</option>
-      <optgroup label="基于内置地图修改">
-        ${MAPS.map(m => `<option value="builtin:${m.id}">${m.name}</option>`).join('')}
-      </optgroup>
-      ${saved.length ? `<optgroup label="已保存自定义地图">${saved.map(m => `<option value="saved:${m.id}">${m.name}</option>`).join('')}</optgroup>` : ''}
-    `;
+    const sel = this.root.querySelector<GameSelect>('#ed-template');
+    sel?.setOptions(this.templateChoices(),sel.value);
   }
 }

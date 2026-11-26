@@ -215,6 +215,7 @@ AI 难度|AI difficulty
 离开并返回主菜单|Leave and return to main menu
 离开战役并返回主菜单|Leave battle and return to main menu
 返回主菜单|Main menu
+完成设置|Done
 返回战场|Return to battle
 查看战场|View battlefield
 保存战局|Save operation
@@ -1136,4 +1137,12 @@ Object.assign(ENGLISH,Object.fromEntries(Object.values(UNIT_DESCRIPTIONS)),{
   '生产步兵和支援单位；具体解锁条件见各单位档案。':'Produces infantry and support units; see each unit entry for unlock requirements.',
   '单位与建筑档案':'Unit and Building Archives',
   '治疗射程':'Healing range',
+  '显示血条（单位与建筑）':'Show health bars (units and buildings)',
+  '显示建筑名称':'Show building names',
+  '移图':'Pan',
+  '工具':'Tools',
+  '放大地图':'Zoom in',
+  '缩小地图':'Zoom out',
+  '「移图」拖动画面；选择笔刷后单指绘制，＋ / − 缩放。':'Use Pan to move the map. Select a brush to paint with one finger; + / − zoom.',
+  '拖动旋转，双指捏合或滚轮缩放。查看四个种族的部队、建筑与动作。':'Drag to rotate; pinch or scroll to zoom. Explore units, buildings and animations from all four factions.',
 });

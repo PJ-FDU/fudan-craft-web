@@ -83,25 +83,27 @@
     </div>
   </section>
   <section id="touch-hud" class="touch-hud" aria-label="触屏战术指令">
+    <div class="touch-tools"><button id="touch-idle" title="选择并定位空闲采集车">空闲 <span id="touch-idle-count">0</span></button><button id="touch-group-save" aria-pressed="false" title="点击保存，再点击编队编号">保存</button><button data-touch-group="1" title="召回编队 1">1</button><button data-touch-group="2" title="召回编队 2">2</button><button data-touch-group="3" title="召回编队 3">3</button><button id="touch-filter-toggle" aria-expanded="false" aria-controls="touch-filters">筛选</button></div>
+    <div id="touch-skill-slot" class="touch-skill-slot"></div>
     <div class="touch-radar" id="touch-radar"></div>
     <div class="touch-command-area">
-      <div class="touch-tools"><button id="touch-idle" title="选择并定位空闲采集车">空闲 <span id="touch-idle-count">0</span></button><button id="touch-group-save" aria-pressed="false" title="点击保存，再点击编队编号">保存</button><button data-touch-group="1" title="召回编队 1">1</button><button data-touch-group="2" title="召回编队 2">2</button><button data-touch-group="3" title="召回编队 3">3</button><button id="touch-filter-toggle" aria-expanded="false" aria-controls="touch-filters">筛选</button></div>
       <div id="touch-filters" class="touch-filters" hidden><game-select id="touch-kind" data-label="保留选中兵种"></game-select><button id="touch-no-workers">移出工人</button></div>
       <div class="touch-summary-row"><button id="touch-summary" class="touch-summary" aria-expanded="false" aria-controls="touch-details"><strong id="touch-title">单击选择 · 长按框选</strong><span id="touch-status">双击同类 · 三击全部</span><span class="touch-health" aria-hidden="true"><i id="touch-health"></i></span></button><button id="touch-clear" class="touch-clear" aria-label="取消选择或指令"><span data-ui-icon="close"></span></button></div>
-      <div class="touch-actions" role="toolbar" aria-label="快捷指令">
+    </div>
+    <div class="touch-actions" role="toolbar" aria-label="快捷指令">
         <button id="touch-resume-build" title="继续无人施工的未完工建筑" disabled><span aria-hidden="true" data-ui-icon="repair"></span><small>继续施工</small></button>
         <button id="touch-attack"><span aria-hidden="true" data-ui-icon="attack"></span><small>进攻</small></button><button id="touch-repair"><span aria-hidden="true" data-ui-icon="repair"></span><small>维修</small></button><button id="touch-stop"><span aria-hidden="true" data-ui-icon="stop"></span><small>停止</small></button><button id="touch-all"><span aria-hidden="true" data-ui-icon="army"></span><small>全军</small></button><button id="touch-dispatch" aria-expanded="false" aria-controls="touch-sheet"><span aria-hidden="true" data-ui-icon="dispatch"></span><small>调度</small><i id="touch-queue-count" hidden></i></button>
-      </div>
     </div>
     <div id="touch-details" class="touch-details" hidden></div>
     <div id="touch-sheet" class="touch-sheet" hidden><div class="touch-sheet-heading"><strong>基地调度</strong><button id="touch-sheet-close" aria-label="收起调度面板"><span data-ui-icon="close"></span></button></div><div id="touch-production-slot"></div><div id="touch-queue-slot"></div></div>
   </section>
+  <section id="skill-panel" class="skill-panel" aria-label="技能与设施指令" hidden></section>
   <footer class="footer"><span><i></i> <span id="system-state">所有系统运行正常</span></span><span>左键选择 <b>·</b> 右键采集 / 行动 <b>·</b> 方向键平移 · 中键 / 右键拖动 · 滚轮缩放 <b>·</b> ? 操作指南</span><span>FUDANCRAFT <em>EXPEDITION 2.3</em></span></footer>
 </main>
 <div id="battle-loading" class="battle-loading" hidden role="status" aria-live="polite"><div><span class="loading-insignia" aria-hidden="true">F</span><p class="title-kicker">PREPARING YOUR EXPEDITION</p><h2 id="battle-loading-title">正在准备战场</h2><p id="battle-loading-note">载入地形与远征部队，请稍候…</p><div id="battle-loading-progress"></div><div class="dialog-actions"><button id="retry-battle" class="primary-button" hidden>重新加载</button><button id="cancel-battle" class="secondary-button">返回主菜单</button></div></div></div>
 <div id="toasts" class="toasts" role="status" aria-live="polite"></div>
 <div id="audio-caption" class="audio-caption" data-i18n-ignore hidden role="status" aria-live="polite"><small id="audio-caption-speaker"></small><span id="audio-caption-text"></span></div>
 </div>
-<dialog id="dialog" aria-labelledby="dialog-title"><div class="dialog-top"><span class="eyebrow" id="dialog-tag">COMMAND CENTER</span><button id="close-dialog" class="icon-button" type="button" aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button></div><h2 id="dialog-title"></h2><div id="dialog-content"></div></dialog>
+<dialog id="dialog" aria-labelledby="dialog-title"><header class="dialog-top"><div><span class="eyebrow" id="dialog-tag">COMMAND CENTER</span><h2 id="dialog-title"></h2></div><button id="close-dialog" class="icon-button" type="button" aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button></header><div id="dialog-content"></div></dialog>
 <script type="module" src="/src/home.ts"></script>
 </body></html>

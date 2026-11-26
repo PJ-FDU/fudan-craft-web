@@ -3,7 +3,7 @@ html,body{touch-action:pan-x pan-y}
 #battle{touch-action:none;-webkit-touch-callout:none}
 #battle.box-selecting{cursor:crosshair}
 .touch-hud{display:none}
-.touch-ui{--touch-bottom:max(8px,env(safe-area-inset-bottom));--touch-side:max(8px,env(safe-area-inset-left))}
+.touch-ui{--touch-bottom:max(8px,env(safe-area-inset-bottom));--touch-side:max(8px,env(safe-area-inset-left));--touch-hud-height:190px}
 #app.touch-ui .console.battle-dock{display:none}
 #app.touch-ui .header.compact-header{height:calc(48px + env(safe-area-inset-top));grid-template-columns:minmax(0,1fr) auto;grid-template-rows:1fr;gap:6px;padding:env(safe-area-inset-top) max(6px,env(safe-area-inset-right)) 0 max(6px,env(safe-area-inset-left));background:#13211eea}
 .touch-ui .compact-header .brand,.touch-ui .economy-note,.touch-ui .battle-clock{display:none}
@@ -28,10 +28,11 @@ html,body{touch-action:pan-x pan-y}
 .touch-ui .hud-actions #pause,.touch-ui .hud-actions #menu{display:flex;width:40px;min-width:40px;height:44px;padding:0}
 .touch-ui .hud-label,.touch-ui .hud-actions kbd{display:none}
 #app.touch-ui .sector-label,#app.touch-ui .mission-card,#app.touch-ui .battle-legend,#app.touch-ui .footer{display:none}
-#app.touch-ui .zoom-controls{right:max(8px,env(safe-area-inset-right));bottom:calc(168px + var(--touch-bottom));height:auto;background:#14211ec9;padding:3px;border-radius:4px;box-shadow:none}
-.touch-ui .zoom-controls button{min-width:36px;min-height:40px}
+#app.touch-ui .zoom-controls{right:max(8px,env(safe-area-inset-right));bottom:calc(var(--touch-hud-height) + 8px + var(--touch-bottom));height:auto;background:#14211eea;padding:3px;border-radius:4px;box-shadow:none}
+.touch-ui .zoom-controls button{min-width:44px;min-height:44px}
+#app.touch-ui:has(.touch-sheet:not([hidden]),.touch-details:not([hidden])) .zoom-controls{display:none}
 .touch-ui .zoom-controls #zoom,.touch-ui .zoom-controls .zoom-line,.touch-ui .zoom-controls #orbit-left,.touch-ui .zoom-controls #orbit-right{display:none}
-#app.touch-ui .command-hint{left:var(--touch-side);right:max(8px,env(safe-area-inset-right));bottom:calc(230px + var(--touch-bottom));padding:8px;font-size:11px;white-space:normal}
+#app.touch-ui .command-hint{left:var(--touch-side);right:max(8px,env(safe-area-inset-right));bottom:calc(var(--touch-hud-height) + 66px + var(--touch-bottom));padding:8px;font-size:11px;white-space:normal}
 .touch-ui .command-hint button{min-height:44px}
 .touch-ui .touch-hud{position:absolute;inset:auto max(8px,env(safe-area-inset-right)) var(--touch-bottom) var(--touch-side);z-index:25;display:grid;grid-template-columns:84px minmax(0,1fr);gap:8px;align-items:end;pointer-events:none;color:#e2e4ce}
 .touch-ui .touch-radar{pointer-events:auto;padding:3px;background:#0b181cd9;border:1px solid #92af8070;box-shadow:0 2px 12px #0005;border-radius:3px}
@@ -39,11 +40,11 @@ html,body{touch-action:pan-x pan-y}
 .touch-ui .touch-radar canvas{display:block;width:100%;height:100%;touch-action:none}
 .touch-ui .touch-radar .radar-corner{display:none}
 .touch-ui .touch-command-area{min-width:0;display:grid;gap:6px}
-.touch-ui .touch-tools{display:flex;gap:3px;pointer-events:auto}
+.touch-ui .touch-tools{grid-column:1/-1;display:flex;gap:3px;pointer-events:auto}
 .touch-ui .touch-tools button{flex:1;min-width:0;height:44px;padding:3px;border:1px solid #90a57d70;border-radius:3px;background:#10231ec2;color:#c7d2b2;font-size:10px;white-space:nowrap}
-.touch-ui .touch-tools button[data-touch-group]{flex:.65;font-family:var(--mono)}
+.touch-ui .touch-tools button[data-touch-group]{font-family:var(--mono)}
 .touch-ui .touch-tools button.occupied,.touch-ui .touch-tools button[aria-pressed=true]{background:#375845d9;border-color:#c7bf90}
-.touch-ui .touch-tools button:disabled{opacity:.4}
+.touch-ui .touch-tools button:disabled{opacity:.7}
 .touch-ui .touch-filters{display:flex;gap:4px;pointer-events:auto}
 .touch-ui .touch-filters[hidden]{display:none}
 .touch-ui .touch-filters game-select{flex:1;max-width:70%}
@@ -55,17 +56,18 @@ html,body{touch-action:pan-x pan-y}
 .touch-ui .touch-health{position:absolute;bottom:0;left:0;right:0;height:3px;background:#061210}
 .touch-ui .touch-health i{display:block;height:100%;background:#93c89c}
 .touch-ui .touch-summary.critical .touch-health i{background:#e08e6d}
-.touch-ui .touch-clear{width:32px;min-height:45px;border:1px solid #91a57d66;border-radius:3px;color:#cdd9c3;background:#112420b8;pointer-events:auto;font-size:22px}
-.touch-ui .touch-actions{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;pointer-events:none}
+.touch-ui .touch-clear{width:44px;min-height:45px;border:1px solid #91a57d66;border-radius:3px;color:#cdd9c3;background:#112420b8;pointer-events:auto;font-size:22px}
+.touch-ui .touch-actions{grid-column:1/-1;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;pointer-events:none}
+@media(max-width:360px){.touch-ui .touch-actions{grid-template-columns:repeat(4,minmax(0,1fr))}}
 .touch-ui .touch-actions button{position:relative;display:grid;align-content:center;justify-items:center;gap:2px;height:48px;min-width:0;padding:3px 0;border:1px solid #90a57d70;border-radius:3px;background:#10231ed4;pointer-events:auto;box-shadow:0 2px 8px #0005}
 .touch-ui .touch-actions button>span{font-size:20px;line-height:23px;color:#c7d2b2}
 .touch-ui .touch-actions button>small{font-size:9px;line-height:12px;color:#b5c7b7;white-space:nowrap}
-.touch-ui .touch-actions button:disabled{opacity:.4}
+.touch-ui .touch-actions button:disabled{opacity:.7}
 .touch-ui .touch-actions button.active,.touch-ui .touch-actions button:active{border-color:#d3c594;background:#365244e8}
 .touch-ui .touch-actions i{position:absolute;top:2px;right:2px;min-width:14px;padding:1px 2px;background:#b4bd90;border-radius:2px;color:#132c20;font:9px var(--mono);font-style:normal}
-.touch-ui .touch-details,.touch-ui .touch-sheet{position:absolute;left:0;right:0;bottom:calc(100% + 8px);max-height:min(55dvh,470px);overflow:auto;pointer-events:auto;background:#10201ff5;border:1px solid #93a88180;border-radius:5px;box-shadow:0 -4px 25px #0007;padding:12px;scrollbar-width:thin}
+.touch-ui .touch-details,.touch-ui .touch-sheet{position:absolute;left:0;right:0;bottom:calc(100% + 8px);max-height:min(55dvh,470px,calc(100dvh - var(--touch-hud-height) - var(--touch-bottom) - env(safe-area-inset-top) - 72px));overflow:auto;overscroll-behavior:contain;touch-action:pan-y;pointer-events:auto;background:#10201ff5;border:1px solid #93a88180;border-radius:5px;box-shadow:0 -4px 25px #0007;padding:12px;scrollbar-width:thin}
 .touch-ui .touch-details[hidden],.touch-ui .touch-sheet[hidden]{display:none}
-.touch-ui .touch-sheet-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;font-size:12px;color:#d9d8bd}
+.touch-ui .touch-sheet-heading{position:sticky;top:-12px;z-index:2;display:flex;align-items:center;justify-content:space-between;margin:-12px -12px 8px;padding:4px 12px;background:#10201f;border-bottom:1px solid #93a88140;font-size:12px;color:#d9d8bd}
 .touch-ui .touch-sheet-heading button{width:44px;height:44px;border:1px solid #95a98355;background:#ffffff05;border-radius:3px;font-size:24px}
 #app.touch-ui .production-panel{position:static;width:auto;height:auto;padding:0;border:0;border-radius:0;background:none;box-shadow:none}
 #app.touch-ui .production-panel>.panel-heading{display:none}
@@ -81,7 +83,8 @@ html,body{touch-action:pan-x pan-y}
 #app.touch-ui .dispatch-info strong{display:block;color:#d4ddc2;font-size:10px;line-height:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #app.touch-ui .dispatch-info small,#app.touch-ui .dispatch-card kbd{display:none}
 #app.touch-ui .dispatch-cost{display:flex;flex-wrap:wrap;justify-content:center;gap:3px;color:#b0c5a6;font:9px var(--mono);margin-top:4px}
-.touch-ui .dispatch-card.locked{opacity:.45}
+#app.touch-ui .dispatch-card.locked{opacity:1;background:#1c2b27}
+#app.touch-ui .dispatch-card.locked .atlas-art{opacity:.55;filter:saturate(.2)}
 .touch-ui .dispatch-card.unaffordable:not(.locked){border-color:#b18c6555}
 .touch-ui .dispatch-card.unaffordable .dispatch-cost{color:#ceab87}
 .touch-ui .lock-mark{position:absolute;top:4px;right:4px;color:#9dae94}
@@ -114,13 +117,12 @@ html,body{touch-action:pan-x pan-y}
 .touch-ui .toast:nth-last-child(n+3){display:none}
 @media(max-width:800px),(pointer:coarse){input:not([type=range]):not([type=checkbox]),textarea{font-size:16px!important}}
 @media(max-height:500px){
-  .touch-ui .touch-hud{grid-template-columns:72px minmax(0,390px);right:auto;width:min(480px,calc(100vw - 16px))}
+  .touch-ui .touch-hud{grid-template-columns:72px minmax(0,1fr);right:auto;width:min(480px,calc(100vw - var(--touch-side) - max(8px,env(safe-area-inset-right))))}
   .touch-ui .touch-radar .minimap-wrap{width:64px;height:64px}
-  .touch-ui .touch-summary{min-height:36px;padding:3px 8px 6px}
-  .touch-ui .touch-clear{min-height:36px}
-  .touch-ui .touch-sheet{left:80px;bottom:calc(100% + 8px);max-height:calc(100dvh - 220px);width:min(420px,calc(100vw - 104px))}
+  .touch-ui .touch-summary{min-height:44px;padding:3px 8px 6px}
+  .touch-ui .touch-clear{min-height:44px}
+  .touch-ui .touch-sheet,.touch-ui .touch-details{position:fixed;left:var(--touch-side);right:max(8px,env(safe-area-inset-right));top:calc(56px + env(safe-area-inset-top));bottom:calc(64px + var(--touch-bottom));max-height:none;z-index:26}
   #app.touch-ui .production-grid{grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:82px}
   #app.touch-ui .dispatch-card{height:82px}
   #app.touch-ui .dispatch-card .atlas-art{width:32px;height:32px}
-  #app.touch-ui .zoom-controls{bottom:var(--touch-bottom)}
 }

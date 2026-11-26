@@ -100,3 +100,36 @@ body:has(.home-screen) .toggle-label input{accent-color:#c9b68a}
   .title-art,.title-identity,.title-menu{animation:none;will-change:auto}
   .title-atmosphere{display:none}
 }
+/* 小屏菜单按内容流排布，短横屏也能滚动到最后一个入口。 */
+@media(max-width:800px),(pointer:coarse){
+  .title-screen{display:flex;flex-direction:column;overflow-y:auto;overscroll-behavior:contain;padding:max(12px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+  .title-top{position:relative;inset:auto;flex:none;gap:8px}
+  .title-tools{gap:4px}
+  .title-tools button,.title-screen .title-tools #home-language{justify-content:center;min-width:44px;min-height:44px;padding:5px;font-size:11px}
+  .title-tools button>span:not(.title-help-icon){display:none}
+  .title-tools #home-language>span{display:inline}
+  .title-content{position:relative;inset:auto;transform:none;flex:1 0 auto;width:100%;margin:24px 0;display:flex;flex-direction:column;justify-content:center;gap:0}
+  .title-identity h1{font-size:clamp(42px,12.5vw,70px)}
+  .title-kicker{font-size:8px;margin-bottom:12px}
+  .title-chapter{margin-top:14px}
+  .title-chapter h2{font-size:16px;letter-spacing:7px}
+  .title-intro{font-size:12px}
+  .title-menu{width:100%;max-width:360px;margin-top:22px}
+  .title-menu-item{min-height:48px;padding:8px;gap:12px}
+  .title-menu-item>span:nth-child(2){flex:1;flex-wrap:wrap;white-space:normal;font-size:16px;letter-spacing:1px;gap:4px 12px}
+  .title-menu-item small{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+  .title-menu-arrow{opacity:.6;transform:none}
+  .title-bottom{position:relative;inset:auto;flex:none;padding-top:12px}
+  .title-save-note,.title-keyboard,.title-scene-caption{display:none}
+  .title-version{margin-left:0}
+  .menu-load-status{position:static}
+}
+@media(max-width:480px){.title-edition{display:none}}
+@media(max-height:650px) and (pointer:coarse){.title-intro{display:none}}
+@media(max-height:500px) and (min-width:581px) and (pointer:coarse){
+  .title-content{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,1fr);align-items:center;gap:24px;margin:16px 0}
+  .title-identity{width:auto}
+  .title-identity h1{font-size:clamp(42px,7vw,60px)}
+  .title-menu{margin:0;max-width:none}
+  .title-menu-item{min-height:44px}
+}
